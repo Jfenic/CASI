@@ -10,6 +10,8 @@ from casi_code_agent.tools.result import ToolResult
 
 
 class AgentLoop:
+	"""Coordinate model decisions and structured tool execution."""
+
 	def __init__(
 		self,
 		client: LLMClient,
@@ -24,14 +26,18 @@ class AgentLoop:
 		self.max_steps = max_steps
 
 	def run(self, task: str) -> AgentResult:
+		"""Run the agent until it returns a final response or reaches the limit."""
+
 		if not task.strip():
 			raise ValueError("task must not be empty")
 
 		messages = [ChatMessage(role="user", content=task)]
 		tools = self.registry.definitions()
 
+		# Each iteration represents one model decision and keeps execution bounded.
 		for step in range(1, self.max_steps + 1):
 			response = self.client.complete(messages, tools)
+
 			if response.kind == "final":
 				return AgentResult(
 					success=True,
@@ -49,6 +55,8 @@ class AgentLoop:
 				)
 
 			result = execute_tool(self.registry, response)
+
+			# Tool output becomes the next piece of context for the model.
 			messages.append(
 				ChatMessage(
 					role="tool",
@@ -65,4 +73,11 @@ class AgentLoop:
 
 	@staticmethod
 	def _format_tool_result(tool_name: str | None, result: ToolResult) -> str:
-		return f"tool={tool_name}\nsuccess={result.success}\noutput={result.output}\nerror={result.error}"
+		"""Serialize a tool result into the model's conversation context."""
+
+		return (
+			f"tool={tool_name}\n"
+			f"success={result.success}\n"
+			f"output={result.output}\n"
+			f"error={result.error}"
+		)

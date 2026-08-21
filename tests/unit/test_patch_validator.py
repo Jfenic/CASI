@@ -114,11 +114,71 @@ def test_apply_patch_changes_file_after_approval(tmp_path: Path) -> None:
     assert (repository / "app.py").read_text(encoding="utf-8") == "return True\n"
 
 
-def test_apply_patch_tool_defaults_to_safe_dry_run(tmp_path: Path) -> None:
+def test_apply_patch_tool_is_blocked_through_registry(tmp_path: Path) -> None:
     repository = _repository(tmp_path)
 
     result = ToolRegistry(repository).execute("apply_patch", {"patch": VALID_PATCH})
 
-    assert result.success is True
-    assert result.metadata["dry_run"] is True
+    assert result.success is False
+    assert "Mutation tools cannot be executed" in (result.error or "")
     assert (repository / "app.py").read_text(encoding="utf-8") == "return False\n"
+
+
+def test_apply_patch_tool_blocks_mutation_through_registry(tmp_path: Path) -> None:
+    repository = _repository(tmp_path)
+
+    result = ToolRegistry(repository).execute(
+        "apply_patch",
+        {"patch": VALID_PATCH, "approved": True, "dry_run": False},
+    )
+
+    assert result.success is False
+    assert "Mutation tools cannot be executed" in (result.error or "")
+    assert (repository / "app.py").read_text(encoding="utf-8") == "return False\n"
+
+
+CREATE_FILE_PATCH = """--- /dev/null
++++ b/new_module.py
+@@ -0,0 +1,2 @@
++def created():
++    return True
+"""
+
+
+DELETE_FILE_PATCH = """--- a/app.py
++++ /dev/null
+@@ -1 +0,0 @@
+-return False
+"""
+
+
+def test_apply_patch_creates_file_after_approval(tmp_path: Path) -> None:
+    repository = _repository(tmp_path)
+
+    files = apply_patch(repository, CREATE_FILE_PATCH, approved=True, dry_run=False)
+
+    assert files == ["new_module.py"]
+    assert (repository / "new_module.py").read_text(encoding="utf-8") == "def created():\n    return True\n"
+
+
+def test_apply_patch_deletes_file_after_approval(tmp_path: Path) -> None:
+    repository = _repository(tmp_path)
+
+    files = apply_patch(repository, DELETE_FILE_PATCH, approved=True, dry_run=False)
+
+    assert files == ["app.py"]
+    assert not (repository / "app.py").exists()
+
+
+def test_apply_patch_rejection_leaves_repository_unchanged(tmp_path: Path) -> None:
+    repository = _repository(tmp_path)
+    original = (repository / "app.py").read_text(encoding="utf-8")
+
+    try:
+        apply_patch(repository, VALID_PATCH, dry_run=False)
+    except PatchApplicationError:
+        pass
+    else:
+        raise AssertionError("Expected apply_patch to require approval")
+
+    assert (repository / "app.py").read_text(encoding="utf-8") == original

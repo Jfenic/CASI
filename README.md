@@ -27,6 +27,12 @@ casi read --repo . --file README.md
 casi search --repo . --query "AgentLoop"
 ```
 
+Run the repository test suite:
+
+```bash
+casi test --repo .
+```
+
 Run the agent with the configured Ollama model:
 
 ```bash
@@ -39,9 +45,8 @@ Start an interactive session:
 casi interactive --repo .
 ```
 
-Inside the session, use `/help`, `/history`, `/clear`, and `/exit`. Each task
-is executed as a bounded agent run; conversational context is not yet shared
-between tasks.
+Inside the session, use `/help`, `/history`, `/clear`, and `/exit`. Conversation
+context is preserved between tasks until `/clear` resets it.
 
 Casual messages such as `hola` are answered directly. Repository tools are
 reserved for tasks that require inspecting the project.
@@ -49,20 +54,28 @@ reserved for tasks that require inspecting the project.
 The default model is `qwen2.5-coder:7b`. Override it with
 `LOCALCODE_AGENT_OLLAMA_MODEL` when needed.
 
-The agent can run the repository's Pytest suite through the registered
-`run_tests` tool. Local command execution is currently intended for development;
-Docker isolation is planned for a later phase.
+## Tools and safety
 
-The registered `git_diff` tool can inspect working-tree changes or staged changes
-without modifying files.
+The agent can use these registered tools:
 
-The registered `validate_patch` tool checks a unified diff, protects repository
-boundaries and sensitive files, and runs `git apply --check` without applying it.
+- `list_files`, `read_file`, `search_code`, `git_diff`, `validate_patch` — allowed automatically
+- `run_tests` — requires confirmation in interactive mode
+- `apply_patch` — never callable by the agent; patches are proposed as unified diffs
 
-The registered `apply_patch` tool defaults to dry-run. It writes files only when
-both validation succeeds and explicit approval is supplied; it never creates a
-Git commit automatically.
+Local command execution is intended for development. Docker isolation is available
+through `DockerRunner` for sandboxed test execution on a temporary repository copy.
 
-In interactive mode, a valid unified diff in the model response is displayed
-and CASI asks `Apply patch? [y/N]` before writing. Rejecting the prompt leaves
-the repository unchanged.
+In interactive mode, a valid unified diff in the model response is displayed and
+CASI asks `Apply patch? [y/N]` before writing. Rejecting the prompt leaves the
+repository unchanged.
+
+## Development
+
+Run the test suite:
+
+```bash
+pytest
+python3 -m compileall -q src tests
+```
+
+See also `planning.md`, `TODO.md`, and `docs/implementation-tracker.md`.

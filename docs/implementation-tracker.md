@@ -7,7 +7,7 @@ Estado rapido del proyecto y de las partes ya implementadas.
 - [x] Repository safety helpers: repository resolution, safe path checks, sensitive path blocking, symlink blocking, and `.git` ignoring.
 - [x] Repository read helper: safe file reading, binary rejection, file size checks, and numbered line output.
 - [x] Repository search helper: safe text search with path, line number, and line content results.
-- [x] CLI commands: `inspect`, `read`, and `search`.
+- [x] CLI commands: `inspect`, `read`, `search`, `run`, `interactive`, and `test`.
 - [x] Structured tool system: base tool model, structured result model, tool registry, and argument validation.
 - [x] Initial tools: `list_files`, `read_file`, and `search_code`.
 - [x] Unit tests for repository helpers, CLI, and tools.
@@ -22,29 +22,32 @@ Estado rapido del proyecto y de las partes ya implementadas.
 - [x] `run_tests` tool with local timeout and output limits.
 - [x] `git_diff` read-only tool for working-tree and staged changes.
 - [x] `validate_patch` tool with path, size, sensitivity, and Git applicability checks.
-- [x] `apply_patch` tool with dry-run default and explicit approval requirement.
+- [x] `apply_patch` function with dry-run default and explicit approval requirement.
 - [x] Interactive diff display and human approval before applying a patch.
+- [x] Tool permission policies: read tools auto, execute tools confirmed in interactive mode, mutation tools blocked from the agent.
+- [x] Persistent conversational context in interactive mode with `/clear` reset.
+- [x] Patch tests for create, delete, rejection, and registry blocking.
+- [x] `DockerRunner` with temporary repository copy, no network, and resource limits.
+- [x] Benchmark loader, metrics helpers, and report renderer.
 
 ## In Progress / Pending
 
-- [ ] LLM integration with the tool registry.
-- [ ] Approval flow for model-issued mutation tool calls.
-- [ ] Sandbox-backed tool execution for commands that need isolation.
-- [ ] End-to-end benchmark execution and reporting.
+- [ ] Wire `DockerRunner` into the default agent test workflow.
+- [ ] FastAPI task lifecycle with patch approval endpoints.
+- [ ] Full observability (structured logs, metrics, tracing).
+- [ ] Expanded benchmark suite with reproducible repositories and model comparisons.
 
 ## Notes
 
-- The current package is still a scaffold, so `casi` is usable for the implemented repository operations, but the full agent workflow is not complete yet.
+- The package supports repository inspection, bounded agent runs, patch validation, and human-approved writes.
 - The source tree uses `src/`, so local development works best with a virtual environment or `uv`.
-- Baseline verification: the current test suite passes with `pytest -q`.
-- Iteration 1 verification: 32 tests pass and `python3 -m compileall -q src tests` completes successfully.
+- Baseline verification: `pytest -q` passes with 80 tests collected.
 - Ruff validation is pending because the `ruff` executable is not installed in the current environment.
 - Ollama verification: server `0.32.11`; model `qwen2.5-coder:7b`, Q4_K_M, 32K context, native tools.
-- `run_tests` currently uses the local runner with an explicit pytest command; Docker isolation remains pending.
+- `run_tests` currently uses the local runner with an explicit pytest command; Docker isolation is implemented but not yet the default path.
 - `git_diff` uses an explicit allowlisted Git command and does not modify the repository.
-- `validate_patch` is non-mutating and must pass before a future apply operation.
-- `apply_patch` never writes by default and never creates commits automatically.
-- Interactive mode applies only validated diffs after an explicit `y`/`yes` confirmation.
-- Interactive mode currently starts a bounded agent run for each task; shared conversational context and permissions remain pending.
-- Ollama requests now include a system prompt and `format=json`; casual greetings return final responses without repository tools.
-- Next implementation step: validate unified patches before adding mutation capabilities.
+- `validate_patch` is non-mutating and must pass before apply.
+- `apply_patch` is blocked through `ToolRegistry.execute`; interactive mode applies validated diffs after explicit `y`/`yes` confirmation.
+- Interactive mode preserves conversation context between tasks until `/clear`.
+- Ollama requests include a system prompt and `format=json`; casual greetings return final responses without repository tools.
+- Next implementation step: connect Docker-backed test execution to the agent correction loop and expose the FastAPI service.

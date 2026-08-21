@@ -2,50 +2,36 @@
 
 Lista priorizada de próximos pasos del proyecto.
 
+## Completado recientemente
+
+- [x] Bloquear `apply_patch` desde el agente y el registro de herramientas.
+- [x] Implementar permisos de herramientas (`READ`, `EXECUTE`, `MUTATE`).
+- [x] Confirmar `run_tests` en modo interactivo.
+- [x] Añadir contexto conversacional persistente con `/clear`.
+- [x] Ampliar pruebas de parches (crear, eliminar, rechazo sin cambios).
+- [x] Implementar `DockerRunner` con copia temporal y red desactivada.
+- [x] Añadir comando `casi test`.
+- [x] Añadir cargador de benchmarks, métricas e informes básicos.
+
 ## Prioridad inmediata
 
-- [ ] Confirmar `apply_patch` desde el modelo.
-  - Impedir que el modelo aplique cambios sin aprobación interactiva.
-  - Validar siempre el parche antes de escribir.
+- [ ] Conectar `DockerRunner` al flujo del agente para `run_tests` en producción.
+- [ ] Implementar ciclo de corrección patch → tests → retry (máx. 2 intentos).
+- [ ] Exponer API FastAPI con aprobación de parches y consulta de estado.
 
-- [ ] Implementar permisos de herramientas.
-  - Permitir lectura y búsqueda automáticamente.
-  - Requerir confirmación para ejecución y modificación.
-  - Rechazar herramientas no registradas.
+## Calidad y seguridad
 
-- [ ] Añadir contexto conversacional persistente.
-  - Mantener mensajes entre tareas de la sesión.
-  - Conservar límites de pasos y tamaño de contexto.
-  - Permitir limpiar el contexto con `/clear`.
+- [ ] Endurecer imagen Docker (`USER` no root en `sandbox.Dockerfile`).
+- [ ] Añadir detección de repeticiones y límites de archivos leídos en el agente.
+- [ ] Ampliar benchmarks a 20+ tareas reproducibles con repositorios de prueba.
 
-## Calidad Y Seguridad
+## CLI y evaluación
 
-- [ ] Completar pruebas de parches.
-  - Crear archivos con `git apply`.
-  - Eliminar archivos con `git apply`.
-  - Rechazar rutas sensibles y traversal.
-  - Verificar que un rechazo no modifica el repositorio.
+- [ ] Añadir alias `casi ask` y `casi fix` sobre `casi run`.
+- [ ] Generar informes de benchmark en fichero (JSON/Markdown).
+- [ ] Comparar resultados entre varios modelos locales.
 
-- [ ] Integrar sandbox Docker seguro.
-  - Ejecutar sobre una copia temporal.
-  - Desactivar red.
-  - Usar usuario no root.
-  - Aplicar límites de CPU, memoria, tiempo y salida.
-
-## CLI Y Evaluación
-
-- [ ] Añadir comando `casi test`.
-  - Mostrar código de salida, duración, stdout y stderr.
-  - Permitir configurar timeout.
-  - Mantener una lista de comandos permitidos.
-
-- [ ] Actualizar benchmarks y métricas.
-  - Medir éxito de tarea.
-  - Medir validez de parches.
-  - Medir tests pasados, pasos, tiempo y errores.
-  - Generar informes reproducibles.
-
-## Cierre De Cada Hito
+## Cierre de cada hito
 
 - [ ] Ejecutar la suite completa de pruebas.
 - [ ] Ejecutar `python3 -m compileall -q src tests`.

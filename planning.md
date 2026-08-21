@@ -2,16 +2,17 @@
 
 ## Estado actual
 
-- Fase 0: completada en lo esencial; el proyecto tiene empaquetado, CI, tests y documentación.
-- Fase 1: completada en lo esencial; el acceso seguro al repositorio está implementado y cubierto por tests.
-- Fase 2: completada para las herramientas de lectura y búsqueda.
-- Fase 3: completada para Ollama y respuestas estructuradas.
-- Fase 4: completada para el loop básico de solo lectura y el comando `casi run`.
-- CLI interactiva: primera versión completada con comandos de sesión y tareas acotadas.
-- Próximo bloque: herramientas de tests, Git y validación de parches.
-- `validate_patch` ya está implementado; la aplicación de cambios sigue pendiente de aprobación humana.
-- `apply_patch` ya está implementado con `dry_run` por defecto; falta conectarlo a una confirmación de la CLI interactiva.
-- La CLI interactiva ya muestra diffs válidos y solicita aprobación antes de escribir.
+- Fase 0: completada.
+- Fase 1: completada; acceso seguro al repositorio con tests.
+- Fase 2: completada; registro de herramientas estructuradas.
+- Fase 3: completada; integración con Ollama y respuestas estructuradas.
+- Fase 4: completada; bucle del agente y comando `casi run`.
+- Fase 5: completada; validación de parches, aprobación humana y bloqueo de mutaciones vía agente.
+- Fase 6A: completada; ejecutor local de tests y comando `casi test`.
+- Fase 6B: primera versión de `DockerRunner` con copia temporal, red desactivada y límites de recursos.
+- CLI interactiva: completada con contexto conversacional, confirmación de `run_tests` y aprobación de parches.
+- Evaluación: cargador de benchmarks, métricas e informes básicos.
+- Próximo bloque: API FastAPI, observabilidad completa, benchmarks ampliados e interfaz visual.
 
 El proyecto se desarrollará de forma incremental. Cada fase debe dejar una parte **funcional, probada y documentada** antes de avanzar.
 
@@ -86,8 +87,6 @@ ruff format --check .
 ## Objetivo
 
 Permitir que CASI examine un repositorio sin acceder a rutas externas ni archivos sensibles.
-
-Esta es la fase en la que estás ahora.
 
 ## Carpeta
 
@@ -931,15 +930,4 @@ Debe ser capaz de:
 9. Ask for approval before modifying the repository.
 ```
 
-El siguiente bloque de implementación debe concentrarse en las herramientas de desarrollo y parches, después de haber completado la cobertura de la **Fase 1**:
-
-```text
-security.py
-test_security.py
-explorer.py
-test_explorer.py
-reader.py
-test_reader.py
-search.py
-test_search.py
-```
+El siguiente bloque de implementación debe concentrarse en la **API FastAPI**, la **observabilidad** y la **evaluación ampliada con más tareas de benchmark**.

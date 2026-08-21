@@ -43,6 +43,9 @@ Inside the session, use `/help`, `/history`, `/clear`, and `/exit`. Each task
 is executed as a bounded agent run; conversational context is not yet shared
 between tasks.
 
+Casual messages such as `hola` are answered directly. Repository tools are
+reserved for tasks that require inspecting the project.
+
 The default model is `qwen2.5-coder:7b`. Override it with
 `LOCALCODE_AGENT_OLLAMA_MODEL` when needed.
 

@@ -11,6 +11,7 @@ from casi.config import settings
 from casi.exceptions import LLMError
 from casi.llm.base import ChatMessage, LLMResponse, ToolDefinition
 from casi.llm.parser import parse_response
+from casi.llm.prompts import SYSTEM_PROMPT
 
 
 class OllamaClient:
@@ -36,10 +37,11 @@ class OllamaClient:
 		payload: dict[str, Any] = {
 			"model": self.model,
 			"messages": [
-				{"role": message.role, "content": message.content}
-				for message in messages
+				{"role": "system", "content": SYSTEM_PROMPT},
+				*[{"role": message.role, "content": message.content} for message in messages],
 			],
 			"stream": False,
+			"format": "json",
 		}
 		if tools:
 			payload["tools"] = [self._tool_schema(tool) for tool in tools]

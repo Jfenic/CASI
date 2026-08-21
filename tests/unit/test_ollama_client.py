@@ -64,6 +64,8 @@ def test_client_sends_messages_and_parses_native_tool_call(monkeypatch: pytest.M
 	assert response.arguments == {"path": "README.md"}
 	assert captured["url"] == "http://ollama.test/api/chat"
 	assert captured["payload"]["model"] == "qwen2.5-coder:7b"
+	assert captured["payload"]["format"] == "json"
+	assert captured["payload"]["messages"][0]["role"] == "system"
 	assert captured["timeout"] == 120
 
 
@@ -79,6 +81,25 @@ def test_client_parses_structured_final_response(monkeypatch: pytest.MonkeyPatch
 
 	assert response.kind == "final"
 	assert response.content == "Done"
+
+
+def test_client_parses_greeting_as_final_response(
+	monkeypatch: pytest.MonkeyPatch,
+) -> None:
+	monkeypatch.setattr(
+		"casi.llm.ollama_client.urlopen",
+		lambda request, timeout: FakeHTTPResponse(
+			{"message": {"content": '{"type":"final","content":"Hola"}'}}
+		),
+	)
+
+	response = OllamaClient().complete(
+		[ChatMessage(role="user", content="hola")],
+		[],
+	)
+
+	assert response.kind == "final"
+	assert response.content == "Hola"
 
 
 def test_client_parses_content_json_tool_call(monkeypatch: pytest.MonkeyPatch) -> None:

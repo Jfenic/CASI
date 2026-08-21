@@ -23,3 +23,7 @@ class FileTooLargeError(FileProcessingError):
 
 class BinaryFileError(FileProcessingError):
     """Raised when a file cannot be processed as text."""
+
+
+class LLMError(CasiError):
+    """Raised when an LLM request or response cannot be handled."""

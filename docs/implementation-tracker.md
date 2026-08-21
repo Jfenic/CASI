@@ -17,6 +17,7 @@ Estado rapido del proyecto y de las partes ya implementadas.
 - [x] Ollama client with native tool-call and structured JSON response support.
 - [x] Python package renamed from `casi_code_agent` to `casi` to match the CASI project name.
 - [x] `casi run` connected to `AgentLoop` and `OllamaClient`.
+- [x] Interactive terminal session with help, history, clear, and exit commands.
 - [x] `run_tests` tool with local timeout and output limits.
 - [x] `git_diff` read-only tool for working-tree and staged changes.
 
@@ -37,4 +38,5 @@ Estado rapido del proyecto y de las partes ya implementadas.
 - Ollama verification: server `0.32.11`; model `qwen2.5-coder:7b`, Q4_K_M, 32K context, native tools.
 - `run_tests` currently uses the local runner with an explicit pytest command; Docker isolation remains pending.
 - `git_diff` uses an explicit allowlisted Git command and does not modify the repository.
+- Interactive mode currently starts a bounded agent run for each task; shared conversational context and permissions remain pending.
 - Next implementation step: validate unified patches before adding mutation capabilities.

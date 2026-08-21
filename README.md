@@ -33,6 +33,16 @@ Run the agent with the configured Ollama model:
 casi run --repo . --task "Explain the repository structure"
 ```
 
+Start an interactive session:
+
+```bash
+casi interactive --repo .
+```
+
+Inside the session, use `/help`, `/history`, `/clear`, and `/exit`. Each task
+is executed as a bounded agent run; conversational context is not yet shared
+between tasks.
+
 The default model is `qwen2.5-coder:7b`. Override it with
 `LOCALCODE_AGENT_OLLAMA_MODEL` when needed.
 

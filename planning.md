@@ -7,6 +7,7 @@
 - Fase 2: completada para las herramientas de lectura y búsqueda.
 - Fase 3: completada para Ollama y respuestas estructuradas.
 - Fase 4: completada para el loop básico de solo lectura y el comando `casi run`.
+- CLI interactiva: primera versión completada con comandos de sesión y tareas acotadas.
 - Próximo bloque: herramientas de tests, Git y validación de parches.
 
 El proyecto se desarrollará de forma incremental. Cada fase debe dejar una parte **funcional, probada y documentada** antes de avanzar.

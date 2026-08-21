@@ -9,6 +9,7 @@ from pathlib import Path
 from casi.agent.loop import AgentLoop
 from casi.config import settings
 from casi.exceptions import CasiError
+from casi.interactive import InteractiveSession
 from casi.llm.ollama_client import OllamaClient
 from casi.repository.explorer import list_files
 from casi.repository.reader import read_file
@@ -61,6 +62,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Maximum number of model decisions.",
     )
 
+    interactive_parser = subparsers.add_parser(
+        "interactive",
+        help="Start an interactive agent session.",
+    )
+    interactive_parser.add_argument("--repo", required=True, help="Repository path.")
+    interactive_parser.add_argument(
+        "--max-steps",
+        type=int,
+        default=8,
+        help="Maximum number of model decisions per task.",
+    )
+
     return parser
 
 
@@ -105,6 +118,15 @@ def _run_agent(repository: str | Path, task: str, max_steps: int) -> int:
     return 1
 
 
+def _run_interactive(repository: str | Path, max_steps: int) -> int:
+    session = InteractiveSession(
+        repository,
+        OllamaClient(),
+        max_steps=max_steps,
+    )
+    return session.run()
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -121,6 +143,9 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "run":
             return _run_agent(args.repo, args.task, args.max_steps)
+
+        if args.command == "interactive":
+            return _run_interactive(args.repo, args.max_steps)
 
         parser.error(f"Unknown command: {args.command}")
     except CasiError as exc:

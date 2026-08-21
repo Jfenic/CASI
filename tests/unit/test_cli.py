@@ -69,3 +69,15 @@ def test_cli_run_executes_agent_task(
 
     assert exit_code == 0
     assert capsys.readouterr().out.strip() == "Task completed"
+
+
+def test_cli_test_command(tmp_path: Path, capsys) -> None:
+    (tmp_path / "test_sample.py").write_text(
+        "def test_ok():\n    assert True\n",
+        encoding="utf-8",
+    )
+
+    exit_code = main(["test", "--repo", str(tmp_path)])
+
+    assert exit_code == 0
+    assert "exit_code=0" in capsys.readouterr().out

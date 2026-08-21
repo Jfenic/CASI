@@ -14,6 +14,7 @@ from casi.llm.ollama_client import OllamaClient
 from casi.repository.explorer import list_files
 from casi.repository.reader import read_file
 from casi.repository.search import search_code
+from casi.sandbox.local_runner import LocalRunner
 from casi.tools.registry import ToolRegistry
 
 
@@ -74,6 +75,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Maximum number of model decisions per task.",
     )
 
+    test_parser = subparsers.add_parser(
+        "test",
+        help="Run the repository test suite.",
+    )
+    test_parser.add_argument("--repo", required=True, help="Repository path.")
+    test_parser.add_argument(
+        "--timeout",
+        type=float,
+        default=settings.test_timeout_seconds,
+        help="Timeout in seconds for the test command.",
+    )
+
     return parser
 
 
@@ -127,6 +140,27 @@ def _run_interactive(repository: str | Path, max_steps: int) -> int:
     return session.run()
 
 
+def _run_test(repository: str | Path, timeout: float) -> int:
+    """Run pytest in the repository and print structured output."""
+
+    command = [sys.executable, "-m", "pytest", "-q"]
+    result = LocalRunner(
+        max_output_chars=settings.max_command_output_chars,
+    ).run(repository, command, timeout_seconds=timeout)
+
+    if result.stdout:
+        print(result.stdout.rstrip())
+    if result.stderr:
+        print(result.stderr.rstrip(), file=sys.stderr)
+
+    print(
+        f"exit_code={result.exit_code} "
+        f"duration={result.duration_seconds:.2f}s "
+        f"timed_out={result.timed_out}"
+    )
+    return 0 if result.exit_code == 0 and not result.timed_out else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -146,6 +180,9 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "interactive":
             return _run_interactive(args.repo, args.max_steps)
+
+        if args.command == "test":
+            return _run_test(args.repo, args.timeout)
 
         parser.error(f"Unknown command: {args.command}")
     except CasiError as exc:

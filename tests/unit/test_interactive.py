@@ -46,9 +46,78 @@ def test_interactive_session_handles_help_history_and_clear(tmp_path: Path) -> N
 
     assert any("/help" in message for message in output)
     assert "1. First task" in output
-    assert "Session task history cleared." in output
+    assert "Session history and conversation context cleared." in output
     assert "No tasks in this session." in output
     assert session.history == []
+    assert session.messages == []
+
+
+class ContextClient:
+    def __init__(self) -> None:
+        self.seen_lengths: list[int] = []
+
+    def complete(
+        self,
+        messages: list[ChatMessage],
+        tools: list[ToolDefinition],
+    ) -> LLMResponse:
+        self.seen_lengths.append(len(messages))
+        return LLMResponse.final(f"messages={len(messages)}")
+
+
+def test_interactive_session_preserves_conversation_context(tmp_path: Path) -> None:
+    client = ContextClient()
+    commands = iter(["First task", "Second task", "/exit"])
+    output: list[str] = []
+
+    InteractiveSession(
+        tmp_path,
+        client,
+        input_fn=lambda prompt: next(commands),
+        output_fn=output.append,
+    ).run()
+
+    assert client.seen_lengths[1] > client.seen_lengths[0]
+    assert "[agent] messages=3" in output
+
+
+class RunTestsClient:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def complete(
+        self,
+        messages: list[ChatMessage],
+        tools: list[ToolDefinition],
+    ) -> LLMResponse:
+        if self.calls == 0:
+            self.calls += 1
+            return LLMResponse.tool_call("run_tests", {})
+        return LLMResponse.final("Done")
+
+
+def test_interactive_session_prompts_before_run_tests(tmp_path: Path) -> None:
+    (tmp_path / "test_ok.py").write_text(
+        "def test_ok():\n    assert True\n",
+        encoding="utf-8",
+    )
+    commands = iter(["Run tests", "n", "/exit"])
+    output: list[str] = []
+    prompts: list[str] = []
+
+    def input_fn(prompt: str) -> str:
+        prompts.append(prompt)
+        return next(commands)
+
+    InteractiveSession(
+        tmp_path,
+        RunTestsClient(),
+        input_fn=input_fn,
+        output_fn=output.append,
+    ).run()
+
+    assert any("Run run_tests? [y/N]" in prompt for prompt in prompts)
+    assert "[agent] Done" in output
 
 
 def test_interactive_session_reports_unknown_command(tmp_path: Path) -> None:

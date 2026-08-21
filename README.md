@@ -62,3 +62,7 @@ boundaries and sensitive files, and runs `git apply --check` without applying it
 The registered `apply_patch` tool defaults to dry-run. It writes files only when
 both validation succeeds and explicit approval is supplied; it never creates a
 Git commit automatically.
+
+In interactive mode, a valid unified diff in the model response is displayed
+and CASI asks `Apply patch? [y/N]` before writing. Rejecting the prompt leaves
+the repository unchanged.

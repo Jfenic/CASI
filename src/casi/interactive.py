@@ -7,6 +7,8 @@ from pathlib import Path
 
 from casi.agent.loop import AgentLoop
 from casi.llm.base import LLMClient
+from casi.patching.applier import PatchApplicationError, apply_patch
+from casi.patching.validator import validate_patch
 from casi.tools.registry import ToolRegistry
 
 
@@ -55,9 +57,57 @@ class InteractiveSession:
                 max_steps=self.max_steps,
             ).run(task)
             if result.success:
-                self.output_fn(f"[agent] {result.response}")
+                self._display_response(result.response)
             else:
                 self.output_fn(f"[error] {result.error or 'Agent failed.'}")
+
+    def _display_response(self, response: str) -> None:
+        """Display a response and offer approval when it contains a valid diff."""
+
+        patch = self._extract_patch(response)
+        if patch is None:
+            self.output_fn(f"[agent] {response}")
+            return
+
+        validation = validate_patch(self.repository, patch)
+        self.output_fn(f"[patch] {validation.error or 'Patch is valid'}")
+        self.output_fn(patch)
+        if not validation.valid:
+            return
+
+        approval = self.input_fn("Apply patch? [y/N] ").strip().lower()
+        if approval not in {"y", "yes"}:
+            self.output_fn("Patch rejected; no files were changed.")
+            return
+
+        try:
+            files = apply_patch(
+                self.repository,
+                patch,
+                approved=True,
+                dry_run=False,
+            )
+        except PatchApplicationError as exc:
+            self.output_fn(f"[error] {exc}")
+            return
+        self.output_fn(f"Patch applied to: {', '.join(files)}")
+
+    @staticmethod
+    def _extract_patch(response: str) -> str | None:
+        """Extract a fenced or raw unified diff from model output."""
+
+        marker = "```diff"
+        if marker in response:
+            patch = response.split(marker, 1)[1].split("```", 1)[0].strip()
+            if patch.startswith("--- ") and "+++ " in patch:
+                return patch + "\n"
+
+        start = response.find("--- a/")
+        if start >= 0:
+            patch = response[start:].strip()
+            if "+++ b/" in patch:
+                return patch + "\n"
+        return None
 
     def _handle_command(self, command: str) -> bool:
         name = command.split(maxsplit=1)[0].lower()

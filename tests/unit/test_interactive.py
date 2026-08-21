@@ -63,3 +63,56 @@ def test_interactive_session_reports_unknown_command(tmp_path: Path) -> None:
     ).run()
 
     assert any("Unknown command: /unknown." in message for message in output)
+
+
+class PatchClient:
+    def complete(
+        self,
+        messages: list[ChatMessage],
+        tools: list[ToolDefinition],
+    ) -> LLMResponse:
+        return LLMResponse.final(
+            "```diff\n"
+            "--- a/app.py\n"
+            "+++ b/app.py\n"
+            "@@ -1 +1 @@\n"
+            "-return False\n"
+            "+return True\n"
+            "```"
+        )
+
+
+def test_interactive_session_rejects_patch_without_changes(tmp_path: Path) -> None:
+    repository = tmp_path / "repo"
+    repository.mkdir()
+    (repository / "app.py").write_text("return False\n", encoding="utf-8")
+    commands = iter(["Fix app.py", "n", "/exit"])
+    output: list[str] = []
+
+    InteractiveSession(
+        repository,
+        PatchClient(),
+        input_fn=lambda prompt: next(commands),
+        output_fn=output.append,
+    ).run()
+
+    assert (repository / "app.py").read_text(encoding="utf-8") == "return False\n"
+    assert "Patch rejected; no files were changed." in output
+
+
+def test_interactive_session_applies_approved_patch(tmp_path: Path) -> None:
+    repository = tmp_path / "repo"
+    repository.mkdir()
+    (repository / "app.py").write_text("return False\n", encoding="utf-8")
+    commands = iter(["Fix app.py", "y", "/exit"])
+    output: list[str] = []
+
+    InteractiveSession(
+        repository,
+        PatchClient(),
+        input_fn=lambda prompt: next(commands),
+        output_fn=output.append,
+    ).run()
+
+    assert (repository / "app.py").read_text(encoding="utf-8") == "return True\n"
+    assert any("Patch applied to" in message for message in output)

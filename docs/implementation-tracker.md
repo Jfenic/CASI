@@ -23,11 +23,12 @@ Estado rapido del proyecto y de las partes ya implementadas.
 - [x] `git_diff` read-only tool for working-tree and staged changes.
 - [x] `validate_patch` tool with path, size, sensitivity, and Git applicability checks.
 - [x] `apply_patch` tool with dry-run default and explicit approval requirement.
+- [x] Interactive diff display and human approval before applying a patch.
 
 ## In Progress / Pending
 
 - [ ] LLM integration with the tool registry.
-- [ ] Interactive approval flow for applying patches.
+- [ ] Approval flow for model-issued mutation tool calls.
 - [ ] Sandbox-backed tool execution for commands that need isolation.
 - [ ] End-to-end benchmark execution and reporting.
 
@@ -43,6 +44,7 @@ Estado rapido del proyecto y de las partes ya implementadas.
 - `git_diff` uses an explicit allowlisted Git command and does not modify the repository.
 - `validate_patch` is non-mutating and must pass before a future apply operation.
 - `apply_patch` never writes by default and never creates commits automatically.
+- Interactive mode applies only validated diffs after an explicit `y`/`yes` confirmation.
 - Interactive mode currently starts a bounded agent run for each task; shared conversational context and permissions remain pending.
 - Ollama requests now include a system prompt and `format=json`; casual greetings return final responses without repository tools.
 - Next implementation step: validate unified patches before adding mutation capabilities.

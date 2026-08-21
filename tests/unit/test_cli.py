@@ -3,6 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from casi.cli import main
+from casi.llm.base import LLMResponse
+
+
+class FakeOllamaClient:
+    def complete(self, messages, tools):
+        return LLMResponse.final("Task completed")
 
 
 def test_cli_inspect_lists_files(tmp_path: Path, capsys) -> None:
@@ -42,3 +48,24 @@ def test_cli_search_prints_matches(tmp_path: Path, capsys) -> None:
     assert exit_code == 0
     assert "Results (1):" in output
     assert "app.py:1: safe_path" in output
+
+
+def test_cli_run_executes_agent_task(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr("casi.cli.OllamaClient", FakeOllamaClient)
+
+    exit_code = main(
+        [
+            "run",
+            "--repo",
+            str(tmp_path),
+            "--task",
+            "Inspect the repository",
+        ]
+    )
+
+    assert exit_code == 0
+    assert capsys.readouterr().out.strip() == "Task completed"

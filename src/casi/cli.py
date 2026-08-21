@@ -6,11 +6,14 @@ import argparse
 import sys
 from pathlib import Path
 
+from casi.agent.loop import AgentLoop
 from casi.config import settings
 from casi.exceptions import CasiError
+from casi.llm.ollama_client import OllamaClient
 from casi.repository.explorer import list_files
 from casi.repository.reader import read_file
 from casi.repository.search import search_code
+from casi.tools.registry import ToolRegistry
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -45,6 +48,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="Maximum number of results to show.",
     )
 
+    run_parser = subparsers.add_parser(
+        "run",
+        help="Run the coding agent on a repository task.",
+    )
+    run_parser.add_argument("--repo", required=True, help="Repository path.")
+    run_parser.add_argument("--task", required=True, help="Task for the coding agent.")
+    run_parser.add_argument(
+        "--max-steps",
+        type=int,
+        default=8,
+        help="Maximum number of model decisions.",
+    )
+
     return parser
 
 
@@ -74,6 +90,21 @@ def _run_search(repository: str | Path, query: str, limit: int) -> int:
     return 0
 
 
+def _run_agent(repository: str | Path, task: str, max_steps: int) -> int:
+    """Run the bounded agent loop using the configured Ollama client."""
+
+    client = OllamaClient()
+    registry = ToolRegistry(repository)
+    result = AgentLoop(client, registry, max_steps=max_steps).run(task)
+
+    if result.success:
+        print(result.response)
+        return 0
+
+    print(result.error or "Agent failed without an error message.", file=sys.stderr)
+    return 1
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -87,6 +118,9 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "search":
             return _run_search(args.repo, args.query, args.limit)
+
+        if args.command == "run":
+            return _run_agent(args.repo, args.task, args.max_steps)
 
         parser.error(f"Unknown command: {args.command}")
     except CasiError as exc:

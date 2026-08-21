@@ -81,11 +81,42 @@ def test_client_parses_structured_final_response(monkeypatch: pytest.MonkeyPatch
 	assert response.content == "Done"
 
 
+def test_client_parses_content_json_tool_call(monkeypatch: pytest.MonkeyPatch) -> None:
+	monkeypatch.setattr(
+		"casi.llm.ollama_client.urlopen",
+		lambda request, timeout: FakeHTTPResponse(
+			{"message": {"content": '{"name":"read_file","arguments":{"path":"README.md"}}'}}
+		),
+	)
+
+	response = OllamaClient().complete([], [])
+
+	assert response.kind == "tool_call"
+	assert response.tool_name == "read_file"
+	assert response.arguments == {"path": "README.md"}
+
+
+def test_client_parses_fenced_content_json_tool_call(
+	monkeypatch: pytest.MonkeyPatch,
+) -> None:
+	monkeypatch.setattr(
+		"casi.llm.ollama_client.urlopen",
+		lambda request, timeout: FakeHTTPResponse(
+			{"message": {"content": '```json\n{"name":"read_file","arguments":{}}\n```'}}
+		),
+	)
+
+	response = OllamaClient().complete([], [])
+
+	assert response.kind == "tool_call"
+	assert response.tool_name == "read_file"
+
+
 def test_client_rejects_invalid_model_response(monkeypatch: pytest.MonkeyPatch) -> None:
 	monkeypatch.setattr(
 		"casi.llm.ollama_client.urlopen",
-		lambda request, timeout: FakeHTTPResponse({"message": {"content": "plain text"}}),
+		lambda request, timeout: FakeHTTPResponse({"message": {"content": ""}}),
 	)
 
-	with pytest.raises(LLMError, match="unsupported response"):
+	with pytest.raises(LLMError, match="usable content"):
 		OllamaClient().complete([], [])

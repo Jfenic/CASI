@@ -10,3 +10,28 @@ CASI (Code Agent for Software Inspection) is a local code agent that can inspect
 - `docker`: sandbox container assets
 - `scripts`: helper scripts
 - `docs`: architecture, security, and evaluation notes
+
+## Usage
+
+Install the project in editable mode:
+
+```bash
+pip install -e .
+```
+
+Inspect a repository:
+
+```bash
+casi inspect --repo .
+casi read --repo . --file README.md
+casi search --repo . --query "AgentLoop"
+```
+
+Run the agent with the configured Ollama model:
+
+```bash
+casi run --repo . --task "Explain the repository structure"
+```
+
+The default model is `qwen2.5-coder:7b`. Override it with
+`LOCALCODE_AGENT_OLLAMA_MODEL` when needed.

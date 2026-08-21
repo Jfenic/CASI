@@ -16,6 +16,7 @@ Estado rapido del proyecto y de las partes ya implementadas.
 - [x] Bounded agent loop connected to the structured tool registry.
 - [x] Ollama client with native tool-call and structured JSON response support.
 - [x] Python package renamed from `casi_code_agent` to `casi` to match the CASI project name.
+- [x] `casi run` connected to `AgentLoop` and `OllamaClient`.
 
 ## In Progress / Pending
 
@@ -32,4 +33,4 @@ Estado rapido del proyecto y de las partes ya implementadas.
 - Iteration 1 verification: 32 tests pass and `python3 -m compileall -q src tests` completes successfully.
 - Ruff validation is pending because the `ruff` executable is not installed in the current environment.
 - Ollama verification: server `0.32.11`; model `qwen2.5-coder:7b`, Q4_K_M, 32K context, native tools.
-- Next implementation step: expose the agent loop through a CLI command.
+- Next implementation step: add command execution and patch tools behind the sandbox boundary.

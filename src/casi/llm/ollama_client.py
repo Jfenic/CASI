@@ -109,8 +109,36 @@ class OllamaClient:
 			raise LLMError("Ollama message does not contain text content")
 		try:
 			return parse_response(content)
-		except ValueError as exc:
-			raise LLMError(f"Ollama returned an unsupported response: {exc}") from exc
+		except ValueError:
+			structured_response = OllamaClient._parse_content_tool_call(content)
+			if structured_response is not None:
+				return structured_response
+
+			# Final answers may be plain text when the model does not use tool calls.
+			if content.strip():
+				return LLMResponse.final(content)
+			raise LLMError("Ollama message does not contain usable content")
+
+	@staticmethod
+	def _parse_content_tool_call(content: str) -> LLMResponse | None:
+		content = content.strip()
+		if content.startswith("```") and content.endswith("```"):
+			content = content[3:-3].strip()
+			if content.startswith("json"):
+				content = content[4:].strip()
+
+		try:
+			payload: Any = json.loads(content)
+		except json.JSONDecodeError:
+			return None
+
+		if not isinstance(payload, dict):
+			return None
+		name = payload.get("name")
+		arguments = payload.get("arguments", {})
+		if isinstance(name, str) and isinstance(arguments, dict):
+			return LLMResponse.tool_call(name, arguments)
+		return None
 
 	@staticmethod
 	def _parse_tool_call(tool_calls: Any) -> LLMResponse:

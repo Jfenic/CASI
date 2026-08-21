@@ -56,6 +56,14 @@ class AgentLoop:
 
 			result = execute_tool(self.registry, response)
 
+			# Preserve the assistant decision before returning the tool result.
+			messages.append(
+				ChatMessage(
+					role="assistant",
+					content=self._format_tool_call(response.tool_name, response.arguments),
+				)
+			)
+
 			# Tool output becomes the next piece of context for the model.
 			messages.append(
 				ChatMessage(
@@ -81,3 +89,9 @@ class AgentLoop:
 			f"output={result.output}\n"
 			f"error={result.error}"
 		)
+
+	@staticmethod
+	def _format_tool_call(tool_name: str | None, arguments: dict[str, object]) -> str:
+		"""Serialize the assistant's tool decision for the next model request."""
+
+		return f"Called tool={tool_name} with arguments={arguments}"

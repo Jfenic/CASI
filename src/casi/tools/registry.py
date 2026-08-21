@@ -11,6 +11,7 @@ from casi.tools.base import Tool
 from casi.tools.file_tools import ListFilesTool, ReadFileTool
 from casi.tools.result import ToolResult
 from casi.tools.search_tools import SearchCodeTool
+from casi.tools.test_tools import RunTestsTool
 
 
 @dataclass
@@ -23,6 +24,7 @@ class ToolRegistry:
             self.register(ListFilesTool(self.repository_path))
             self.register(ReadFileTool(self.repository_path))
             self.register(SearchCodeTool(self.repository_path))
+            self.register(RunTestsTool(self.repository_path))
 
     def register(self, tool: Tool) -> None:
         self._tools[tool.name] = tool

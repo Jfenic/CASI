@@ -35,3 +35,7 @@ casi run --repo . --task "Explain the repository structure"
 
 The default model is `qwen2.5-coder:7b`. Override it with
 `LOCALCODE_AGENT_OLLAMA_MODEL` when needed.
+
+The agent can run the repository's Pytest suite through the registered
+`run_tests` tool. Local command execution is currently intended for development;
+Docker isolation is planned for a later phase.

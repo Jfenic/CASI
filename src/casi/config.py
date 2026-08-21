@@ -20,6 +20,12 @@ class Settings:
   ollama_timeout_seconds: float = float(
     os.getenv("LOCALCODE_AGENT_OLLAMA_TIMEOUT", "120")
   )
+  test_timeout_seconds: float = float(
+    os.getenv("LOCALCODE_AGENT_TEST_TIMEOUT", "120")
+  )
+  max_command_output_chars: int = int(
+    os.getenv("LOCALCODE_AGENT_MAX_COMMAND_OUTPUT", "20000")
+  )
 
 
 settings = Settings()

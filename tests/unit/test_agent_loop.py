@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from casi_code_agent.agent.loop import AgentLoop
-from casi_code_agent.llm.base import ChatMessage, LLMResponse, ToolDefinition
-from casi_code_agent.tools.registry import ToolRegistry
+from casi.agent.loop import AgentLoop
+from casi.llm.base import ChatMessage, LLMResponse, ToolDefinition
+from casi.tools.registry import ToolRegistry
 
 
 class FakeClient:

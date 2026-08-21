@@ -1,4 +1,4 @@
-"""Runtime configuration for casi_code_agent."""
+"""Runtime configuration for CASI."""
 
 import os
 from dataclasses import dataclass

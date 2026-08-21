@@ -7,10 +7,10 @@ from typing import Any, Sequence
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-from casi_code_agent.config import settings
-from casi_code_agent.exceptions import LLMError
-from casi_code_agent.llm.base import ChatMessage, LLMResponse, ToolDefinition
-from casi_code_agent.llm.parser import parse_response
+from casi.config import settings
+from casi.exceptions import LLMError
+from casi.llm.base import ChatMessage, LLMResponse, ToolDefinition
+from casi.llm.parser import parse_response
 
 
 class OllamaClient:

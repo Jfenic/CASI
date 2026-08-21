@@ -1,4 +1,4 @@
-from casi_code_agent.cli import main
+from casi.cli import main
 
 if __name__ == "__main__":
     raise SystemExit(main())

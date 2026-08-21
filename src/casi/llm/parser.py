@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from casi_code_agent.llm.base import LLMResponse
+from casi.llm.base import LLMResponse
 
 
 def parse_response(raw_response: str) -> LLMResponse:

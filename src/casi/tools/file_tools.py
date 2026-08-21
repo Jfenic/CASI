@@ -5,10 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from casi_code_agent.repository.explorer import list_files
-from casi_code_agent.repository.reader import read_file
-from casi_code_agent.tools.base import Tool, ToolArgumentSpec, path_argument
-from casi_code_agent.tools.result import ToolResult
+from casi.repository.explorer import list_files
+from casi.repository.reader import read_file
+from casi.tools.base import Tool, ToolArgumentSpec, path_argument
+from casi.tools.result import ToolResult
 
 
 class ListFilesTool(Tool):

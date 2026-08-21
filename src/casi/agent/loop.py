@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from casi_code_agent.agent.executor import execute_tool
-from casi_code_agent.agent.state import AgentResult
-from casi_code_agent.llm.base import ChatMessage, LLMClient
-from casi_code_agent.tools.registry import ToolRegistry
-from casi_code_agent.tools.result import ToolResult
+from casi.agent.executor import execute_tool
+from casi.agent.state import AgentResult
+from casi.llm.base import ChatMessage, LLMClient
+from casi.tools.registry import ToolRegistry
+from casi.tools.result import ToolResult
 
 
 class AgentLoop:

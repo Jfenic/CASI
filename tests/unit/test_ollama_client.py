@@ -5,9 +5,9 @@ from typing import Any
 
 import pytest
 
-from casi_code_agent.exceptions import LLMError
-from casi_code_agent.llm.base import ChatMessage, ToolDefinition
-from casi_code_agent.llm.ollama_client import OllamaClient
+from casi.exceptions import LLMError
+from casi.llm.base import ChatMessage, ToolDefinition
+from casi.llm.ollama_client import OllamaClient
 
 
 class FakeHTTPResponse:
@@ -46,7 +46,7 @@ def test_client_sends_messages_and_parses_native_tool_call(monkeypatch: pytest.M
 			}
 		)
 
-	monkeypatch.setattr("casi_code_agent.llm.ollama_client.urlopen", fake_urlopen)
+	monkeypatch.setattr("casi.llm.ollama_client.urlopen", fake_urlopen)
 	client = OllamaClient(base_url="http://ollama.test", model="qwen2.5-coder:7b")
 
 	response = client.complete(
@@ -69,7 +69,7 @@ def test_client_sends_messages_and_parses_native_tool_call(monkeypatch: pytest.M
 
 def test_client_parses_structured_final_response(monkeypatch: pytest.MonkeyPatch) -> None:
 	monkeypatch.setattr(
-		"casi_code_agent.llm.ollama_client.urlopen",
+		"casi.llm.ollama_client.urlopen",
 		lambda request, timeout: FakeHTTPResponse(
 			{"message": {"content": '{"type":"final","content":"Done"}'}}
 		),
@@ -83,7 +83,7 @@ def test_client_parses_structured_final_response(monkeypatch: pytest.MonkeyPatch
 
 def test_client_rejects_invalid_model_response(monkeypatch: pytest.MonkeyPatch) -> None:
 	monkeypatch.setattr(
-		"casi_code_agent.llm.ollama_client.urlopen",
+		"casi.llm.ollama_client.urlopen",
 		lambda request, timeout: FakeHTTPResponse({"message": {"content": "plain text"}}),
 	)
 

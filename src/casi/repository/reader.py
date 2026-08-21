@@ -2,9 +2,9 @@
 
 from pathlib import Path
 
-from casi_code_agent.config import settings
-from casi_code_agent.exceptions import BinaryFileError, FileTooLargeError
-from casi_code_agent.repository.security import resolve_repository, safe_path
+from casi.config import settings
+from casi.exceptions import BinaryFileError, FileTooLargeError
+from casi.repository.security import resolve_repository, safe_path
 
 
 def is_probably_binary(path: Path) -> bool:

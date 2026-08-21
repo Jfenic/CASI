@@ -1,7 +1,7 @@
 import pytest
 
-from casi_code_agent.llm.base import LLMResponse
-from casi_code_agent.llm.parser import parse_response
+from casi.llm.base import LLMResponse
+from casi.llm.parser import parse_response
 
 
 def test_parse_final_response() -> None:

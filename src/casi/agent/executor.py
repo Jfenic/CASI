@@ -1,8 +1,8 @@
 """Action execution helpers for the agent."""
 
-from casi_code_agent.llm.base import LLMResponse
-from casi_code_agent.tools.registry import ToolRegistry
-from casi_code_agent.tools.result import ToolResult
+from casi.llm.base import LLMResponse
+from casi.tools.registry import ToolRegistry
+from casi.tools.result import ToolResult
 
 
 def execute_tool(registry: ToolRegistry, response: LLMResponse) -> ToolResult:

@@ -6,11 +6,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from casi_code_agent.llm.base import ToolDefinition
-from casi_code_agent.tools.base import Tool
-from casi_code_agent.tools.file_tools import ListFilesTool, ReadFileTool
-from casi_code_agent.tools.result import ToolResult
-from casi_code_agent.tools.search_tools import SearchCodeTool
+from casi.llm.base import ToolDefinition
+from casi.tools.base import Tool
+from casi.tools.file_tools import ListFilesTool, ReadFileTool
+from casi.tools.result import ToolResult
+from casi.tools.search_tools import SearchCodeTool
 
 
 @dataclass

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from casi_code_agent.cli import main
+from casi.cli import main
 
 
 def test_cli_inspect_lists_files(tmp_path: Path, capsys) -> None:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from casi_code_agent.tools import ToolRegistry
+from casi.tools import ToolRegistry
 
 
 def test_list_files_tool_returns_structured_result(tmp_path: Path) -> None:

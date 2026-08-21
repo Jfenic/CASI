@@ -1,8 +1,8 @@
-"""Project-specific exception hierarchy for casi_code_agent."""
+"""Project-specific exception hierarchy for CASI."""
 
 
 class CasiError(Exception):
-    """Base class for controlled casi_code_agent errors."""
+    """Base class for controlled CASI errors."""
 
 
 class RepositoryError(CasiError):

@@ -3,10 +3,10 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from casi_code_agent.config import settings
-from casi_code_agent.repository.reader import is_probably_binary
-from casi_code_agent.repository.explorer import list_files
-from casi_code_agent.repository.security import resolve_repository, safe_path
+from casi.config import settings
+from casi.repository.reader import is_probably_binary
+from casi.repository.explorer import list_files
+from casi.repository.security import resolve_repository, safe_path
 
 
 @dataclass(frozen=True)

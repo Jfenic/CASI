@@ -1,1 +1,1 @@
-"""Unit tests for casi_code_agent."""
+"""Unit tests for CASI."""

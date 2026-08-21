@@ -16,7 +16,7 @@ authors = [
 dependencies = []
 
 [project.scripts]
-casi = "casi_code_agent.cli:main"
+casi = "casi.cli:main"
 
 [dependency-groups]
 dev = [
@@ -27,7 +27,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/casi_code_agent"]
+packages = ["src/casi"]
 
 [tool.ruff]
 line-length = 88

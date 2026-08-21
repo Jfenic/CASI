@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from casi_code_agent.exceptions import RepositoryError, SecurityError
-from casi_code_agent.repository.explorer import list_files
-from casi_code_agent.repository.security import resolve_repository, safe_path
+from casi.exceptions import RepositoryError, SecurityError
+from casi.repository.explorer import list_files
+from casi.repository.security import resolve_repository, safe_path
 
 
 def test_repository_does_not_exist(tmp_path: Path) -> None:

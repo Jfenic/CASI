@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from casi_code_agent.tools.result import ToolResult
+from casi.tools.result import ToolResult
 
 
 @dataclass(frozen=True)

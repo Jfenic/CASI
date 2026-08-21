@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from casi_code_agent.exceptions import RepositoryError, SecurityError
+from casi.exceptions import RepositoryError, SecurityError
 
 
 BLOCKED_NAMES = {

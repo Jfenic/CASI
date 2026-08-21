@@ -1,4 +1,4 @@
-"""Command-line entrypoint for casi_code_agent."""
+"""Command-line entrypoint for CASI."""
 
 from __future__ import annotations
 
@@ -6,11 +6,11 @@ import argparse
 import sys
 from pathlib import Path
 
-from casi_code_agent.config import settings
-from casi_code_agent.exceptions import CasiError
-from casi_code_agent.repository.explorer import list_files
-from casi_code_agent.repository.reader import read_file
-from casi_code_agent.repository.search import search_code
+from casi.config import settings
+from casi.exceptions import CasiError
+from casi.repository.explorer import list_files
+from casi.repository.reader import read_file
+from casi.repository.search import search_code
 
 
 def build_parser() -> argparse.ArgumentParser:

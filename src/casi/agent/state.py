@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from casi_code_agent.llm.base import ChatMessage
+from casi.llm.base import ChatMessage
 
 
 @dataclass(frozen=True)

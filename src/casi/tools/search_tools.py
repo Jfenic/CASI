@@ -5,9 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from casi_code_agent.repository.search import search_code
-from casi_code_agent.tools.base import Tool, ToolArgumentSpec
-from casi_code_agent.tools.result import ToolResult
+from casi.repository.search import search_code
+from casi.tools.base import Tool, ToolArgumentSpec
+from casi.tools.result import ToolResult
 
 
 class SearchCodeTool(Tool):

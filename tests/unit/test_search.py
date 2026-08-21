@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from casi_code_agent.repository.search import search_code
+from casi.repository.search import search_code
 
 
 def test_search_returns_path_and_line(tmp_path: Path) -> None:

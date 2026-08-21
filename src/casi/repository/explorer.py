@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 
-from casi_code_agent.config import settings
+from casi.config import settings
 
 from .security import SecurityError, resolve_repository, safe_path
 

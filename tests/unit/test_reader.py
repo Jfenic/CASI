@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from casi_code_agent.exceptions import BinaryFileError
-from casi_code_agent.repository.reader import read_file
+from casi.exceptions import BinaryFileError
+from casi.repository.reader import read_file
 
 
 def test_reader_adds_line_numbers(tmp_path: Path) -> None:

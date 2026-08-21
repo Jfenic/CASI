@@ -1,4 +1,4 @@
-"""casi_code_agent package."""
+"""CASI package."""
 
 from .exceptions import (
 	BinaryFileError,

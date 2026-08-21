@@ -15,6 +15,7 @@ Estado rapido del proyecto y de las partes ya implementadas.
 - [x] Provider-independent LLM response contract and strict JSON parser.
 - [x] Bounded agent loop connected to the structured tool registry.
 - [x] Ollama client with native tool-call and structured JSON response support.
+- [x] Python package renamed from `casi_code_agent` to `casi` to match the CASI project name.
 
 ## In Progress / Pending
 

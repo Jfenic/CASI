@@ -58,3 +58,7 @@ without modifying files.
 
 The registered `validate_patch` tool checks a unified diff, protects repository
 boundaries and sensitive files, and runs `git apply --check` without applying it.
+
+The registered `apply_patch` tool defaults to dry-run. It writes files only when
+both validation succeeds and explicit approval is supplied; it never creates a
+Git commit automatically.

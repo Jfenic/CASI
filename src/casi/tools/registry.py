@@ -14,6 +14,7 @@ from casi.tools.result import ToolResult
 from casi.tools.search_tools import SearchCodeTool
 from casi.tools.test_tools import RunTestsTool
 from casi.tools.patch_tools import ValidatePatchTool
+from casi.tools.patch_tools import ApplyPatchTool
 
 
 @dataclass
@@ -29,6 +30,7 @@ class ToolRegistry:
             self.register(RunTestsTool(self.repository_path))
             self.register(GitDiffTool(self.repository_path))
             self.register(ValidatePatchTool(self.repository_path))
+            self.register(ApplyPatchTool(self.repository_path))
 
     def register(self, tool: Tool) -> None:
         self._tools[tool.name] = tool

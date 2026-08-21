@@ -4,6 +4,7 @@ import subprocess
 from pathlib import Path
 
 from casi.patching.validator import validate_patch
+from casi.patching.applier import PatchApplicationError, apply_patch
 from casi.tools.registry import ToolRegistry
 
 
@@ -82,3 +83,42 @@ def test_validate_patch_rejects_patch_that_does_not_apply(tmp_path: Path) -> Non
 
     assert result.valid is False
     assert result.error
+
+
+def test_apply_patch_dry_run_does_not_modify_repository(tmp_path: Path) -> None:
+    repository = _repository(tmp_path)
+
+    files = apply_patch(repository, VALID_PATCH)
+
+    assert files == ["app.py"]
+    assert (repository / "app.py").read_text(encoding="utf-8") == "return False\n"
+
+
+def test_apply_patch_requires_explicit_approval(tmp_path: Path) -> None:
+    repository = _repository(tmp_path)
+
+    try:
+        apply_patch(repository, VALID_PATCH, dry_run=False)
+    except PatchApplicationError as exc:
+        assert "explicit approval" in str(exc)
+    else:
+        raise AssertionError("Expected apply_patch to require approval")
+
+
+def test_apply_patch_changes_file_after_approval(tmp_path: Path) -> None:
+    repository = _repository(tmp_path)
+
+    files = apply_patch(repository, VALID_PATCH, approved=True, dry_run=False)
+
+    assert files == ["app.py"]
+    assert (repository / "app.py").read_text(encoding="utf-8") == "return True\n"
+
+
+def test_apply_patch_tool_defaults_to_safe_dry_run(tmp_path: Path) -> None:
+    repository = _repository(tmp_path)
+
+    result = ToolRegistry(repository).execute("apply_patch", {"patch": VALID_PATCH})
+
+    assert result.success is True
+    assert result.metadata["dry_run"] is True
+    assert (repository / "app.py").read_text(encoding="utf-8") == "return False\n"

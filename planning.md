@@ -10,6 +10,7 @@
 - CLI interactiva: primera versión completada con comandos de sesión y tareas acotadas.
 - Próximo bloque: herramientas de tests, Git y validación de parches.
 - `validate_patch` ya está implementado; la aplicación de cambios sigue pendiente de aprobación humana.
+- `apply_patch` ya está implementado con `dry_run` por defecto; falta conectarlo a una confirmación de la CLI interactiva.
 
 El proyecto se desarrollará de forma incremental. Cada fase debe dejar una parte **funcional, probada y documentada** antes de avanzar.
 

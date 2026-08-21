@@ -22,11 +22,12 @@ Estado rapido del proyecto y de las partes ya implementadas.
 - [x] `run_tests` tool with local timeout and output limits.
 - [x] `git_diff` read-only tool for working-tree and staged changes.
 - [x] `validate_patch` tool with path, size, sensitivity, and Git applicability checks.
+- [x] `apply_patch` tool with dry-run default and explicit approval requirement.
 
 ## In Progress / Pending
 
 - [ ] LLM integration with the tool registry.
-- [ ] Additional tools: `apply_patch`.
+- [ ] Interactive approval flow for applying patches.
 - [ ] Sandbox-backed tool execution for commands that need isolation.
 - [ ] End-to-end benchmark execution and reporting.
 
@@ -41,6 +42,7 @@ Estado rapido del proyecto y de las partes ya implementadas.
 - `run_tests` currently uses the local runner with an explicit pytest command; Docker isolation remains pending.
 - `git_diff` uses an explicit allowlisted Git command and does not modify the repository.
 - `validate_patch` is non-mutating and must pass before a future apply operation.
+- `apply_patch` never writes by default and never creates commits automatically.
 - Interactive mode currently starts a bounded agent run for each task; shared conversational context and permissions remain pending.
 - Ollama requests now include a system prompt and `format=json`; casual greetings return final responses without repository tools.
 - Next implementation step: validate unified patches before adding mutation capabilities.

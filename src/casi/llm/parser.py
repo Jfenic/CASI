@@ -35,4 +35,15 @@ def parse_response(raw_response: str) -> LLMResponse:
 			raise ValueError("Tool call arguments must be a JSON object")
 		return LLMResponse.tool_call(name, arguments)
 
-	raise ValueError("LLM response type must be 'final' or 'tool_call'")
+	if response_type == "clarification":
+		question = payload.get("question")
+		plan = payload.get("plan", [])
+		if not isinstance(question, str) or not question.strip():
+			raise ValueError("Clarification requires a non-empty question")
+		if not isinstance(plan, list) or not all(isinstance(item, str) for item in plan):
+			raise ValueError("Clarification plan must be a list of strings")
+		return LLMResponse.clarification(question, plan)
+
+	raise ValueError(
+		"LLM response type must be 'final', 'tool_call', or 'clarification'"
+	)

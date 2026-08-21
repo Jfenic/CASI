@@ -61,6 +61,19 @@ class AgentLoop:
 					messages=self.messages,
 				)
 
+			if response.kind == "clarification":
+				self.messages.append(
+					ChatMessage(role="assistant", content=response.content),
+				)
+				self._trim_messages()
+				return AgentResult(
+					success=True,
+					clarification=response.content,
+					plan=response.plan,
+					steps=step,
+					messages=self.messages,
+				)
+
 			if response.kind != "tool_call":
 				# Unknown response types cannot be executed safely.
 				return AgentResult(

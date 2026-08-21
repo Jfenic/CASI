@@ -53,6 +53,7 @@ On each iteration, `client.complete()` receives:
 The model can return:
 
 - `final`: a response for the user;
+- `clarification`: a precise question and optional short plan when the request is ambiguous;
 - `tool_call`: a tool name and its arguments.
 
 The loop allows at most `max_steps` decisions. This prevents infinite loops and limits the cost of an execution.
@@ -67,7 +68,21 @@ When the model returns `kind="final"`, CASI:
 
 The final response does not execute tools.
 
-## 5. Tool call
+## 5. Clarification and planning
+
+When the task is ambiguous, the model can pause with a structured clarification:
+
+```json
+{
+    "type": "clarification",
+    "question": "Which validation behavior should change?",
+    "plan": ["Locate the validator", "Propose a focused patch", "Run tests"]
+}
+```
+
+The interactive session displays the plan and asks the user to answer the question. The answer is added to the same conversation context, and the loop resumes. Once the request is clear, the model must call the first relevant tool instead of returning a generic tutorial or an additional plan.
+
+## 6. Tool call
 
 When the model returns `kind="tool_call"`, the loop delegates execution to `execute_tool()`.
 
@@ -85,7 +100,7 @@ After executing the tool, the loop stores two messages:
 
 This allows the model to make its next decision using real repository information.
 
-## 6. Permission confirmation
+## 7. Permission confirmation
 
 Tools that can modify files must not approve themselves. The loop can receive a callback:
 
@@ -97,7 +112,7 @@ This callback acts as the permission boundary. The interactive session can ask t
 
 In particular, `apply_patch` must remain in `dry_run` mode unless approval exists and a real application was explicitly requested.
 
-## 7. Step limit
+## 8. Step limit
 
 If the model does not produce a final response before reaching `max_steps`, the loop returns a failed `AgentResult` with a limit-reached message. Execution does not continue indefinitely.
 

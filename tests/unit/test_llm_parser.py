@@ -21,6 +21,17 @@ def test_parse_tool_call() -> None:
     assert response.arguments == {"path": "README.md"}
 
 
+def test_parse_clarification_with_plan() -> None:
+    response = parse_response(
+        '{"type":"clarification","question":"Which file?",'
+        '"plan":["Find the module","Read the implementation"]}'
+    )
+
+    assert response.kind == "clarification"
+    assert response.content == "Which file?"
+    assert response.plan == ["Find the module", "Read the implementation"]
+
+
 @pytest.mark.parametrize(
     "raw_response",
     [

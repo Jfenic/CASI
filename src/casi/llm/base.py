@@ -25,6 +25,7 @@ class LLMResponse:
 	content: str = ""
 	tool_name: str | None = None
 	arguments: dict[str, Any] = field(default_factory=dict)
+	plan: list[str] = field(default_factory=list)
 
 	@classmethod
 	def final(cls, content: str) -> "LLMResponse":
@@ -33,6 +34,10 @@ class LLMResponse:
 	@classmethod
 	def tool_call(cls, name: str, arguments: dict[str, Any]) -> "LLMResponse":
 		return cls(kind="tool_call", tool_name=name, arguments=arguments)
+
+	@classmethod
+	def clarification(cls, question: str, plan: list[str] | None = None) -> "LLMResponse":
+		return cls(kind="clarification", content=question, plan=plan or [])
 
 
 class LLMClient(Protocol):

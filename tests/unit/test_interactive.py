@@ -15,6 +15,22 @@ class FakeClient:
         return LLMResponse.final("Task completed")
 
 
+class ClarifyingClient:
+    def __init__(self) -> None:
+        self.responses = iter(
+            [
+                LLMResponse.clarification(
+                    "Which email validation behavior should change?",
+                    ["Locate the validator", "Propose a focused change"],
+                ),
+                LLMResponse.final("I will inspect the email validator."),
+            ]
+        )
+
+    def complete(self, messages, tools):
+        return next(self.responses)
+
+
 def test_interactive_session_runs_task_and_exits(tmp_path: Path) -> None:
     commands = iter(["Inspect the repository", "/exit"])
     output: list[str] = []
@@ -132,6 +148,24 @@ def test_interactive_session_reports_unknown_command(tmp_path: Path) -> None:
     ).run()
 
     assert any("Unknown command: /unknown." in message for message in output)
+
+
+def test_interactive_session_resolves_clarification_before_final_response(
+    tmp_path: Path,
+) -> None:
+    commands = iter(["Fix email validation", "Reject addresses without @", "/exit"])
+    output: list[str] = []
+
+    InteractiveSession(
+        tmp_path,
+        ClarifyingClient(),
+        input_fn=lambda prompt: next(commands),
+        output_fn=output.append,
+    ).run()
+
+    assert "[plan]" in output
+    assert any("Which email validation behavior" in message for message in output)
+    assert "[agent] I will inspect the email validator." in output
 
 
 class PatchClient:

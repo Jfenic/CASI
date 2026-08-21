@@ -60,11 +60,34 @@ class InteractiveSession:
 				continue
 
 			self.history.append(task)
-			result = self._agent.run(task)
+			result = self._run_with_clarification(task)
 			if result.success:
 				self._display_response(result.response)
 			else:
 				self.output_fn(f"[error] {result.error or 'Agent failed.'}")
+
+	def _run_with_clarification(self, task: str):
+		"""Resolve model questions before displaying the final response."""
+
+		result = self._agent.run(task)
+		clarifications = 0
+		while result.clarification is not None:
+			if result.plan:
+				self.output_fn("[plan]")
+				for index, step in enumerate(result.plan, start=1):
+					self.output_fn(f"{index}. {step}")
+			self.output_fn(f"[question] {result.clarification}")
+			try:
+				answer = self.input_fn("Answer> ").strip()
+			except (EOFError, KeyboardInterrupt):
+				return result
+			if not answer:
+				return result
+			clarifications += 1
+			if clarifications >= self.max_steps:
+				return result
+			result = self._agent.run(answer)
+		return result
 
 	def _confirm_tool(self, tool_name: str, arguments: dict[str, object]) -> bool:
 		"""Ask the user before executing tools that run commands."""

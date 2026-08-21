@@ -26,6 +26,9 @@ class Settings:
   max_command_output_chars: int = int(
     os.getenv("LOCALCODE_AGENT_MAX_COMMAND_OUTPUT", "20000")
   )
+  git_timeout_seconds: float = float(
+    os.getenv("LOCALCODE_AGENT_GIT_TIMEOUT", "30")
+  )
 
 
 settings = Settings()

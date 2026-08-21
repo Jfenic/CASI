@@ -18,11 +18,12 @@ Estado rapido del proyecto y de las partes ya implementadas.
 - [x] Python package renamed from `casi_code_agent` to `casi` to match the CASI project name.
 - [x] `casi run` connected to `AgentLoop` and `OllamaClient`.
 - [x] `run_tests` tool with local timeout and output limits.
+- [x] `git_diff` read-only tool for working-tree and staged changes.
 
 ## In Progress / Pending
 
 - [ ] LLM integration with the tool registry.
-- [ ] Additional tools: `git_diff`, `validate_patch`, `apply_patch`.
+- [ ] Additional tools: `validate_patch`, `apply_patch`.
 - [ ] Sandbox-backed tool execution for commands that need isolation.
 - [ ] End-to-end benchmark execution and reporting.
 
@@ -35,4 +36,5 @@ Estado rapido del proyecto y de las partes ya implementadas.
 - Ruff validation is pending because the `ruff` executable is not installed in the current environment.
 - Ollama verification: server `0.32.11`; model `qwen2.5-coder:7b`, Q4_K_M, 32K context, native tools.
 - `run_tests` currently uses the local runner with an explicit pytest command; Docker isolation remains pending.
-- Next implementation step: add `git_diff` as the next read-only development tool.
+- `git_diff` uses an explicit allowlisted Git command and does not modify the repository.
+- Next implementation step: validate unified patches before adding mutation capabilities.

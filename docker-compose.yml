@@ -1,0 +1,6 @@
+services:
+  sandbox:
+    build:
+      context: .
+      dockerfile: docker/sandbox.Dockerfile
+    command: ["/bin/sh", "/entrypoint.sh"]

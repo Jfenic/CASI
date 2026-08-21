@@ -1,0 +1,44 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+from casi_code_agent.cli import main
+
+
+def test_cli_inspect_lists_files(tmp_path: Path, capsys) -> None:
+    repository = tmp_path / "repo"
+    repository.mkdir()
+    (repository / "README.md").write_text("hello", encoding="utf-8")
+
+    exit_code = main(["inspect", "--repo", str(repository)])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Repository:" in output
+    assert "README.md" in output
+
+
+def test_cli_read_prints_numbered_lines(tmp_path: Path, capsys) -> None:
+    repository = tmp_path / "repo"
+    repository.mkdir()
+    (repository / "README.md").write_text("alpha\nbeta\n", encoding="utf-8")
+
+    exit_code = main(["read", "--repo", str(repository), "--file", "README.md"])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "1: alpha" in output
+    assert "2: beta" in output
+
+
+def test_cli_search_prints_matches(tmp_path: Path, capsys) -> None:
+    repository = tmp_path / "repo"
+    repository.mkdir()
+    (repository / "app.py").write_text("safe_path\n", encoding="utf-8")
+
+    exit_code = main(["search", "--repo", str(repository), "--query", "safe_path"])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Results (1):" in output
+    assert "app.py:1: safe_path" in output

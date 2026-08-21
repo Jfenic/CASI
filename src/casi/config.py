@@ -35,6 +35,15 @@ class Settings:
   max_patch_files: int = int(
     os.getenv("LOCALCODE_AGENT_MAX_PATCH_FILES", "20")
   )
+  max_context_messages: int = int(
+    os.getenv("LOCALCODE_AGENT_MAX_CONTEXT_MESSAGES", "40")
+  )
+  docker_image: str = os.getenv(
+    "LOCALCODE_AGENT_DOCKER_IMAGE",
+    "casi-sandbox:latest",
+  )
+  docker_memory: str = os.getenv("LOCALCODE_AGENT_DOCKER_MEMORY", "512m")
+  docker_cpus: str = os.getenv("LOCALCODE_AGENT_DOCKER_CPUS", "1")
 
 
 settings = Settings()

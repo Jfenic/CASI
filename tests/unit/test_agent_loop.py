@@ -47,3 +47,61 @@ def test_agent_loop_stops_at_step_limit(tmp_path: Path) -> None:
     assert result.success is False
     assert result.steps == 2
     assert result.error == "Agent reached the maximum of 2 steps"
+
+
+def test_agent_loop_excludes_mutation_tools_from_definitions(tmp_path: Path) -> None:
+    client = FakeClient([LLMResponse.final("done")])
+    registry = ToolRegistry(tmp_path)
+
+    AgentLoop(client, registry).run("Inspect")
+
+    tool_names = {tool.name for tool in client.calls[0][1]}
+    assert "apply_patch" not in tool_names
+    assert "read_file" in tool_names
+
+
+def test_agent_loop_blocks_apply_patch_tool_call(tmp_path: Path) -> None:
+    client = FakeClient(
+        [
+            LLMResponse.tool_call(
+                "apply_patch",
+                {"patch": "--- a/x\n+++ b/x\n", "approved": True, "dry_run": False},
+            ),
+            LLMResponse.final("Stopped"),
+        ]
+    )
+
+    result = AgentLoop(client, ToolRegistry(tmp_path)).run("Apply patch")
+
+    assert result.success is True
+    tool_message = client.calls[1][0][-1].content
+    assert "success=False" in tool_message
+    assert "Mutation tools cannot be executed" in tool_message
+
+
+def test_agent_loop_requires_confirmation_for_run_tests(tmp_path: Path) -> None:
+    (tmp_path / "test_ok.py").write_text(
+        "def test_ok():\n    assert True\n",
+        encoding="utf-8",
+    )
+    client = FakeClient(
+        [
+            LLMResponse.tool_call("run_tests", {}),
+            LLMResponse.final("Tests finished"),
+        ]
+    )
+    confirmations: list[tuple[str, dict[str, object]]] = []
+
+    def confirm(tool_name: str, arguments: dict[str, object]) -> bool:
+        confirmations.append((tool_name, arguments))
+        return False
+
+    result = AgentLoop(
+        client,
+        ToolRegistry(tmp_path),
+        require_tool_confirmation=confirm,
+    ).run("Run tests")
+
+    assert confirmations == [("run_tests", {})]
+    assert result.success is True
+    assert "Tool execution denied by user" in client.calls[1][0][-1].content

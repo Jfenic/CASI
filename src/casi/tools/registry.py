@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from casi.agent.policies import AGENT_TOOL_NAMES, is_mutation_tool
 from casi.llm.base import ToolDefinition
 from casi.tools.base import Tool
 from casi.tools.file_tools import ListFilesTool, ReadFileTool
@@ -35,7 +36,11 @@ class ToolRegistry:
     def register(self, tool: Tool) -> None:
         self._tools[tool.name] = tool
 
-    def definitions(self) -> list[ToolDefinition]:
+    def definitions(self, *, agent_safe: bool = False) -> list[ToolDefinition]:
+        tools = self._tools.values()
+        if agent_safe:
+            tools = [tool for tool in tools if tool.name in AGENT_TOOL_NAMES]
+
         return [
             ToolDefinition(
                 name=tool.name,
@@ -48,7 +53,7 @@ class ToolRegistry:
                     for name, spec in tool.argument_schema.items()
                 },
             )
-            for tool in self._tools.values()
+            for tool in tools
         ]
 
     @staticmethod
@@ -65,6 +70,17 @@ class ToolRegistry:
                 output="",
                 error=f"Unknown tool: {name}",
                 metadata={"tool_name": name},
+            )
+
+        if is_mutation_tool(name):
+            return ToolResult(
+                success=False,
+                output="",
+                error=(
+                    "Mutation tools cannot be executed through the agent. "
+                    "Propose a unified diff in the final response instead."
+                ),
+                metadata={"tool_name": name, "blocked": True},
             )
 
         try:

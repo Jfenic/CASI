@@ -9,5 +9,6 @@ Rules:
 	{"name": "tool_name", "arguments": {}}
 - When answering directly, return a JSON object with this exact shape:
 	{"type": "final", "content": "your answer"}
+- To propose code changes, include a unified diff in the final response. Do not call apply_patch.
 - Never describe a tool call as plain text.
 """

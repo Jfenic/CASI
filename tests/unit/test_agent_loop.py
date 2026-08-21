@@ -1,0 +1,49 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+from casi_code_agent.agent.loop import AgentLoop
+from casi_code_agent.llm.base import ChatMessage, LLMResponse, ToolDefinition
+from casi_code_agent.tools.registry import ToolRegistry
+
+
+class FakeClient:
+    def __init__(self, responses: list[LLMResponse]) -> None:
+        self.responses = iter(responses)
+        self.calls: list[tuple[list[ChatMessage], list[ToolDefinition]]] = []
+
+    def complete(
+        self,
+        messages: list[ChatMessage],
+        tools: list[ToolDefinition],
+    ) -> LLMResponse:
+        self.calls.append((messages[:], tools[:]))
+        return next(self.responses)
+
+
+def test_agent_loop_executes_tool_then_returns_final_response(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text("hello\n", encoding="utf-8")
+    client = FakeClient(
+        [
+            LLMResponse.tool_call("read_file", {"path": "README.md"}),
+            LLMResponse.final("The file contains hello."),
+        ]
+    )
+
+    result = AgentLoop(client, ToolRegistry(tmp_path)).run("Inspect README.md")
+
+    assert result.success is True
+    assert result.response == "The file contains hello."
+    assert result.steps == 2
+    assert client.calls[0][1][1].name == "read_file"
+    assert "hello" in client.calls[1][0][-1].content
+
+
+def test_agent_loop_stops_at_step_limit(tmp_path: Path) -> None:
+    client = FakeClient([LLMResponse.tool_call("list_files", {})] * 2)
+
+    result = AgentLoop(client, ToolRegistry(tmp_path), max_steps=2).run("Inspect")
+
+    assert result.success is False
+    assert result.steps == 2
+    assert result.error == "Agent reached the maximum of 2 steps"

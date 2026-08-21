@@ -1,0 +1,1 @@
+"""Ollama-backed client implementation."""

@@ -55,3 +55,6 @@ Docker isolation is planned for a later phase.
 
 The registered `git_diff` tool can inspect working-tree changes or staged changes
 without modifying files.
+
+The registered `validate_patch` tool checks a unified diff, protects repository
+boundaries and sensitive files, and runs `git apply --check` without applying it.

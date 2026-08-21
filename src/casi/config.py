@@ -29,6 +29,12 @@ class Settings:
   git_timeout_seconds: float = float(
     os.getenv("LOCALCODE_AGENT_GIT_TIMEOUT", "30")
   )
+  max_patch_size_bytes: int = int(
+    os.getenv("LOCALCODE_AGENT_MAX_PATCH_SIZE", "100000")
+  )
+  max_patch_files: int = int(
+    os.getenv("LOCALCODE_AGENT_MAX_PATCH_FILES", "20")
+  )
 
 
 settings = Settings()

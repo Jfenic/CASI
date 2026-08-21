@@ -21,11 +21,12 @@ Estado rapido del proyecto y de las partes ya implementadas.
 - [x] System prompt and JSON response mode prevent unnecessary tool calls for casual input.
 - [x] `run_tests` tool with local timeout and output limits.
 - [x] `git_diff` read-only tool for working-tree and staged changes.
+- [x] `validate_patch` tool with path, size, sensitivity, and Git applicability checks.
 
 ## In Progress / Pending
 
 - [ ] LLM integration with the tool registry.
-- [ ] Additional tools: `validate_patch`, `apply_patch`.
+- [ ] Additional tools: `apply_patch`.
 - [ ] Sandbox-backed tool execution for commands that need isolation.
 - [ ] End-to-end benchmark execution and reporting.
 
@@ -39,6 +40,7 @@ Estado rapido del proyecto y de las partes ya implementadas.
 - Ollama verification: server `0.32.11`; model `qwen2.5-coder:7b`, Q4_K_M, 32K context, native tools.
 - `run_tests` currently uses the local runner with an explicit pytest command; Docker isolation remains pending.
 - `git_diff` uses an explicit allowlisted Git command and does not modify the repository.
+- `validate_patch` is non-mutating and must pass before a future apply operation.
 - Interactive mode currently starts a bounded agent run for each task; shared conversational context and permissions remain pending.
 - Ollama requests now include a system prompt and `format=json`; casual greetings return final responses without repository tools.
 - Next implementation step: validate unified patches before adding mutation capabilities.

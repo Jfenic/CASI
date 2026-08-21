@@ -9,6 +9,7 @@
 - Fase 4: completada para el loop básico de solo lectura y el comando `casi run`.
 - CLI interactiva: primera versión completada con comandos de sesión y tareas acotadas.
 - Próximo bloque: herramientas de tests, Git y validación de parches.
+- `validate_patch` ya está implementado; la aplicación de cambios sigue pendiente de aprobación humana.
 
 El proyecto se desarrollará de forma incremental. Cada fase debe dejar una parte **funcional, probada y documentada** antes de avanzar.
 

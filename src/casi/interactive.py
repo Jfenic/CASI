@@ -61,6 +61,8 @@ class InteractiveSession:
 
 			self.history.append(task)
 			result = self._run_with_clarification(task)
+			if result is None:
+				return 0
 			if result.success:
 				self._display_response(result.response)
 			else:
@@ -81,6 +83,9 @@ class InteractiveSession:
 				answer = self.input_fn("Answer> ").strip()
 			except (EOFError, KeyboardInterrupt):
 				return result
+			if answer.lower() in {"/exit", "/quit"}:
+				self.output_fn("Session ended.")
+				return None
 			if not answer:
 				return result
 			clarifications += 1

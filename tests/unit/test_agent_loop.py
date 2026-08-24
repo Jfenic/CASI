@@ -105,3 +105,33 @@ def test_agent_loop_requires_confirmation_for_run_tests(tmp_path: Path) -> None:
     assert confirmations == [("run_tests", {})]
     assert result.success is True
     assert "Tool execution denied by user" in client.calls[1][0][-1].content
+
+
+def test_agent_loop_runs_search_code_after_clarification(tmp_path: Path) -> None:
+    (tmp_path / "validators.py").write_text(
+        "def validate_email():\n    pass\n",
+        encoding="utf-8",
+    )
+    client = FakeClient([LLMResponse.clarification("Which behavior should change?")])
+    loop = AgentLoop(client, ToolRegistry(tmp_path))
+
+    clarification = loop.run("Fix email validation")
+    assert clarification.clarification == "Which behavior should change?"
+
+    client.responses = iter([LLMResponse.final("Found validate_email in validators.py.")])
+    result = loop.run("Tighten validate_email to reject bad addresses")
+
+    assert result.success is True
+    assert result.response == "Found validate_email in validators.py."
+    tool_messages = [message for message in loop.messages if message.role == "tool"]
+    assert any("validate_email" in message.content for message in tool_messages)
+    assert "validate_email" in client.calls[1][0][-1].content
+
+
+def test_agent_loop_derives_search_queries_from_clarified_task() -> None:
+    assert AgentLoop._derive_search_queries(
+        "corrige la validación de email y agrega tests"
+    ) == ["validación", "email"]
+    assert AgentLoop._derive_search_queries(
+        "Tighten validate_email to reject bad addresses"
+    ) == ["validate_email", "addresses", "Tighten"]

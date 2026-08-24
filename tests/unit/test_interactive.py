@@ -168,6 +168,20 @@ def test_interactive_session_resolves_clarification_before_final_response(
     assert "[agent] I will inspect the email validator." in output
 
 
+def test_interactive_session_can_exit_during_clarification(tmp_path: Path) -> None:
+    commands = iter(["Fix the issue", "/exit"])
+    output: list[str] = []
+
+    InteractiveSession(
+        tmp_path,
+        ClarifyingClient(),
+        input_fn=lambda prompt: next(commands),
+        output_fn=output.append,
+    ).run()
+
+    assert "Session ended." in output
+
+
 class PatchClient:
     def complete(
         self,

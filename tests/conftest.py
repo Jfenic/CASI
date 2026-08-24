@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+os.environ.setdefault("PYTEST_DEBUG_TEMPROOT", str(PROJECT_ROOT / ".pytest-tmp"))
 SRC_DIR = PROJECT_ROOT / "src"
 
 if str(SRC_DIR) not in sys.path:

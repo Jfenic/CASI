@@ -44,6 +44,13 @@ class Settings:
   )
   docker_memory: str = os.getenv("LOCALCODE_AGENT_DOCKER_MEMORY", "512m")
   docker_cpus: str = os.getenv("LOCALCODE_AGENT_DOCKER_CPUS", "1")
+  use_docker_sandbox: bool = os.getenv(
+    "LOCALCODE_AGENT_USE_DOCKER",
+    "true",
+  ).lower() in {"1", "true", "yes"}
+  max_correction_attempts: int = int(
+    os.getenv("LOCALCODE_AGENT_MAX_CORRECTION_ATTEMPTS", "2")
+  )
 
 
 settings = Settings()

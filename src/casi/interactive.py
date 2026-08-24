@@ -6,8 +6,10 @@ from collections.abc import Callable
 from pathlib import Path
 
 from casi.agent.loop import AgentLoop
+from casi.agent.state import AgentResult
 from casi.llm.base import ChatMessage, LLMClient
 from casi.patching.applier import PatchApplicationError, apply_patch
+from casi.patching.extract import extract_patch
 from casi.patching.validator import validate_patch
 from casi.tools.registry import ToolRegistry
 
@@ -64,7 +66,7 @@ class InteractiveSession:
 			if result is None:
 				return 0
 			if result.success:
-				self._display_response(result.response)
+				self._display_response(result)
 			else:
 				self.output_fn(f"[error] {result.error or 'Agent failed.'}")
 
@@ -100,10 +102,18 @@ class InteractiveSession:
 		answer = self.input_fn(f"Run {tool_name}? [y/N] ").strip().lower()
 		return answer in {"y", "yes"}
 
-	def _display_response(self, response: str) -> None:
+	def _display_response(self, result: AgentResult) -> None:
 		"""Display a response and offer approval when it contains a valid diff."""
 
-		patch = self._extract_patch(response)
+		response = result.response
+		if result.patch_verification is not None:
+			status = "passed" if result.patch_verification.passed else "failed"
+			self.output_fn(
+				f"[tests:{status} via {result.patch_verification.runner}] "
+				f"{result.patch_verification.output or 'No test output.'}"
+			)
+
+		patch = extract_patch(response)
 		if patch is None:
 			self.output_fn(f"[agent] {response}")
 			return
@@ -130,23 +140,6 @@ class InteractiveSession:
 			self.output_fn(f"[error] {exc}")
 			return
 		self.output_fn(f"Patch applied to: {', '.join(files)}")
-
-	@staticmethod
-	def _extract_patch(response: str) -> str | None:
-		"""Extract a fenced or raw unified diff from model output."""
-
-		marker = "```diff"
-		if marker in response:
-			patch = response.split(marker, 1)[1].split("```", 1)[0].strip()
-			if patch.startswith("--- ") and "+++ " in patch:
-				return patch + "\n"
-
-		start = response.find("--- a/")
-		if start >= 0:
-			patch = response[start:].strip()
-			if "+++ b/" in patch:
-				return patch + "\n"
-		return None
 
 	def _handle_command(self, command: str) -> bool:
 		name = command.split(maxsplit=1)[0].lower()

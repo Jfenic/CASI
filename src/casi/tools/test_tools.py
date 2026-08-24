@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from typing import Any
 
 from casi.config import settings
-from casi.sandbox.local_runner import LocalRunner
+from casi.sandbox.pytest_command import pytest_command
+from casi.sandbox.runner_factory import resolve_test_runner
 from casi.tools.base import Tool, ToolArgumentSpec
 from casi.tools.result import ToolResult
 
@@ -32,10 +32,9 @@ class RunTestsTool(Tool):
 		}
 
 	def run(self, arguments: dict[str, Any]) -> ToolResult:
-		command = [sys.executable, "-m", "pytest", "-q"]
-		result = LocalRunner(
-			max_output_chars=settings.max_command_output_chars,
-		).run(
+		command = pytest_command(self.repository_path)
+		runner, runner_kind = resolve_test_runner()
+		result = runner.run(
 			self.repository_path,
 			command,
 			timeout_seconds=arguments["timeout_seconds"],
@@ -52,5 +51,6 @@ class RunTestsTool(Tool):
 				"exit_code": result.exit_code,
 				"duration_seconds": result.duration_seconds,
 				"timed_out": result.timed_out,
+				"runner": runner_kind,
 			},
 		)

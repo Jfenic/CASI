@@ -6,9 +6,13 @@ import re
 from collections.abc import Callable
 
 from casi.agent.executor import execute_tool
-from casi.agent.state import AgentResult
+from casi.agent.state import AgentResult, PatchVerification
 from casi.config import settings
 from casi.llm.base import ChatMessage, LLMClient, LLMResponse
+from casi.patching.applier import PatchApplicationError
+from casi.patching.extract import extract_patch
+from casi.patching.validator import validate_patch
+from casi.sandbox.patched_tests import run_patched_tests
 from casi.tools.registry import ToolRegistry
 from casi.tools.result import ToolResult
 
@@ -22,6 +26,7 @@ class AgentLoop:
 		registry: ToolRegistry,
 		*,
 		max_steps: int = 8,
+		max_correction_attempts: int | None = None,
 		messages: list[ChatMessage] | None = None,
 		require_tool_confirmation: Callable[[str, dict[str, object]], bool] | None = None,
 	) -> None:
@@ -30,6 +35,13 @@ class AgentLoop:
 		self.client = client
 		self.registry = registry
 		self.max_steps = max_steps
+		self.max_correction_attempts = (
+			settings.max_correction_attempts
+			if max_correction_attempts is None
+			else max_correction_attempts
+		)
+		if self.max_correction_attempts < 0:
+			raise ValueError("max_correction_attempts must be greater than or equal to 0")
 		# Reuse the same list to preserve context across interactive tasks.
 		self.messages = messages if messages is not None else []
 		self._clarification_pending = False
@@ -52,10 +64,21 @@ class AgentLoop:
 		if clarification_seen:
 			self._run_post_clarification_search(task.strip())
 
+		correction_attempts = 0
+		patch_verification: PatchVerification | None = None
+
 		for step in range(1, self.max_steps + 1):
 			response = self.client.complete(self.messages, tools)
 
 			if response.kind == "final":
+				patch_verification, should_retry = self._verify_patch_response(
+					response.content,
+					correction_attempts=correction_attempts,
+				)
+				if should_retry:
+					correction_attempts += 1
+					continue
+
 				# Store the final answer so the next task can use this conversation turn.
 				self.messages.append(
 					ChatMessage(role="assistant", content=response.content),
@@ -66,6 +89,7 @@ class AgentLoop:
 					response=response.content,
 					steps=step,
 					messages=self.messages,
+					patch_verification=patch_verification,
 				)
 
 			if response.kind == "clarification":
@@ -130,7 +154,60 @@ class AgentLoop:
 			error=f"Agent reached the maximum of {self.max_steps} steps",
 			steps=self.max_steps,
 			messages=self.messages,
+			patch_verification=patch_verification,
 		)
+
+	def _verify_patch_response(
+		self,
+		content: str,
+		*,
+		correction_attempts: int,
+	) -> tuple[PatchVerification | None, bool]:
+		"""Run patched tests on a final response or ask the model to retry."""
+
+		patch = extract_patch(content)
+		if patch is None:
+			return None, False
+
+		validation = validate_patch(self.registry.repository_path, patch)
+		if not validation.valid:
+			return None, False
+
+		try:
+			test_result, runner = run_patched_tests(
+				self.registry.repository_path,
+				patch,
+			)
+		except (ValueError, PatchApplicationError):
+			return None, False
+
+		output = test_result.stdout
+		if test_result.stderr:
+			output = f"{output}\n{test_result.stderr}".strip()
+		passed = test_result.exit_code == 0 and not test_result.timed_out
+		verification = PatchVerification(
+			passed=passed,
+			output=output,
+			runner=runner,
+			correction_attempts=correction_attempts,
+		)
+
+		if passed or correction_attempts >= self.max_correction_attempts:
+			return verification, False
+
+		self.messages.append(ChatMessage(role="assistant", content=content))
+		self.messages.append(
+			ChatMessage(
+				role="user",
+				content=(
+					f"The proposed patch failed tests in the {runner} sandbox.\n"
+					f"Output:\n{output}\n"
+					"Provide a corrected unified diff that fixes the failures."
+				),
+			)
+		)
+		self._trim_messages()
+		return None, True
 
 	def _trim_messages(self) -> None:
 		"""Keep the most recent conversation messages within configured limits."""

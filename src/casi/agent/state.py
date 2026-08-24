@@ -8,6 +8,14 @@ from casi.llm.base import ChatMessage
 
 
 @dataclass(frozen=True)
+class PatchVerification:
+	passed: bool
+	output: str
+	runner: str
+	correction_attempts: int = 0
+
+
+@dataclass(frozen=True)
 class AgentResult:
 	success: bool
 	response: str = ""
@@ -16,3 +24,4 @@ class AgentResult:
 	error: str | None = None
 	steps: int = 0
 	messages: list[ChatMessage] = field(default_factory=list)
+	patch_verification: PatchVerification | None = None

@@ -42,6 +42,17 @@ class DockerRunner:
 		)
 		return result.returncode == 0
 
+	def image_exists(self) -> bool:
+		"""Return whether the configured sandbox image is present locally."""
+
+		result = subprocess.run(
+			["docker", "image", "inspect", self.image],
+			capture_output=True,
+			text=True,
+			check=False,
+		)
+		return result.returncode == 0
+
 	def run(
 		self,
 		repository: str | Path,
@@ -57,8 +68,6 @@ class DockerRunner:
 			raise RuntimeError("Docker is not available")
 
 		root = resolve_repository(repository)
-		started_at = time.monotonic()
-
 		with tempfile.TemporaryDirectory(prefix="casi-sandbox-") as temp_dir:
 			workspace = Path(temp_dir) / "workspace"
 			shutil.copytree(
@@ -67,42 +76,68 @@ class DockerRunner:
 				ignore=shutil.ignore_patterns(".git", ".venv", "__pycache__"),
 				dirs_exist_ok=True,
 			)
+			return self.run_in_workspace(
+				workspace,
+				command,
+				timeout_seconds=timeout_seconds,
+			)
 
-			docker_command = [
-				"docker",
-				"run",
-				"--rm",
-				"--network",
-				"none",
-				"--memory",
-				self.memory,
-				"--cpus",
-				self.cpus,
-				"-v",
-				f"{workspace}:/workspace:rw",
-				"-w",
-				"/workspace",
-				self.image,
-				*command,
-			]
+	def run_in_workspace(
+		self,
+		workspace: str | Path,
+		command: list[str],
+		*,
+		timeout_seconds: float = 120,
+	) -> TestResult:
+		"""Run a command inside Docker against an existing workspace directory."""
 
-			try:
-				completed = subprocess.run(
-					docker_command,
-					capture_output=True,
-					text=True,
-					timeout=timeout_seconds,
-					check=False,
-				)
-			except subprocess.TimeoutExpired as exc:
-				return TestResult(
-					command=command,
-					exit_code=-1,
-					stdout=self._limit_output(exc.stdout),
-					stderr=self._limit_output(exc.stderr),
-					duration_seconds=time.monotonic() - started_at,
-					timed_out=True,
-				)
+		if not command:
+			raise ValueError("command must not be empty")
+		if timeout_seconds <= 0:
+			raise ValueError("timeout_seconds must be greater than 0")
+		if not self.is_available():
+			raise RuntimeError("Docker is not available")
+
+		root = Path(workspace).expanduser().resolve()
+		if not root.is_dir():
+			raise ValueError(f"workspace does not exist: {root}")
+
+		started_at = time.monotonic()
+		docker_command = [
+			"docker",
+			"run",
+			"--rm",
+			"--network",
+			"none",
+			"--memory",
+			self.memory,
+			"--cpus",
+			self.cpus,
+			"-v",
+			f"{root}:/workspace:rw",
+			"-w",
+			"/workspace",
+			self.image,
+			*command,
+		]
+
+		try:
+			completed = subprocess.run(
+				docker_command,
+				capture_output=True,
+				text=True,
+				timeout=timeout_seconds,
+				check=False,
+			)
+		except subprocess.TimeoutExpired as exc:
+			return TestResult(
+				command=command,
+				exit_code=-1,
+				stdout=self._limit_output(exc.stdout),
+				stderr=self._limit_output(exc.stderr),
+				duration_seconds=time.monotonic() - started_at,
+				timed_out=True,
+			)
 
 		return TestResult(
 			command=command,

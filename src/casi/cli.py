@@ -14,7 +14,8 @@ from casi.llm.ollama_client import OllamaClient
 from casi.repository.explorer import list_files
 from casi.repository.reader import read_file
 from casi.repository.search import search_code
-from casi.sandbox.local_runner import LocalRunner
+from casi.sandbox.pytest_command import pytest_command
+from casi.sandbox.runner_factory import resolve_test_runner
 from casi.tools.registry import ToolRegistry
 
 
@@ -143,10 +144,9 @@ def _run_interactive(repository: str | Path, max_steps: int) -> int:
 def _run_test(repository: str | Path, timeout: float) -> int:
     """Run pytest in the repository and print structured output."""
 
-    command = [sys.executable, "-m", "pytest", "-q"]
-    result = LocalRunner(
-        max_output_chars=settings.max_command_output_chars,
-    ).run(repository, command, timeout_seconds=timeout)
+    command = pytest_command(repository)
+    runner, runner_kind = resolve_test_runner()
+    result = runner.run(repository, command, timeout_seconds=timeout)
 
     if result.stdout:
         print(result.stdout.rstrip())
@@ -154,6 +154,7 @@ def _run_test(repository: str | Path, timeout: float) -> int:
         print(result.stderr.rstrip(), file=sys.stderr)
 
     print(
+        f"runner={runner_kind} "
         f"exit_code={result.exit_code} "
         f"duration={result.duration_seconds:.2f}s "
         f"timed_out={result.timed_out}"

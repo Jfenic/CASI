@@ -6,7 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from casi.agent.loop import AgentLoop
+from casi.agent.orchestrator import AgentOrchestrator
 from casi.config import settings
 from casi.exceptions import CasiError
 from casi.interactive import InteractiveSession
@@ -59,8 +59,8 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument(
         "--max-steps",
         type=int,
-        default=8,
-        help="Maximum number of model decisions.",
+        default=None,
+        help="Maximum model decisions per agent. Defaults to each agent's profile limit.",
     )
     run_parser.add_argument(
         "--routing",
@@ -77,8 +77,8 @@ def build_parser() -> argparse.ArgumentParser:
     interactive_parser.add_argument(
         "--max-steps",
         type=int,
-        default=8,
-        help="Maximum number of model decisions per task.",
+        default=None,
+        help="Maximum model decisions per agent. Defaults to each agent's profile limit.",
     )
     interactive_parser.add_argument(
         "--routing",
@@ -131,20 +131,20 @@ def _run_search(repository: str | Path, query: str, limit: int) -> int:
 def _run_agent(
     repository: str | Path,
     task: str,
-    max_steps: int,
+    max_steps: int | None,
     routing: str,
 ) -> int:
     """Run the bounded agent loop using the configured Ollama client."""
 
-    client = OllamaClient()
-    registry = ToolRegistry(repository)
-    result = AgentLoop(
-        client,
-        registry,
+    orchestrator = AgentOrchestrator(
+        OllamaClient(),
+        repository,
         max_steps=max_steps,
         routing_mode=routing,
+        approve_segment=lambda _segment: True,
         on_context_compact=lambda message: print(f"[context] {message}", file=sys.stderr),
-    ).run(task)
+    )
+    result = orchestrator.run(task)
 
     if result.success:
         print(result.response)
@@ -154,7 +154,7 @@ def _run_agent(
     return 1
 
 
-def _run_interactive(repository: str | Path, max_steps: int, routing: str) -> int:
+def _run_interactive(repository: str | Path, max_steps: int | None, routing: str) -> int:
     session = InteractiveSession(
         repository,
         OllamaClient(),

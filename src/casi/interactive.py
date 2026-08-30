@@ -6,8 +6,14 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 
-from casi.agent.conversation import ContextCompactDecision, ContextCompactRequest
-from casi.agent.loop import AgentLoop
+from casi.agent.conversation import ContextCompactDecision, ContextCompactRequest, Conversation
+from casi.agent.orchestrator import (
+	AgentOrchestrator,
+	OrchestratorResult,
+	PendingOrchestration,
+	format_segment_approval_prompt,
+)
+from casi.agent.planner import AgentPlan, PlanSegment
 from casi.agent.state import AgentResult
 from casi.config import settings
 from casi.llm.base import ChatMessage, LLMClient
@@ -25,8 +31,8 @@ class InteractiveSession:
 		repository: str | Path,
 		client: LLMClient,
 		*,
-		max_steps: int = 8,
 		routing_mode: str = "assist",
+		max_steps: int | None = None,
 		input_fn: Callable[[str], str] = input,
 		output_fn: Callable[[str], None] = print,
 	) -> None:
@@ -39,17 +45,32 @@ class InteractiveSession:
 		self.history: list[str] = []
 		self.messages: list[ChatMessage] = []
 		self._registry = ToolRegistry(self.repository)
-		self._agent = AgentLoop(
-			self.client,
+		self._session_conversation = Conversation(
+			self.messages,
 			self._registry,
-			max_steps=self.max_steps,
-			messages=self.messages,
-			require_tool_confirmation=self._confirm_tool,
+			llm_client=self.client,
 			on_context_compact=lambda message: self._emit(f"[context] {message}"),
 			on_context_compact_prompt=self._prompt_context_compact,
-			routing_mode=self.routing_mode,
 		)
 		self._awaiting_clarification = False
+		self._pending_orchestration: PendingOrchestration | None = None
+		self._orchestrator = AgentOrchestrator(
+			self.client,
+			self.repository,
+			session_messages=self.messages,
+			max_steps=self.max_steps,
+			routing_mode=self.routing_mode,
+			require_tool_confirmation=self._confirm_tool,
+			approve_segment=self._approve_plan_segment,
+			on_context_compact=lambda message: self._emit(f"[context] {message}"),
+			on_context_compact_prompt=self._prompt_context_compact,
+			on_plan=self._emit_plan,
+		)
+
+	def _emit_plan(self, plan: AgentPlan) -> None:
+		self._emit("[plan]")
+		for line in plan.summary_lines():
+			self._emit(line)
 
 	def run(self) -> int:
 		"""Start the session and return a process-style exit code."""
@@ -79,46 +100,76 @@ class InteractiveSession:
 
 			if result is None:
 				return 0
-			if result.success and not self._awaiting_clarification:
-				self._display_response(result)
+			agent_result = self._as_agent_result(result)
+			if agent_result.success and not self._awaiting_clarification:
+				self._display_response(agent_result)
 				self._maybe_warn_context_usage()
-			elif not result.success:
-				self._emit(f"[error] {result.error or 'Agent failed.'}")
+			elif not agent_result.success and not result.cancelled:
+				self._emit(f"[error] {agent_result.error or 'Agent failed.'}")
 
-	def _start_turn(self, task: str) -> AgentResult | None:
-		"""Begin a new user task and surface clarifications before the next prompt."""
+	def _start_turn(self, task: str) -> OrchestratorResult | None:
+		"""Begin a new user task using the multi-agent orchestrator."""
 
-		self._emit("[working] Processing your request...")
-		result = self._agent.run(task)
-		return self._handle_agent_result(result)
+		return self._handle_orchestrator_result(self._orchestrator.run(task))
 
-	def _continue_clarification(self, answer: str) -> AgentResult | None:
+	def _continue_clarification(self, answer: str) -> OrchestratorResult | None:
 		"""Resume the current turn after the user answers a model question."""
 
 		if answer.lower() in {"/exit", "/quit"}:
 			self._awaiting_clarification = False
+			self._pending_orchestration = None
 			self._emit("Session ended.")
 			return None
 
 		self._emit("[working] Continuing with your answer...")
-		result = self._agent.run(answer)
-		return self._handle_agent_result(result)
+		if self._pending_orchestration is None:
+			return self._handle_orchestrator_result(self._orchestrator.run(answer))
+		return self._handle_orchestrator_result(
+			self._orchestrator.run(answer, pending=self._pending_orchestration)
+		)
 
-	def _handle_agent_result(self, result: AgentResult) -> AgentResult | None:
-		"""Show clarifications immediately and keep the turn open until resolved."""
+	def _approve_plan_segment(self, segment: PlanSegment) -> bool:
+		"""Ask once before running a non-read plan phase."""
+
+		self._emit(format_segment_approval_prompt(segment))
+		answer = self.input_fn("Approve phase> ").strip().lower()
+		return answer in {"y", "yes", "s", "si", "sí"}
+
+	def _handle_orchestrator_result(
+		self,
+		result: OrchestratorResult,
+	) -> OrchestratorResult | None:
+		if result.cancelled:
+			self._awaiting_clarification = False
+			self._pending_orchestration = None
+			self._emit(result.error or "Execution cancelled.")
+			return result
 
 		if result.clarification is not None:
 			self._awaiting_clarification = True
-			if result.plan:
-				self._emit("[plan]")
-				for index, step in enumerate(result.plan, start=1):
-					self._emit(f"{index}. {step}")
+			self._pending_orchestration = result.pending
 			self._emit(f"[question] {result.clarification}")
 			self._emit("Reply at Answer> (or /exit to leave).")
 			return result
 
 		self._awaiting_clarification = False
+		self._pending_orchestration = None
+		if result.step_results:
+			last = result.step_results[-1]
+			self._emit(f"[agent:{last.step.agent_name}] {last.step.agent_role}")
 		return result
+
+	@staticmethod
+	def _as_agent_result(result: OrchestratorResult) -> AgentResult:
+		return AgentResult(
+			success=result.success,
+			response=result.response,
+			error=result.error,
+			clarification=result.clarification,
+			plan=result.plan,
+			patch_verification=result.patch_verification,
+			requested_code_change=result.requested_code_change,
+		)
 
 	def _prompt_context_compact(
 		self,
@@ -151,7 +202,7 @@ class InteractiveSession:
 	def _show_context_thread(self) -> None:
 		"""Display the conversation thread currently sent to the model."""
 
-		for line in self._agent.conversation.format_context_display().splitlines():
+		for line in self._session_conversation.format_context_display().splitlines():
 			self._emit(f"[context] {line}")
 
 	def _run_manual_compact(self, instructions: str) -> None:
@@ -163,7 +214,7 @@ class InteractiveSession:
 
 		self._emit("[context] Hilo activo antes del resumen:")
 		self._show_context_thread()
-		compacted = self._agent.conversation.compact(instructions=instructions)
+		compacted = self._session_conversation.compact(instructions=instructions)
 		if not compacted:
 			self._emit("[context] No había suficiente historial para resumir.")
 			return
@@ -174,7 +225,7 @@ class InteractiveSession:
 	def _maybe_warn_context_usage(self) -> None:
 		"""Notify when the session thread is approaching the configured limit."""
 
-		status = self._agent.conversation.context_status()
+		status = self._session_conversation.context_status()
 		if not status["approaching_limit"]:
 			return
 		if status["needs_compact"]:
@@ -279,6 +330,7 @@ class InteractiveSession:
 			self.history.clear()
 			self.messages.clear()
 			self._awaiting_clarification = False
+			self._pending_orchestration = None
 			self._emit("Session history and conversation context cleared.")
 			return False
 

@@ -22,10 +22,13 @@ class OllamaClient:
 		base_url: str = settings.ollama_base_url,
 		model: str = settings.ollama_model,
 		timeout_seconds: float = settings.ollama_timeout_seconds,
+		*,
+		role_instructions: str = "",
 	) -> None:
 		self.base_url = base_url.rstrip("/")
 		self.model = model
 		self.timeout_seconds = timeout_seconds
+		self.role_instructions = role_instructions
 
 	def complete(
 		self,
@@ -37,7 +40,14 @@ class OllamaClient:
 		payload: dict[str, Any] = {
 			"model": self.model,
 			"messages": [
-				{"role": "system", "content": build_system_prompt(self.model, tools)},
+				{
+					"role": "system",
+					"content": build_system_prompt(
+						self.model,
+						tools,
+						role_instructions=self.role_instructions,
+					),
+				},
 				*[{"role": message.role, "content": message.content} for message in messages],
 			],
 			"stream": False,

@@ -56,10 +56,15 @@ Examples:
 def build_system_prompt(
 	model_name: str,
 	tools: Sequence[ToolDefinition] | None = None,
+	*,
+	role_instructions: str = "",
 ) -> str:
 	"""Build the system prompt with runtime model and tool metadata."""
 
 	tool_names = ", ".join(tool.name for tool in tools) if tools else "none"
-	return (
-		SYSTEM_PROMPT.replace("{model_name}", model_name).replace("{tool_names}", tool_names)
+	prompt = SYSTEM_PROMPT.replace("{model_name}", model_name).replace(
+		"{tool_names}", tool_names
 	)
+	if role_instructions.strip():
+		prompt = f"{prompt}\n\nSpecialist role:\n{role_instructions.strip()}"
+	return prompt

@@ -137,7 +137,7 @@ def test_agent_loop_bootstraps_repository_before_first_model_call(tmp_path: Path
     )
 
     assert result.success is True
-    tool_messages = [message for message in loop.messages if message.role == "tool"]
+    tool_messages = [message for message in result.messages if message.role == "tool"]
     assert any("validate_email" in message.content for message in tool_messages)
     assert any("read_file" in message.content for message in tool_messages)
 
@@ -158,7 +158,7 @@ def test_agent_loop_runs_search_code_after_clarification(tmp_path: Path) -> None
 
     assert result.success is True
     assert result.response == "Found validate_email in validators.py."
-    tool_messages = [message for message in loop.messages if message.role == "tool"]
+    tool_messages = [message for message in result.messages if message.role == "tool"]
     assert any("validate_email" in message.content for message in tool_messages)
     assert client.calls[0][0][-1].role == "user"
 
@@ -189,7 +189,7 @@ def test_agent_loop_does_not_bootstrap_for_casual_greeting(tmp_path: Path) -> No
     result = loop.run("hola")
 
     assert result.success is True
-    tool_messages = [message for message in loop.messages if message.role == "tool"]
+    tool_messages = [message for message in result.messages if message.role == "tool"]
     assert tool_messages == []
 
 
@@ -207,7 +207,7 @@ def test_agent_loop_prefetches_named_file_before_model_call(tmp_path: Path) -> N
     result = loop.run("dime que puedo mejorar el archivo loop.py")
 
     assert result.success is True
-    transcript = "\n".join(message.content for message in loop.messages)
+    transcript = "\n".join(message.content for message in result.messages)
     assert "src/agent/loop.py" in transcript
     assert "def run():" in client.calls[0][0][-2].content
 
@@ -226,7 +226,7 @@ def test_agent_loop_bootstraps_for_spanish_project_overview(tmp_path: Path) -> N
 
     assert result.success is True
     assert result.response == "Es un repositorio de demo."
-    tool_messages = [message for message in loop.messages if message.role == "tool"]
+    tool_messages = [message for message in result.messages if message.role == "tool"]
     assert any("list_files" in message.content for message in tool_messages)
     assert any("read_file" in message.content for message in tool_messages)
     assert "sample repo" in client.calls[1][0][-2].content
@@ -244,7 +244,7 @@ def test_agent_loop_strict_mode_prefetches_overview_context(tmp_path: Path) -> N
     result = loop.run("dime que trata este proyecto")
 
     assert result.success is True
-    tool_messages = [message for message in loop.messages if message.role == "tool"]
+    tool_messages = [message for message in result.messages if message.role == "tool"]
     assert any("list_files" in message.content for message in tool_messages)
     assert any("read_file" in message.content for message in tool_messages)
     assert "sample repo" in client.calls[0][0][-2].content
@@ -387,7 +387,7 @@ def test_agent_loop_reads_source_after_failed_tests(tmp_path: Path) -> None:
     assert result.success is True
     read_calls = [
         message.content
-        for message in loop.messages
+        for message in result.messages
         if message.role == "assistant" and "read_file" in message.content
     ]
     assert any("sorter.py" in message for message in read_calls)
@@ -440,7 +440,7 @@ def test_agent_loop_redirects_repeat_search_code_to_read_file(tmp_path: Path) ->
     assert "search_code results are already available" in client.calls[3][0][-1].content
     search_tool_results = [
         message
-        for message in loop.messages
+        for message in result.messages
         if message.role == "tool" and message.content.startswith("tool=search_code")
     ]
     assert len(search_tool_results) == 1

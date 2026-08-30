@@ -12,9 +12,8 @@ from casi.patching.applier import PatchApplicationError
 from casi.patching.validator import validate_patch
 from casi.repository.security import resolve_repository
 from casi.sandbox.base import TestResult
-from casi.sandbox.docker_runner import DockerRunner
-from casi.sandbox.pytest_command import pytest_command
-from casi.sandbox.runner_factory import RunnerKind, resolve_test_runner
+from casi.sandbox.runner_factory import RunnerKind
+from casi.sandbox.test_execution import run_repository_pytest
 
 _COPY_IGNORE = shutil.ignore_patterns(".git", ".venv", "__pycache__")
 
@@ -34,7 +33,6 @@ def run_patched_tests(
 
 	timeout = timeout_seconds or settings.test_timeout_seconds
 	root = resolve_repository(repository)
-	command = pytest_command(root)
 
 	with tempfile.TemporaryDirectory(prefix="casi-patched-") as temp_dir:
 		workspace = Path(temp_dir) / "workspace"
@@ -53,13 +51,10 @@ def run_patched_tests(
 				apply_result.stderr.strip() or "Patch application failed"
 			)
 
-		runner, runner_kind = resolve_test_runner(prefer_docker=prefer_docker)
-		if isinstance(runner, DockerRunner):
-			result = runner.run_in_workspace(
-				workspace,
-				command,
-				timeout_seconds=timeout,
-			)
-		else:
-			result = runner.run(workspace, command, timeout_seconds=timeout)
+		result, runner_kind = run_repository_pytest(
+			root,
+			timeout_seconds=timeout,
+			prefer_docker=prefer_docker,
+			workspace=workspace,
+		)
 		return result, runner_kind

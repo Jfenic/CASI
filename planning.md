@@ -8,9 +8,8 @@
 - Fase 3: completada; integración con Ollama y respuestas estructuradas.
 - Fase 4: completada; bucle del agente y comando `casi run`.
 - Fase 5: completada; validación de parches, aprobación humana y bloqueo de mutaciones vía agente.
-- Fase 6A: completada; ejecutor local de tests y comando `casi test`.
-- Fase 6B: primera versión de `DockerRunner` con copia temporal, red desactivada y límites de recursos.
-- CLI interactiva: completada con contexto conversacional, confirmación de `run_tests` y aprobación de parches.
+- Fase 6: completada; ejecutor local, `DockerRunner`, ciclo patch → tests → retry (máx. 2 intentos) y comando `casi test`.
+- CLI interactiva: completada con contexto conversacional, clarificaciones, búsqueda automática tras aclarar, confirmación de `run_tests` y aprobación de parches.
 - Evaluación: cargador de benchmarks, métricas e informes básicos.
 - Próximo bloque: API FastAPI, observabilidad completa, benchmarks ampliados e interfaz visual.
 

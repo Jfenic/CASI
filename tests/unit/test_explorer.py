@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from casi.repository.explorer import list_files
+from casi.repository.explorer import list_files, resolve_named_paths
 
 
 def test_list_files_returns_relative_paths(tmp_path: Path) -> None:
@@ -65,3 +65,17 @@ def test_list_files_omits_symlink_outside_repository(tmp_path: Path) -> None:
     result = list_files(repository)
 
     assert result == [Path("safe.txt")]
+
+
+def test_resolve_named_paths_finds_source_file_not_doc_mentions(tmp_path: Path) -> None:
+    repository = tmp_path / "repo"
+    repository.mkdir()
+    (repository / "planning.md").write_text("├── loop.py\n", encoding="utf-8")
+    (repository / "src").mkdir()
+    (repository / "src" / "agent").mkdir(parents=True)
+    (repository / "src" / "agent" / "loop.py").write_text(
+        "def run():\n    pass\n",
+        encoding="utf-8",
+    )
+
+    assert resolve_named_paths(repository, ["loop.py"]) == ["src/agent/loop.py"]

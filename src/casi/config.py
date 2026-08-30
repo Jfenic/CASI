@@ -38,6 +38,9 @@ class Settings:
   max_context_messages: int = int(
     os.getenv("LOCALCODE_AGENT_MAX_CONTEXT_MESSAGES", "40")
   )
+  context_compact_warn_ratio: float = float(
+    os.getenv("LOCALCODE_AGENT_CONTEXT_WARN_RATIO", "0.8")
+  )
   docker_image: str = os.getenv(
     "LOCALCODE_AGENT_DOCKER_IMAGE",
     "casi-sandbox:latest",
@@ -50,6 +53,13 @@ class Settings:
   ).lower() in {"1", "true", "yes"}
   max_correction_attempts: int = int(
     os.getenv("LOCALCODE_AGENT_MAX_CORRECTION_ATTEMPTS", "2")
+  )
+  fix_max_steps: int = int(
+    os.getenv("LOCALCODE_AGENT_FIX_MAX_STEPS", "12")
+  )
+  agent_routing_mode: str = os.getenv(
+    "LOCALCODE_AGENT_ROUTING_MODE",
+    "assist",
   )
 
 

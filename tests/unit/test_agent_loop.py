@@ -2,8 +2,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from casi.agent.intent import (
+    derive_search_queries,
+    extract_search_targets,
+    task_requests_code_change,
+)
 from casi.agent.loop import AgentLoop
 from casi.llm.base import ChatMessage, LLMResponse, ToolDefinition
+from casi.patching.extract import extract_patch
 from casi.tools.registry import ToolRegistry
 
 
@@ -107,6 +113,35 @@ def test_agent_loop_requires_confirmation_for_run_tests(tmp_path: Path) -> None:
     assert "Tool execution denied by user" in client.calls[1][0][-1].content
 
 
+def test_agent_loop_bootstraps_repository_before_first_model_call(tmp_path: Path) -> None:
+    (tmp_path / "validators.py").write_text(
+        "def validate_email():\n    return True\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests/test_validators.py").write_text(
+        "def test_validate_email_rejects_missing_at_symbol():\n    pass\n",
+        encoding="utf-8",
+    )
+    client = FakeClient(
+        [
+            LLMResponse.final("validate_email always returns True."),
+            LLMResponse.final("validate_email always returns True."),
+        ]
+    )
+    loop = AgentLoop(client, ToolRegistry(tmp_path))
+
+    result = loop.run(
+        "Explica qué hace validate_email y por qué falla "
+        "test_validate_email_rejects_missing_at_symbol"
+    )
+
+    assert result.success is True
+    tool_messages = [message for message in loop.messages if message.role == "tool"]
+    assert any("validate_email" in message.content for message in tool_messages)
+    assert any("read_file" in message.content for message in tool_messages)
+
+
 def test_agent_loop_runs_search_code_after_clarification(tmp_path: Path) -> None:
     (tmp_path / "validators.py").write_text(
         "def validate_email():\n    pass\n",
@@ -115,7 +150,7 @@ def test_agent_loop_runs_search_code_after_clarification(tmp_path: Path) -> None
     client = FakeClient([LLMResponse.clarification("Which behavior should change?")])
     loop = AgentLoop(client, ToolRegistry(tmp_path))
 
-    clarification = loop.run("Fix email validation")
+    clarification = loop.run("Improve things please")
     assert clarification.clarification == "Which behavior should change?"
 
     client.responses = iter([LLMResponse.final("Found validate_email in validators.py.")])
@@ -125,13 +160,287 @@ def test_agent_loop_runs_search_code_after_clarification(tmp_path: Path) -> None
     assert result.response == "Found validate_email in validators.py."
     tool_messages = [message for message in loop.messages if message.role == "tool"]
     assert any("validate_email" in message.content for message in tool_messages)
-    assert "validate_email" in client.calls[1][0][-1].content
+    assert client.calls[0][0][-1].role == "user"
 
 
-def test_agent_loop_derives_search_queries_from_clarified_task() -> None:
-    assert AgentLoop._derive_search_queries(
+def test_agent_loop_defers_clarification_for_actionable_repository_task(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "module.py").write_text("def foo_bar():\n    return 1\n", encoding="utf-8")
+    client = FakeClient(
+        [
+            LLMResponse.clarification("Which file should I inspect?"),
+            LLMResponse.final("foo_bar is defined in module.py."),
+        ]
+    )
+
+    result = AgentLoop(client, ToolRegistry(tmp_path)).run("Explain what foo_bar does")
+
+    assert result.success is True
+    assert result.clarification is None
+    assert result.response == "foo_bar is defined in module.py."
+    assert client.calls[1][0][-1].content.startswith("Do not ask the user for more details yet")
+
+
+def test_agent_loop_does_not_bootstrap_for_casual_greeting(tmp_path: Path) -> None:
+    client = FakeClient([LLMResponse.final("Hola")])
+    loop = AgentLoop(client, ToolRegistry(tmp_path))
+
+    result = loop.run("hola")
+
+    assert result.success is True
+    tool_messages = [message for message in loop.messages if message.role == "tool"]
+    assert tool_messages == []
+
+
+def test_agent_loop_prefetches_named_file_before_model_call(tmp_path: Path) -> None:
+    (tmp_path / "planning.md").write_text("├── loop.py\n", encoding="utf-8")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "agent").mkdir(parents=True)
+    (tmp_path / "src" / "agent" / "loop.py").write_text(
+        "def run():\n    pass\n",
+        encoding="utf-8",
+    )
+    client = FakeClient([LLMResponse.final("El archivo define run().")])
+    loop = AgentLoop(client, ToolRegistry(tmp_path))
+
+    result = loop.run("dime que puedo mejorar el archivo loop.py")
+
+    assert result.success is True
+    transcript = "\n".join(message.content for message in loop.messages)
+    assert "src/agent/loop.py" in transcript
+    assert "def run():" in client.calls[0][0][-2].content
+
+
+def test_agent_loop_bootstraps_for_spanish_project_overview(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text("# Demo\nA sample repo.\n", encoding="utf-8")
+    client = FakeClient(
+        [
+            LLMResponse.final("placeholder"),
+            LLMResponse.final("Es un repositorio de demo."),
+        ]
+    )
+    loop = AgentLoop(client, ToolRegistry(tmp_path))
+
+    result = loop.run("dime que trata este proyecto")
+
+    assert result.success is True
+    assert result.response == "Es un repositorio de demo."
+    tool_messages = [message for message in loop.messages if message.role == "tool"]
+    assert any("list_files" in message.content for message in tool_messages)
+    assert any("read_file" in message.content for message in tool_messages)
+    assert "sample repo" in client.calls[1][0][-2].content
+
+
+def test_agent_loop_strict_mode_prefetches_overview_context(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text("# Demo\nA sample repo.\n", encoding="utf-8")
+    client = FakeClient([LLMResponse.final("Es un repositorio de demo.")])
+    loop = AgentLoop(
+        client,
+        ToolRegistry(tmp_path),
+        routing_mode="strict",
+    )
+
+    result = loop.run("dime que trata este proyecto")
+
+    assert result.success is True
+    tool_messages = [message for message in loop.messages if message.role == "tool"]
+    assert any("list_files" in message.content for message in tool_messages)
+    assert any("read_file" in message.content for message in tool_messages)
+    assert "sample repo" in client.calls[0][0][-2].content
+
+
+def test_agent_loop_retries_malformed_json_final_response(tmp_path: Path) -> None:
+    client = FakeClient(
+        [
+            LLMResponse.final('{"tool_response": {"error": null}}'),
+            LLMResponse.final('{"type":"final","content":"CASI es un agente local."}'),
+            LLMResponse.final("CASI es un agente local."),
+        ]
+    )
+
+    result = AgentLoop(client, ToolRegistry(tmp_path)).run("dime que trata este proyecto")
+
+    assert result.success is True
+    assert result.response == "CASI es un agente local."
+    assert client.calls[1][0][-1].content.startswith("Your last reply was not a valid CASI")
+
+
+def test_derive_search_queries_from_clarified_task() -> None:
+    assert extract_search_targets(
+        "Explica foo_bar y test_baz_failure"
+    ) == ["foo_bar", "test_baz_failure"]
+    assert derive_search_queries(
         "corrige la validación de email y agrega tests"
-    ) == ["validación", "email"]
-    assert AgentLoop._derive_search_queries(
-        "Tighten validate_email to reject bad addresses"
-    ) == ["validate_email", "addresses", "Tighten"]
+    ) == ["corrige", "validación", "email", "agrega", "tests"]
+    assert derive_search_queries(
+        "Tighten foo_bar to reject bad addresses"
+    ) == ["foo_bar"]
+
+
+def test_agent_loop_nudges_for_patch_when_fix_request_has_no_diff(tmp_path: Path) -> None:
+    (tmp_path / "validators.py").write_text(
+        "def validate_email(email: str) -> bool:\n    return True\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests/test_validators.py").write_text(
+        "from validators import validate_email\n\n"
+        "def test_rejects_missing_at():\n"
+        "    assert validate_email('bad') is False\n",
+        encoding="utf-8",
+    )
+    patch = (
+        "--- a/validators.py\n"
+        "+++ b/validators.py\n"
+        "@@ -1,2 +1,2 @@\n"
+        "-def validate_email(email: str) -> bool:\n"
+        "-    return True\n"
+        "+def validate_email(email: str) -> bool:\n"
+        "+    return '@' in email\n"
+    )
+    client = FakeClient(
+        [
+            LLMResponse.tool_call("run_tests", {}),
+            LLMResponse.final("Aquí está la corrección propuesta para validators.py."),
+            LLMResponse.final(patch),
+        ]
+    )
+
+    result = AgentLoop(
+        client,
+        ToolRegistry(tmp_path),
+        max_correction_attempts=0,
+        require_tool_confirmation=lambda *_args: True,
+    ).run("pasa los tests")
+
+    assert result.success is True
+    assert result.requested_code_change is True
+    assert extract_patch(result.response) is not None
+    assert client.calls[2][0][-1].content.startswith("The user requested a code change")
+
+
+def test_task_requests_code_change_detects_pass_tests_prompt() -> None:
+    assert task_requests_code_change("pasa los test puede?") is True
+    assert task_requests_code_change("Explica validate_email") is False
+
+
+def test_agent_loop_rejects_final_response_that_defers_repository_work(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "module.py").write_text("def foo_bar():\n    pass\n", encoding="utf-8")
+    client = FakeClient(
+        [
+            LLMResponse.final("Please provide the code for foo_bar."),
+            LLMResponse.final("foo_bar is defined in module.py."),
+            LLMResponse.final("foo_bar is defined in module.py."),
+        ]
+    )
+
+    result = AgentLoop(client, ToolRegistry(tmp_path)).run("Explain foo_bar")
+
+    assert result.success is True
+    assert result.response == "foo_bar is defined in module.py."
+    assert client.calls[1][0][-1].content.startswith("The repository is available")
+
+
+def test_agent_loop_reads_source_after_failed_tests(tmp_path: Path) -> None:
+    (tmp_path / "sorter.py").write_text(
+        "def bubble_sort(values: list[int]) -> list[int]:\n    return values\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_sorter.py").write_text(
+        "from sorter import bubble_sort\n\n"
+        "def test_bubble_sort_orders_ascending():\n"
+        "    assert bubble_sort([2, 1]) == [1, 2]\n",
+        encoding="utf-8",
+    )
+    patch = (
+        "--- a/sorter.py\n"
+        "+++ b/sorter.py\n"
+        "@@ -1,2 +1,8 @@\n"
+        " def bubble_sort(values: list[int]) -> list[int]:\n"
+        "-    return values\n"
+        "+    items = values[:]\n"
+        "+    for i in range(len(items)):\n"
+        "+        for j in range(0, len(items) - i - 1):\n"
+        "+            if items[j] > items[j + 1]:\n"
+        "+                items[j], items[j + 1] = items[j + 1], items[j]\n"
+        "+    return items\n"
+    )
+    client = FakeClient(
+        [
+            LLMResponse.tool_call("run_tests", {}),
+            LLMResponse.final(patch),
+        ]
+    )
+    loop = AgentLoop(
+        client,
+        ToolRegistry(tmp_path),
+        max_correction_attempts=0,
+        require_tool_confirmation=lambda *_args: True,
+    )
+
+    result = loop.run("revisa los test y corrige el error")
+
+    assert result.success is True
+    read_calls = [
+        message.content
+        for message in loop.messages
+        if message.role == "assistant" and "read_file" in message.content
+    ]
+    assert any("sorter.py" in message for message in read_calls)
+    assert any("tests/test_sorter.py" in message for message in read_calls)
+
+
+def test_agent_loop_redirects_repeat_search_code_to_read_file(tmp_path: Path) -> None:
+    (tmp_path / "sorter.py").write_text(
+        "def bubble_sort(values: list[int]) -> list[int]:\n    return values\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_sorter.py").write_text(
+        "from sorter import bubble_sort\n\n"
+        "def test_bubble_sort_orders_ascending():\n"
+        "    assert bubble_sort([2, 1]) == [1, 2]\n",
+        encoding="utf-8",
+    )
+    patch = (
+        "--- a/sorter.py\n"
+        "+++ b/sorter.py\n"
+        "@@ -1,2 +1,8 @@\n"
+        " def bubble_sort(values: list[int]) -> list[int]:\n"
+        "-    return values\n"
+        "+    items = values[:]\n"
+        "+    for i in range(len(items)):\n"
+        "+        for j in range(0, len(items) - i - 1):\n"
+        "+            if items[j] > items[j + 1]:\n"
+        "+                items[j], items[j + 1] = items[j + 1], items[j]\n"
+        "+    return items\n"
+    )
+    client = FakeClient(
+        [
+            LLMResponse.tool_call("run_tests", {}),
+            LLMResponse.tool_call("search_code", {"query": "bubble_sort"}),
+            LLMResponse.tool_call("search_code", {"query": "bubble_sort"}),
+            LLMResponse.final(patch),
+        ]
+    )
+    loop = AgentLoop(
+        client,
+        ToolRegistry(tmp_path),
+        max_correction_attempts=0,
+        require_tool_confirmation=lambda *_args: True,
+    )
+
+    result = loop.run("revisa los test y corrige el error")
+
+    assert result.success is True
+    assert "search_code results are already available" in client.calls[3][0][-1].content
+    search_tool_results = [
+        message
+        for message in loop.messages
+        if message.role == "tool" and message.content.startswith("tool=search_code")
+    ]
+    assert len(search_tool_results) == 1

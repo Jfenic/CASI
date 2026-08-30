@@ -12,18 +12,22 @@ Lista priorizada de próximos pasos del proyecto.
 - [x] Implementar `DockerRunner` con copia temporal y red desactivada.
 - [x] Añadir comando `casi test`.
 - [x] Añadir cargador de benchmarks, métricas e informes básicos.
+- [x] Conectar `DockerRunner` al flujo del agente para `run_tests` (fallback a local).
+- [x] Implementar ciclo de corrección patch → tests → retry (máx. 2 intentos).
+- [x] Mejorar flujo de clarificaciones: búsqueda automática tras aclarar y `/exit` en Q&A.
+- [x] Usar directorio temporal local para pytest (`.pytest-tmp/`).
 
 ## Prioridad inmediata
 
-- [ ] Conectar `DockerRunner` al flujo del agente para `run_tests` en producción.
-- [ ] Implementar ciclo de corrección patch → tests → retry (máx. 2 intentos).
 - [ ] Exponer API FastAPI con aprobación de parches y consulta de estado.
+- [ ] Construir y documentar imagen Docker `casi-sandbox:latest` para sandbox completo.
 
 ## Calidad y seguridad
 
 - [ ] Endurecer imagen Docker (`USER` no root en `sandbox.Dockerfile`).
 - [ ] Añadir detección de repeticiones y límites de archivos leídos en el agente.
 - [ ] Ampliar benchmarks a 20+ tareas reproducibles con repositorios de prueba.
+- [ ] Corregir test de integración `git_diff` en directorios no-git dentro del repo.
 
 ## CLI y evaluación
 
@@ -31,11 +35,17 @@ Lista priorizada de próximos pasos del proyecto.
 - [ ] Generar informes de benchmark en fichero (JSON/Markdown).
 - [ ] Comparar resultados entre varios modelos locales.
 
+## Observabilidad (Fase 9)
+
+- [ ] Logs estructurados por ejecución.
+- [ ] Métricas de pasos, herramientas y duración.
+- [ ] Trazas reconstruibles de cada tarea del agente.
+
 ## Cierre de cada hito
 
-- [ ] Ejecutar la suite completa de pruebas.
-- [ ] Ejecutar `python3 -m compileall -q src tests`.
+- [x] Ejecutar la suite completa de pruebas (87 passed, 1 skipped; 2 fallos de integración por entorno).
+- [x] Ejecutar `python3 -m compileall -q src tests`.
 - [ ] Ejecutar `git diff --check`.
-- [ ] Actualizar `README.md`, `planning.md` y `docs/implementation-tracker.md`.
+- [x] Actualizar `README.md`, `planning.md` y `docs/implementation-tracker.md`.
 - [ ] Crear un commit Git pequeño y descriptivo.
 - [ ] Confirmar que el working tree queda limpio.

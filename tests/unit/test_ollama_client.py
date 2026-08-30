@@ -66,6 +66,8 @@ def test_client_sends_messages_and_parses_native_tool_call(monkeypatch: pytest.M
 	assert captured["payload"]["model"] == "qwen2.5-coder:7b"
 	assert captured["payload"]["format"] == "json"
 	assert captured["payload"]["messages"][0]["role"] == "system"
+	assert "qwen2.5-coder:7b" in captured["payload"]["messages"][0]["content"]
+	assert "list_files" in captured["payload"]["messages"][0]["content"]
 	assert captured["timeout"] == 120
 
 
@@ -81,6 +83,30 @@ def test_client_parses_structured_final_response(monkeypatch: pytest.MonkeyPatch
 
 	assert response.kind == "final"
 	assert response.content == "Done"
+
+
+def test_client_parses_final_response_with_separate_patch_field(
+	monkeypatch: pytest.MonkeyPatch,
+) -> None:
+	monkeypatch.setattr(
+		"casi.llm.ollama_client.urlopen",
+		lambda request, timeout: FakeHTTPResponse(
+			{
+				"message": {
+					"content": (
+						'{"type":"final","content":"Applied fix",'
+						'"patch":"--- a/x.py\\n+++ b/x.py\\n@@ -1 +1 @@\\n-x\\n+y"}'
+					)
+				}
+			}
+		),
+	)
+
+	response = OllamaClient().complete([], [])
+
+	assert response.kind == "final"
+	assert response.content.startswith("Applied fix")
+	assert "--- a/x.py" in response.content
 
 
 def test_client_parses_greeting_as_final_response(

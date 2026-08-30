@@ -6,8 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from casi.config import settings
-from casi.sandbox.pytest_command import pytest_command
-from casi.sandbox.runner_factory import resolve_test_runner
+from casi.sandbox.test_execution import run_repository_pytest
 from casi.tools.base import Tool, ToolArgumentSpec
 from casi.tools.result import ToolResult
 
@@ -32,11 +31,8 @@ class RunTestsTool(Tool):
 		}
 
 	def run(self, arguments: dict[str, Any]) -> ToolResult:
-		command = pytest_command(self.repository_path)
-		runner, runner_kind = resolve_test_runner()
-		result = runner.run(
+		result, runner_kind = run_repository_pytest(
 			self.repository_path,
-			command,
 			timeout_seconds=arguments["timeout_seconds"],
 		)
 		output = result.stdout

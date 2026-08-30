@@ -81,3 +81,11 @@ def test_cli_test_command(tmp_path: Path, capsys) -> None:
 
     assert exit_code == 0
     assert "exit_code=0" in capsys.readouterr().out
+
+
+def test_cli_run_interactive_alias(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr("casi.cli.InteractiveSession.run", lambda self: 0)
+
+    exit_code = main(["run", "interactive", "--repo", str(tmp_path)])
+
+    assert exit_code == 0

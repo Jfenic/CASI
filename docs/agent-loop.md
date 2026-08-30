@@ -31,7 +31,7 @@ Model returns a response
 
 The `run(task)` method rejects empty tasks and adds the task to the history as a user message. The history can be provided externally to preserve context across multiple tasks in an interactive session.
 
-Before contacting the model, the history is trimmed using `max_context_messages`. This prevents the conversation from growing indefinitely.
+Before contacting the model, the history is compacted with `compact_if_needed()`. When the message count exceeds `max_context_messages`, CASI shows the active thread, asks whether to summarize older messages, and accepts optional instructions about what to preserve. In non-interactive mode it summarizes automatically. Use `/context` and `/compact` in interactive mode to inspect or trigger summarization manually.
 
 ## 2. Available tools
 

@@ -32,6 +32,48 @@ def test_parse_clarification_with_plan() -> None:
     assert response.plan == ["Find the module", "Read the implementation"]
 
 
+def test_parse_alternate_final_response_keys() -> None:
+    for raw_response in (
+        '{"response": "Done"}',
+        '{"assistant": "Done"}',
+        '{"message": "Done"}',
+    ):
+        response = parse_response(raw_response)
+        assert response == LLMResponse.final("Done")
+
+
+def test_parse_final_response_with_separate_patch_field() -> None:
+    raw_response = (
+        '{"type":"final","content":"Applied fix",'
+        '"patch":"--- a/x.py\\n+++ b/x.py\\n@@ -1 +1 @@\\n-x\\n+y"}'
+    )
+    response = parse_response(raw_response)
+
+    assert response.kind == "final"
+    assert response.content.startswith("Applied fix")
+    assert "--- a/x.py" in response.content
+    assert "+++ b/x.py" in response.content
+
+
+def test_parse_final_response_allows_patch_only_payload() -> None:
+    raw_response = (
+        '{"type":"final","content":"",'
+        '"patch":"--- a/x.py\\n+++ b/x.py\\n@@ -1 +1 @@\\n-x\\n+y"}'
+    )
+    response = parse_response(raw_response)
+
+    assert response.kind == "final"
+    assert response.content.startswith("--- a/x.py")
+
+
+def test_parse_tool_call_without_type_field() -> None:
+    response = parse_response('{"name":"list_files","arguments":{}}')
+
+    assert response.kind == "tool_call"
+    assert response.tool_name == "list_files"
+    assert response.arguments == {}
+
+
 @pytest.mark.parametrize(
     "raw_response",
     [

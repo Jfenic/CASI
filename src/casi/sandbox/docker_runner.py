@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import tempfile
@@ -68,7 +69,10 @@ class DockerRunner:
 			raise RuntimeError("Docker is not available")
 
 		root = resolve_repository(repository)
-		with tempfile.TemporaryDirectory(prefix="casi-sandbox-") as temp_dir:
+		with tempfile.TemporaryDirectory(
+			prefix="casi-sandbox-",
+			ignore_cleanup_errors=True,
+		) as temp_dir:
 			workspace = Path(temp_dir) / "workspace"
 			shutil.copytree(
 				root,
@@ -113,6 +117,7 @@ class DockerRunner:
 			self.memory,
 			"--cpus",
 			self.cpus,
+			*self._user_flags(),
 			"-v",
 			f"{root}:/workspace:rw",
 			"-w",
@@ -146,6 +151,13 @@ class DockerRunner:
 			stderr=self._limit_output(completed.stderr),
 			duration_seconds=time.monotonic() - started_at,
 		)
+
+	def _user_flags(self) -> list[str]:
+		"""Run the container as the current user so workspace files stay deletable."""
+
+		if not hasattr(os, "getuid") or not hasattr(os, "getgid"):
+			return []
+		return ["--user", f"{os.getuid()}:{os.getgid()}"]
 
 	def _limit_output(self, output: str | bytes | None) -> str:
 		if output is None:

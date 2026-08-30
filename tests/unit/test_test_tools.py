@@ -18,7 +18,7 @@ def test_run_tests_tool_reports_passing_tests(tmp_path: Path) -> None:
     assert result.success is True
     assert result.metadata["exit_code"] == 0
     assert result.metadata["timed_out"] is False
-    assert result.metadata["runner"] == "local"
+    assert result.metadata["runner"] in {"local", "docker"}
 
 
 def test_run_tests_tool_reports_failing_tests(tmp_path: Path) -> None:

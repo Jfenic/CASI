@@ -74,7 +74,8 @@ _REPOSITORY_KEYWORDS = re.compile(
 )
 
 _RUN_TESTS_PATTERN = re.compile(
-	r"\b(?:run tests|run_tests|ejecuta(?:r)?(?: las)? pruebas|correr tests)\b",
+	r"\b(?:run tests|run_tests|ejecuta(?:r)?(?: los| las)? tests|"
+	r"ejecuta(?:r)?(?: las)? pruebas|correr tests)\b",
 	re.IGNORECASE,
 )
 
@@ -194,6 +195,18 @@ def task_requests_code_change(context: str) -> bool:
 		_CHANGE_REQUEST_PATTERN.search(context) is not None
 		or _PATCH_REQUEST_PATTERN.search(context) is not None
 	)
+
+
+def task_requests_test_execution(context: str) -> bool:
+	"""Return whether the user asks to run tests without necessarily changing code."""
+
+	return _RUN_TESTS_PATTERN.search(context) is not None
+
+
+def task_requests_patch_application(context: str) -> bool:
+	"""Return whether the user explicitly asks to apply a patch."""
+
+	return _APPLY_PATCH_PATTERN.search(context) is not None
 
 
 def classify_intent(context: str) -> TaskIntent:

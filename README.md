@@ -33,6 +33,20 @@ Run the repository test suite:
 casi test --repo .
 ```
 
+For a Python project with external dependencies, prepare a cached environment
+once before testing it:
+
+```bash
+casi env prepare --repo /path/to/project
+casi test --repo /path/to/project
+```
+
+Preparation detects `uv.lock`, `poetry.lock`, `requirements.txt`, or
+`pyproject.toml`, displays the selected files and image name, and requires
+explicit confirmation before running a network-enabled Docker build. Use
+`--yes` only in an already approved automated workflow. The image name includes
+a hash of the dependency files, so changing them selects a new environment.
+
 Run the agent with the configured Ollama model:
 
 ```bash
@@ -49,6 +63,20 @@ casi run interactive --repo .
 
 Inside the session, use `/help`, `/history`, `/clear`, and `/exit`. Conversation
 context is preserved between tasks until `/clear` resets it.
+
+For agent debugging, enable live tracing before a task and export the last run:
+
+```text
+CASI> /trace on
+CASI> corrige los tests que fallan
+CASI> /last-trace
+CASI> /save-trace diagnostics/casi-trace.json
+```
+
+Traces include model decisions, deterministic pipeline reads, tool results,
+runner and exit status, rejected calls, steering messages, and exact patch
+validation failures. Large source arguments are shortened and argument names
+that indicate passwords, tokens, secrets, or keys are redacted.
 
 If the model asks for clarification, answer at the `Answer>` prompt. CASI will
 search the repository automatically after you clarify scope. Use `/exit` to leave
@@ -80,9 +108,15 @@ The agent can use these registered tools:
 - `run_tests` — requires confirmation in interactive mode; uses Docker sandbox when available
 - `apply_patch` — never callable by the agent; patches are proposed as unified diffs
 
-`run_tests`, `casi test`, and the agent correction loop prefer `DockerRunner`
-(sandbox copy, no network) when Docker and `casi-sandbox:latest` are available.
-Otherwise they fall back to `LocalRunner`.
+`run_tests`, `casi test`, and the agent correction loop prefer `DockerRunner`.
+They automatically use a prepared, repository-specific dependency image when
+its dependency hash matches. Otherwise they use `casi-sandbox:latest` when it is
+available, then fall back to `LocalRunner`.
+
+Environment preparation is the only network-enabled phase. Test execution uses
+a temporary repository copy with no network and excludes VCS data, virtual
+environments, caches, `.env` files, private keys, and known credential files.
+The original repository is never mounted into the test container.
 
 When the agent proposes a unified diff, CASI validates it, runs tests on an
 isolated copy, and retries up to two times if tests fail before showing the

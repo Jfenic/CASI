@@ -32,6 +32,8 @@ Estado rapido del proyecto y de las partes ya implementadas.
 - [x] Patch correction loop: validate diff, run tests on isolated copy, retry up to 2 times.
 - [x] Clarification flow: auto `search_code` after user answers, block repeated scope questions.
 - [x] Project-local pytest temp directory (`.pytest-tmp/`) to avoid `/tmp` ownership issues.
+- [x] Content-addressed Docker environments for Python project dependencies, with explicit network-build approval and offline test execution.
+- [x] Agent diagnostics with live traces, rejected-tool evidence, patch validation details, metadata, redaction, and JSON export.
 
 ## In Progress / Pending
 

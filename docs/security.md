@@ -26,3 +26,10 @@ Before applying a patch, validate its syntax, target paths, repository boundarie
 ## Sandbox rules
 
 Docker should be the default for untrusted command execution. Network access, mounted paths, resource limits, and container lifetime must be explicit configuration rather than implicit defaults. The local runner is intended for development only.
+
+Project dependency images are prepared in a separate, explicitly approved
+network-enabled build. Dependency installation can execute third-party package
+build scripts, so CASI displays the detected strategy, dependency files, and
+content-addressed image name before asking for approval. Tests never receive
+network access and run against a sanitized temporary copy rather than the
+original repository.

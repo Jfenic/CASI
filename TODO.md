@@ -16,11 +16,14 @@ Lista priorizada de próximos pasos del proyecto.
 - [x] Implementar ciclo de corrección patch → tests → retry (máx. 2 intentos).
 - [x] Mejorar flujo de clarificaciones: búsqueda automática tras aclarar y `/exit` en Q&A.
 - [x] Usar directorio temporal local para pytest (`.pytest-tmp/`).
+- [x] Preparar imágenes Docker cacheadas para dependencias Python y ejecutar tests posteriores sin red.
+- [x] Añadir trazas de depuración exportables con errores de herramientas y validación de parches.
 
 ## Prioridad inmediata
 
 - [ ] Exponer API FastAPI con aprobación de parches y consulta de estado.
 - [ ] Construir y documentar imagen Docker `casi-sandbox:latest` para sandbox completo.
+- [ ] Ampliar entornos de proyecto a Node.js y otros ecosistemas.
 
 ## Calidad y seguridad
 

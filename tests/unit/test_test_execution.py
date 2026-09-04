@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from casi.sandbox.base import TestResult
+from casi.sandbox.base import TestResult as SandboxTestResult
 from casi.sandbox.test_execution import is_docker_infrastructure_failure
 
 
 def test_is_docker_infrastructure_failure_detects_missing_python() -> None:
-    result = TestResult(
+    result = SandboxTestResult(
         command=["python3", "-m", "pytest"],
         exit_code=127,
         stdout="",
@@ -20,7 +20,7 @@ def test_is_docker_infrastructure_failure_detects_missing_python() -> None:
 
 
 def test_is_docker_infrastructure_failure_detects_missing_pytest_module() -> None:
-    result = TestResult(
+    result = SandboxTestResult(
         command=["python3", "-m", "pytest"],
         exit_code=1,
         stdout="",
@@ -33,7 +33,7 @@ def test_is_docker_infrastructure_failure_detects_missing_pytest_module() -> Non
 
 
 def test_is_docker_infrastructure_failure_ignores_real_test_failures() -> None:
-    result = TestResult(
+    result = SandboxTestResult(
         command=["python3", "-m", "pytest"],
         exit_code=1,
         stdout="FAILED tests/test_sample.py::test_fails - assert False",

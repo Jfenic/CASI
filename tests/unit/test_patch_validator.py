@@ -48,6 +48,24 @@ def test_validate_patch_accepts_applicable_patch(tmp_path: Path) -> None:
     assert (repository / "app.py").read_text(encoding="utf-8") == "return False\n"
 
 
+def test_validate_patch_recounts_incorrect_model_hunk_lengths(tmp_path: Path) -> None:
+    repository = _repository(tmp_path)
+    patch = VALID_PATCH.replace("@@ -1 +1 @@", "@@ -1,11 +1,11 @@")
+
+    result = validate_patch(repository, patch)
+
+    assert result.valid is True
+
+
+def test_apply_patch_recounts_incorrect_model_hunk_lengths(tmp_path: Path) -> None:
+    repository = _repository(tmp_path)
+    patch = VALID_PATCH.replace("@@ -1 +1 @@", "@@ -1,11 +1,11 @@")
+
+    apply_patch(repository, patch, approved=True, dry_run=False)
+
+    assert (repository / "app.py").read_text(encoding="utf-8") == "return True\n"
+
+
 def test_validate_patch_tool_returns_structured_result(tmp_path: Path) -> None:
     repository = _repository(tmp_path)
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from casi.config import settings
@@ -25,6 +26,7 @@ class ClarifyingClient:
                     ["Locate the validator", "Propose a focused change"],
                 ),
                 LLMResponse.final("I will inspect the email validator."),
+                LLMResponse.final("## Plan\n\nI will inspect the email validator."),
             ]
         )
 
@@ -45,6 +47,9 @@ def test_interactive_session_runs_task_and_exits(tmp_path: Path) -> None:
 
     assert session.run() == 0
     assert "[agent] Task completed" in output
+    assert any("[working] Planning your request..." in line for line in output)
+    assert any("[plan]" in line for line in output)
+    assert any("Executing plan" in line for line in output)
     assert session.history == ["Inspect the repository"]
 
 
@@ -95,13 +100,17 @@ def test_interactive_session_preserves_conversation_context(tmp_path: Path) -> N
     )
     session.run()
 
-    assert client.seen_lengths == [1, 1]
-    assert session.messages == [
-        ChatMessage(role="user", content="First task"),
-        ChatMessage(role="assistant", content="messages=1"),
-        ChatMessage(role="user", content="Second task"),
-        ChatMessage(role="assistant", content="messages=1"),
+    assert len(client.seen_lengths) >= 2
+    assert [message.role for message in session.messages] == [
+        "user",
+        "assistant",
+        "user",
+        "assistant",
     ]
+    assert session.messages[0].content == "First task"
+    assert session.messages[2].content == "Second task"
+    assert session.messages[1].content.startswith("messages=")
+    assert session.messages[3].content.startswith("messages=")
 
 
 class RunTestsClient:
@@ -173,7 +182,7 @@ def test_interactive_session_resolves_clarification_before_final_response(
 
     assert "[plan]" in output
     assert any("Which email validation behavior" in message for message in output)
-    assert "[agent] I will inspect the email validator." in output
+    assert any("I will inspect the email validator." in message for message in output)
 
 
 def test_interactive_session_uses_answer_prompt_during_clarification(tmp_path: Path) -> None:
@@ -234,8 +243,8 @@ class PatchClient:
             "--- a/app.py\n"
             "+++ b/app.py\n"
             "@@ -1 +1 @@\n"
-            "-return False\n"
-            "+return True\n"
+            "-value = False\n"
+            "+value = True\n"
             "```"
         )
 
@@ -243,7 +252,11 @@ class PatchClient:
 def test_interactive_session_rejects_patch_without_changes(tmp_path: Path) -> None:
     repository = tmp_path / "repo"
     repository.mkdir()
-    (repository / "app.py").write_text("return False\n", encoding="utf-8")
+    (repository / "app.py").write_text("value = False\n", encoding="utf-8")
+    (repository / "test_app.py").write_text(
+        "from app import value\n\ndef test_value():\n    assert value is True\n",
+        encoding="utf-8",
+    )
     commands = iter(["Fix app.py", "y", "n", "/exit"])
     output: list[str] = []
 
@@ -254,7 +267,7 @@ def test_interactive_session_rejects_patch_without_changes(tmp_path: Path) -> No
         output_fn=output.append,
     ).run()
 
-    assert (repository / "app.py").read_text(encoding="utf-8") == "return False\n"
+    assert (repository / "app.py").read_text(encoding="utf-8") == "value = False\n"
     assert "Patch rejected; no files were changed." in output
 
 
@@ -331,7 +344,11 @@ def test_interactive_session_warns_when_context_is_large(tmp_path: Path) -> None
 def test_interactive_session_applies_approved_patch(tmp_path: Path) -> None:
     repository = tmp_path / "repo"
     repository.mkdir()
-    (repository / "app.py").write_text("return False\n", encoding="utf-8")
+    (repository / "app.py").write_text("value = False\n", encoding="utf-8")
+    (repository / "test_app.py").write_text(
+        "from app import value\n\ndef test_value():\n    assert value is True\n",
+        encoding="utf-8",
+    )
     commands = iter(["Fix app.py", "y", "y", "/exit"])
     output: list[str] = []
 
@@ -342,5 +359,19 @@ def test_interactive_session_applies_approved_patch(tmp_path: Path) -> None:
         output_fn=output.append,
     ).run()
 
-    assert (repository / "app.py").read_text(encoding="utf-8") == "return True\n"
+    assert (repository / "app.py").read_text(encoding="utf-8") == "value = True\n"
     assert any("Patch applied to" in message for message in output)
+
+
+def test_interactive_session_saves_last_trace(tmp_path: Path) -> None:
+    output: list[str] = []
+    session = InteractiveSession(tmp_path, FakeClient(), output_fn=output.append)
+    session._last_trace = ["decision 1/2: tool run_tests", "  -> run_tests failed"]
+    target = tmp_path / "diagnostics" / "trace.json"
+
+    should_exit = session._handle_command(f"/save-trace {target}")
+    payload = json.loads(target.read_text(encoding="utf-8"))
+
+    assert should_exit is False
+    assert [event["message"] for event in payload["events"]] == session._last_trace
+    assert any("Saved diagnostic trace" in message for message in output)

@@ -33,6 +33,29 @@ def test_plan_fix_request_is_single_mutate_segment() -> None:
     assert plan.segments[0].steps[0].objective is TaskIntent.FIX
 
 
+def test_plan_appends_presenter_for_overview_requests() -> None:
+    plan = TaskPlanner.create_plan("dime que trata este proyecto")
+    assert plan.step_count() == 2
+    assert plan.segments[0].steps[0].objective is TaskIntent.OVERVIEW
+    assert plan.segments[0].steps[-1].objective is TaskIntent.PRESENT
+
+
+def test_plan_skips_presenter_for_conversation() -> None:
+    plan = TaskPlanner.create_plan("hola")
+    assert plan.step_count() == 1
+    assert plan.segments[0].steps[0].objective is TaskIntent.CONVERSATION
+
+
+def test_plan_skips_presenter_for_fix_requests() -> None:
+    plan = TaskPlanner.create_plan("corrige validate_email y pasa los tests")
+    assert all(step.objective is not TaskIntent.PRESENT for step in _plan_steps(plan))
+
+
+def _plan_steps(plan):
+    for segment in plan.segments:
+        yield from segment.steps
+
+
 def test_resolve_permission_tier_for_run_tests_only() -> None:
     tier = resolve_permission_tier("ejecuta los tests", TaskIntent.UNKNOWN)
     assert tier is PermissionTier.EXECUTE

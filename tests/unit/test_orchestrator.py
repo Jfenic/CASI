@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from casi.agent.orchestrator import AgentOrchestrator
+from casi.agent.intent import TaskIntent
 from casi.agent.permissions import PermissionTier
 from casi.llm.base import ChatMessage, LLMResponse, ToolDefinition
 
@@ -28,6 +29,7 @@ def test_orchestrator_runs_read_segment_without_approval(tmp_path: Path) -> None
         [
             LLMResponse.final("Overview ready."),
             LLMResponse.final("Overview ready."),
+            LLMResponse.final("## Resumen\n\nOverview ready."),
         ]
     )
 
@@ -39,6 +41,7 @@ def test_orchestrator_runs_read_segment_without_approval(tmp_path: Path) -> None
 
     assert result.success is True
     assert approvals == []
+    assert result.step_results[-1].step.objective is TaskIntent.PRESENT
 
 
 def test_orchestrator_asks_before_execute_segment(tmp_path: Path) -> None:
@@ -47,6 +50,7 @@ def test_orchestrator_asks_before_execute_segment(tmp_path: Path) -> None:
     client = FakeClient(
         [
             LLMResponse.final("Inspected."),
+            LLMResponse.final("## Inspección\n\nInspected."),
             LLMResponse.tool_call("run_tests", {}),
             LLMResponse.final("Tests done."),
         ]
@@ -64,7 +68,12 @@ def test_orchestrator_asks_before_execute_segment(tmp_path: Path) -> None:
 
 
 def test_orchestrator_cancels_when_execute_segment_rejected(tmp_path: Path) -> None:
-    client = FakeClient([LLMResponse.final("Inspected.")])
+    client = FakeClient(
+        [
+            LLMResponse.final("Inspected."),
+            LLMResponse.final("## Inspección\n\nInspected."),
+        ]
+    )
 
     result = AgentOrchestrator(
         client,
@@ -83,6 +92,7 @@ def test_orchestrator_does_not_reconfirm_tools_after_execute_approval(tmp_path: 
     client = FakeClient(
         [
             LLMResponse.final("Inspected."),
+            LLMResponse.final("## Inspección\n\nInspected."),
             LLMResponse.tool_call("run_tests", {}),
             LLMResponse.final("Tests done."),
         ]
@@ -106,6 +116,7 @@ def test_orchestrator_confirms_unexpected_execute_during_read(tmp_path: Path) ->
         [
             LLMResponse.tool_call("run_tests", {}),
             LLMResponse.final("Done."),
+            LLMResponse.final("## Resultado\n\nDone."),
         ]
     )
 
@@ -127,6 +138,7 @@ def test_orchestrator_resumes_same_agent_after_clarification(tmp_path: Path) -> 
         [
             LLMResponse.clarification("Which behavior should change?"),
             LLMResponse.final("I will tighten validate_email."),
+            LLMResponse.final("## Plan\n\nI will tighten validate_email."),
         ]
     )
     orchestrator = AgentOrchestrator(client, tmp_path, routing_mode="off")

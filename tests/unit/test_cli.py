@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 from casi.cli import main
 from casi.llm.base import LLMResponse
@@ -89,3 +90,30 @@ def test_cli_run_interactive_alias(tmp_path: Path, monkeypatch) -> None:
     exit_code = main(["run", "interactive", "--repo", str(tmp_path)])
 
     assert exit_code == 0
+
+
+def test_cli_prepares_environment_with_explicit_approval(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    (tmp_path / "requirements.txt").write_text("pytest\n", encoding="utf-8")
+    environment = SimpleNamespace(
+        manager="pip-requirements",
+        dependency_files=("requirements.txt",),
+        image="casi-project-env:abc",
+    )
+    build_result = SimpleNamespace(
+        success=True,
+        image=environment.image,
+        stdout="",
+        stderr="",
+        returncode=0,
+    )
+    monkeypatch.setattr("casi.cli.detect_project_environment", lambda _: environment)
+    monkeypatch.setattr("casi.cli.prepare_project_environment", lambda _: build_result)
+
+    exit_code = main(["env", "prepare", "--repo", str(tmp_path), "--yes"])
+
+    assert exit_code == 0
+    assert "Prepared image: casi-project-env:abc" in capsys.readouterr().out

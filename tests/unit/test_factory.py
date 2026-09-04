@@ -79,6 +79,24 @@ def test_factory_uses_profile_max_steps_when_unspecified(tmp_path: Path) -> None
     assert agent.loop.max_steps == 8
 
 
+def test_presenter_agent_does_not_receive_repository_tools(tmp_path: Path) -> None:
+    client = FakeClient([LLMResponse.final("## Resumen\n\nFormatted.")])
+    agent = AgentFactory.create(
+        TaskIntent.PRESENT,
+        client=client,
+        repository=tmp_path,
+    )
+
+    result = agent.run(
+        "Format and structure the final answer for this user request: explain repo\n\n"
+        "Context from previous agent (overview):\nRaw draft."
+    )
+
+    assert result.success is True
+    assert client.calls[0][1] == []
+    assert "## Resumen" in result.response
+
+
 def test_task_scope_keeps_tool_output_out_of_session_thread(tmp_path: Path) -> None:
     (tmp_path / "README.md").write_text("hello\n", encoding="utf-8")
     session: list[ChatMessage] = []

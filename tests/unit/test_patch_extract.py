@@ -21,6 +21,21 @@ def test_extract_patch_reads_fenced_diff_with_preamble() -> None:
     assert extract_patch(response) == f"{VALID_PATCH}\n"
 
 
+def test_extract_patch_removes_blank_line_after_hunk_header() -> None:
+    response = (
+        "```diff\n"
+        "--- a/app.py\n"
+        "+++ b/app.py\n"
+        "@@ -1 +1 @@\n"
+        "\n"
+        "-return False\n"
+        "+return True\n"
+        "```"
+    )
+
+    assert extract_patch(response) == f"{VALID_PATCH}\n"
+
+
 def test_extract_patch_reads_raw_diff() -> None:
     response = f"Propuesta de corrección:\n{VALID_PATCH}"
     assert extract_patch(response) == f"{VALID_PATCH}\n"

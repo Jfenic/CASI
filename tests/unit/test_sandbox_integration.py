@@ -16,6 +16,29 @@ def test_resolve_test_runner_falls_back_to_local_when_docker_disabled() -> None:
     assert runner.__class__.__name__ == "LocalRunner"
 
 
+def test_resolve_test_runner_prefers_prepared_project_image(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        "casi.sandbox.runner_factory.project_image_if_available",
+        lambda _: "casi-project-env:abc",
+    )
+    monkeypatch.setattr(
+        "casi.sandbox.runner_factory.DockerRunner.is_available",
+        lambda self: True,
+    )
+    monkeypatch.setattr(
+        "casi.sandbox.runner_factory.DockerRunner.image_exists",
+        lambda self: True,
+    )
+
+    runner, runner_kind = resolve_test_runner(repository=tmp_path)
+
+    assert runner_kind == "docker"
+    assert runner.image == "casi-project-env:abc"
+
+
 def test_run_patched_tests_applies_patch_on_temporary_copy(tmp_path: Path) -> None:
     target = tmp_path / "sample.py"
     target.write_text("value = 1\n", encoding="utf-8")

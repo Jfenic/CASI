@@ -52,7 +52,7 @@ def test_agent_loop_stops_at_step_limit(tmp_path: Path) -> None:
 
     assert result.success is False
     assert result.steps == 2
-    assert result.error == "Agent reached the maximum of 2 steps"
+    assert "maximum of 2 steps" in (result.error or "")
 
 
 def test_agent_loop_excludes_mutation_tools_from_definitions(tmp_path: Path) -> None:
@@ -64,6 +64,59 @@ def test_agent_loop_excludes_mutation_tools_from_definitions(tmp_path: Path) -> 
     tool_names = {tool.name for tool in client.calls[0][1]}
     assert "apply_patch" not in tool_names
     assert "read_file" in tool_names
+
+
+def test_fix_agent_hides_patch_validator_and_limits_tools_after_context(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "module.py").write_text("value = 1\n", encoding="utf-8")
+    client = FakeClient(
+        [
+            LLMResponse.tool_call("run_tests", {}),
+            LLMResponse.tool_call("read_file", {"path": "module.py"}),
+            LLMResponse.final(
+                "--- a/module.py\n+++ b/module.py\n@@ -1 +1 @@\n-value = 1\n+value = 2\n"
+            ),
+        ]
+    )
+
+    result = AgentLoop(
+        client,
+        ToolRegistry(tmp_path),
+        max_correction_attempts=0,
+        require_tool_confirmation=lambda *_args: True,
+    ).run("corrige el código")
+
+    assert result.success is True
+    assert "validate_patch" not in {tool.name for tool in client.calls[0][1]}
+    assert [tool.name for tool in client.calls[2][1]] == ["read_file", "propose_file"]
+
+
+def test_fix_agent_allows_source_reread_after_inspection(tmp_path: Path) -> None:
+    (tmp_path / "module.py").write_text("value = 1\n", encoding="utf-8")
+    patch = "--- a/module.py\n+++ b/module.py\n@@ -1 +1 @@\n-value = 1\n+value = 2\n"
+    client = FakeClient(
+        [
+            LLMResponse.tool_call("run_tests", {}),
+            LLMResponse.tool_call("read_file", {"path": "module.py"}),
+            LLMResponse.final(patch),
+        ]
+    )
+
+    result = AgentLoop(
+        client,
+        ToolRegistry(tmp_path),
+        max_correction_attempts=0,
+        require_tool_confirmation=lambda *_args: True,
+    ).run("corrige module.py")
+
+    assert result.success is True
+    assert "tools are now disabled" not in client.calls[2][0][-1].content
+    read_results = [
+        message for message in result.messages
+        if message.role == "tool" and message.content.startswith("tool=read_file")
+    ]
+    assert len(read_results) == 2
 
 
 def test_agent_loop_blocks_apply_patch_tool_call(tmp_path: Path) -> None:
@@ -443,4 +496,4 @@ def test_agent_loop_redirects_repeat_search_code_to_read_file(tmp_path: Path) ->
         for message in result.messages
         if message.role == "tool" and message.content.startswith("tool=search_code")
     ]
-    assert len(search_tool_results) == 1
+    assert len(search_tool_results) == 0

@@ -71,3 +71,41 @@ def test_fix_pipeline_reads_files_from_failed_test_output(tmp_path: Path) -> Non
     read_calls = [arguments["path"] for tool_name, arguments in calls if tool_name == "read_file"]
     assert "tests/test_sorter.py" in read_calls
     assert "sorter.py" in read_calls
+
+
+def test_fix_pipeline_resolves_source_imported_by_failed_test(tmp_path: Path) -> None:
+    (tmp_path / "validators.py").write_text(
+        "def validate_email(value: str) -> bool:\n    return True\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "test_validators.py").write_text(
+        "from validators import validate_email\n\n"
+        "def test_invalid():\n    assert not validate_email('bad')\n",
+        encoding="utf-8",
+    )
+    calls: list[tuple[str, dict[str, object]]] = []
+
+    def execute(tool_name: str, arguments: dict[str, object]) -> ToolResult:
+        calls.append((tool_name, arguments))
+        return ToolResult(success=True, output="")
+
+    from casi.agent.pipelines import run_fix_pipeline
+
+    run_fix_pipeline(
+        "corrige los tests",
+        execute,
+        repository_path=tmp_path,
+        test_output="FAILED test_validators.py::test_invalid - assert not True",
+    )
+
+    read_calls = [arguments["path"] for tool_name, arguments in calls if tool_name == "read_file"]
+    assert read_calls == ["test_validators.py", "validators.py"]
+
+
+def test_fix_pipeline_requires_propose_file_after_loading_sources() -> None:
+    from casi.agent.pipelines import nudge_after_fix_pipeline
+
+    nudge = nudge_after_fix_pipeline()
+
+    assert "MUST call propose_file" in nudge.user_message
+    assert "do not write the diff yourself" in nudge.user_message

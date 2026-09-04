@@ -52,7 +52,7 @@ class Settings:
     "true",
   ).lower() in {"1", "true", "yes"}
   max_correction_attempts: int = int(
-    os.getenv("LOCALCODE_AGENT_MAX_CORRECTION_ATTEMPTS", "2")
+    os.getenv("LOCALCODE_AGENT_MAX_CORRECTION_ATTEMPTS", "4")
   )
   fix_max_steps: int = int(
     os.getenv("LOCALCODE_AGENT_FIX_MAX_STEPS", "12")

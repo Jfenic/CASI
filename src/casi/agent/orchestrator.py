@@ -17,9 +17,12 @@ from casi.agent.permissions import (
 from casi.agent.planner import AgentPlan, AgentPlanStep, PlanSegment, TaskPlanner
 from casi.agent.response_policy import ResponsePolicy
 from casi.agent.state import AgentResult, PatchVerification
+from casi.agent.trace import AgentTraceRecorder
 from casi.llm.base import ChatMessage, LLMClient
 
 SegmentApproval = Callable[[PlanSegment], bool]
+StepStartNotifier = Callable[[AgentPlanStep, int, int], None]
+ActivityNotifier = Callable[[str], None]
 
 
 @dataclass(frozen=True)
@@ -56,6 +59,7 @@ class OrchestratorResult:
 	executed_plan: AgentPlan | None = None
 	step_results: list[AgentStepResult] = field(default_factory=list)
 	pending: PendingOrchestration | None = None
+	trace: list[str] = field(default_factory=list)
 
 
 class AgentOrchestrator:
@@ -75,6 +79,9 @@ class AgentOrchestrator:
 		on_context_compact: ContextCompactNotifier | None = None,
 		on_context_compact_prompt: ContextCompactPrompt | None = None,
 		on_plan: Callable[[AgentPlan], None] | None = None,
+		on_step_start: StepStartNotifier | None = None,
+		on_activity: ActivityNotifier | None = None,
+		trace: AgentTraceRecorder | None = None,
 		response_policy: ResponsePolicy | None = None,
 	) -> None:
 		self.client = client
@@ -88,6 +95,9 @@ class AgentOrchestrator:
 		self.on_context_compact = on_context_compact
 		self.on_context_compact_prompt = on_context_compact_prompt
 		self.on_plan = on_plan
+		self.on_step_start = on_step_start
+		self.on_activity = on_activity
+		self.trace = trace
 		self.response_policy = response_policy
 
 	def run(
@@ -124,11 +134,13 @@ class AgentOrchestrator:
 			)
 
 		if not result.success:
+			failed_results = [*pending.step_results, AgentStepResult(step=step, result=result)]
 			return OrchestratorResult(
 				success=False,
 				error=result.error,
-				step_results=pending.step_results,
+				step_results=failed_results,
 				executed_plan=pending.plan,
+				trace=_collect_trace(failed_results),
 			)
 
 		step_results = [*pending.step_results, AgentStepResult(step=step, result=result)]
@@ -153,6 +165,8 @@ class AgentOrchestrator:
 		prior_results: list[AgentStepResult],
 	) -> OrchestratorResult:
 		step_results = list(prior_results)
+		total_steps = plan.step_count()
+		step_number = len(step_results)
 
 		for segment_index in range(start_segment, len(plan.segments)):
 			segment = plan.segments[segment_index]
@@ -168,6 +182,9 @@ class AgentOrchestrator:
 				)
 			for step_index in range(first_step, len(segment.steps)):
 				step = segment.steps[step_index]
+				step_number += 1
+				if self.on_step_start is not None:
+					self.on_step_start(step, step_number, total_steps)
 				step_task = self._build_step_task(step, step_results)
 				agent = self._create_agent(step.objective, segment)
 				pending = PendingOrchestration(
@@ -190,15 +207,29 @@ class AgentOrchestrator:
 					)
 
 				if not result.success:
+					failed_results = [
+						*step_results,
+						AgentStepResult(step=step, result=result),
+					]
 					return OrchestratorResult(
 						success=False,
 						error=result.error,
-						step_results=step_results,
+						step_results=failed_results,
 						executed_plan=plan,
 						plan=plan.summary_lines(),
+						trace=_collect_trace(failed_results),
 					)
 
 				step_results.append(AgentStepResult(step=step, result=result))
+				if (
+					step.objective is TaskIntent.PRESENT
+					and result.success
+					and result.response.strip()
+				):
+					_replace_last_assistant_message(
+						self.session_messages,
+						result.response.strip(),
+					)
 
 			start_step = 0
 
@@ -213,6 +244,7 @@ class AgentOrchestrator:
 			executed_plan=plan,
 			step_results=step_results,
 			plan=plan.summary_lines(),
+			trace=_collect_trace(step_results),
 		)
 
 	def _segment_allowed(self, segment: PlanSegment) -> bool:
@@ -237,6 +269,8 @@ class AgentOrchestrator:
 			require_tool_confirmation=self._confirmation_for_segment(segment),
 			on_context_compact=self.on_context_compact,
 			on_context_compact_prompt=self.on_context_compact_prompt,
+			on_activity=self.on_activity,
+			trace=self.trace,
 			routing_mode=self.routing_mode,
 			response_policy=self.response_policy,
 		)
@@ -270,6 +304,16 @@ class AgentOrchestrator:
 		)
 
 
+def _collect_trace(step_results: list[AgentStepResult]) -> list[str]:
+	lines: list[str] = []
+	for item in step_results:
+		if not item.result.trace:
+			continue
+		lines.append(f"[{item.step.agent_name}]")
+		lines.extend(f"  {event}" for event in item.result.trace)
+	return lines
+
+
 def format_segment_approval_prompt(segment: PlanSegment) -> str:
 	"""Build a concise approval question for a non-read plan phase."""
 
@@ -279,3 +323,13 @@ def format_segment_approval_prompt(segment: PlanSegment) -> str:
 		f"Fase de {tier_label(segment.tier)}: {agents}. "
 		f"Herramientas/objetivo: {goals}. ¿Continuar? [y/N]"
 	)
+
+
+def _replace_last_assistant_message(
+	session_messages: list[ChatMessage],
+	content: str,
+) -> None:
+	for index in range(len(session_messages) - 1, -1, -1):
+		if session_messages[index].role == "assistant":
+			session_messages[index] = ChatMessage(role="assistant", content=content)
+			return

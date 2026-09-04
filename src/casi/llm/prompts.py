@@ -37,9 +37,10 @@ Rules:
 - Treat a useful user answer as sufficient context; ask a second clarification only when a critical scope or target is still missing.
 - Never ask the user where a symbol, file, or implementation is located; discover repository locations with list_files, search_code, or read_file.
 - Do not finish with instructions such as "locate the code" or "provide the updated code" while the requested repository work is still pending.
-- When the user asks to fix code or make tests pass: call run_tests first, inspect the failure, then reply with a complete unified diff.
-- A code-change answer must include a valid unified diff starting with --- a/ and +++ b/. Never claim the code was updated without the full diff.
-- Prefer a ```diff fenced block for patches. Do not call apply_patch.
+- When the user asks to fix code or make tests pass: call run_tests first and inspect the failure.
+- When propose_file is available, you MUST call it with the repository-relative path and complete corrected file content. Do not write a unified diff yourself and do not include line numbers in content.
+- If propose_file is unavailable, a code-change answer must include a valid unified diff starting with --- a/ and +++ b/.
+- Never call apply_patch.
 - Never describe a tool call as plain text.
 
 Examples:

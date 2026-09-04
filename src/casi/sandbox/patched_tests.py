@@ -12,11 +12,9 @@ from casi.patching.applier import PatchApplicationError
 from casi.patching.validator import validate_patch
 from casi.repository.security import resolve_repository
 from casi.sandbox.base import TestResult
+from casi.sandbox.project_environment import ignore_sandbox_files
 from casi.sandbox.runner_factory import RunnerKind
 from casi.sandbox.test_execution import run_repository_pytest
-
-_COPY_IGNORE = shutil.ignore_patterns(".git", ".venv", "__pycache__")
-
 
 def run_patched_tests(
 	repository: str | Path,
@@ -36,10 +34,10 @@ def run_patched_tests(
 
 	with tempfile.TemporaryDirectory(prefix="casi-patched-") as temp_dir:
 		workspace = Path(temp_dir) / "workspace"
-		shutil.copytree(root, workspace, ignore=_COPY_IGNORE, dirs_exist_ok=True)
+		shutil.copytree(root, workspace, ignore=ignore_sandbox_files, dirs_exist_ok=True)
 
 		apply_result = subprocess.run(
-			["git", "apply", "--whitespace=error-all", "-"],
+			["git", "apply", "--recount", "--whitespace=error-all", "-"],
 			cwd=workspace,
 			input=patch,
 			capture_output=True,

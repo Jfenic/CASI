@@ -124,6 +124,7 @@ class TaskIntent(str, Enum):
 	INSPECT = "inspect"
 	GIT_STATUS = "git_status"
 	FIX = "fix"
+	PRESENT = "present"
 	UNKNOWN = "unknown"
 
 

@@ -30,8 +30,11 @@ def run_repository_pytest(
 ) -> tuple[TestResult, RunnerKind]:
 	"""Run pytest in a repository, preferring Docker with local fallback."""
 
-	runner, runner_kind = resolve_test_runner(prefer_docker=prefer_docker)
 	target = workspace if workspace is not None else repository
+	runner, runner_kind = resolve_test_runner(
+		repository=repository,
+		prefer_docker=prefer_docker,
+	)
 	command = pytest_command(target, runner=runner_kind)
 
 	if workspace is not None and isinstance(runner, DockerRunner):

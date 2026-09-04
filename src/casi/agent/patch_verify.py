@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from casi.agent.conversation import Conversation
 from casi.agent.nudges import nudge_for_patch_correction
 from casi.agent.state import PatchVerification
@@ -21,6 +23,7 @@ def _request_patch_correction(
 	runner: str,
 	output: str,
 	passed: bool,
+	on_retry: Callable[[str], None] | None = None,
 ) -> tuple[PatchVerification | None, bool]:
 	verification = PatchVerification(
 		passed=passed,
@@ -32,6 +35,11 @@ def _request_patch_correction(
 		return verification, False
 
 	nudge = nudge_for_patch_correction(reason, output)
+	if on_retry is not None:
+		detail = " ".join(output.split())
+		if len(detail) > 240:
+			detail = f"{detail[:237]}..."
+		on_retry(f"patch retry: {reason} Detail: {detail}")
 	conversation.append_nudge(content, nudge.user_message)
 	return None, True
 
@@ -42,6 +50,7 @@ def verify_patch_response(
 	*,
 	correction_attempts: int,
 	max_correction_attempts: int,
+	on_retry: Callable[[str], None] | None = None,
 ) -> tuple[PatchVerification | None, bool]:
 	"""Run patched tests on a final response or ask the model to retry."""
 
@@ -61,6 +70,7 @@ def verify_patch_response(
 			runner="validation",
 			output=error,
 			passed=False,
+			on_retry=on_retry,
 		)
 
 	try:
@@ -78,6 +88,7 @@ def verify_patch_response(
 			runner="validation",
 			output=str(exc),
 			passed=False,
+			on_retry=on_retry,
 		)
 
 	output = test_result.stdout
@@ -93,4 +104,5 @@ def verify_patch_response(
 		runner=runner,
 		output=output,
 		passed=passed,
+		on_retry=on_retry,
 	)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 from collections.abc import Callable
 from pathlib import Path
 
@@ -12,6 +13,38 @@ from casi.repository.explorer import looks_like_filename, resolve_named_paths
 from casi.tools.result import ToolResult
 
 ToolExecutor = Callable[[str, dict[str, object]], ToolResult]
+
+
+def _source_paths_imported_by_tests(
+	repository_path: str | Path,
+	test_paths: list[str],
+) -> list[str]:
+	"""Resolve simple local imports from failed Python test files."""
+
+	repository = Path(repository_path).resolve()
+	paths: list[str] = []
+	for relative_path in test_paths:
+		if not Path(relative_path).name.startswith("test_"):
+			continue
+		try:
+			tree = ast.parse((repository / relative_path).read_text(encoding="utf-8"))
+		except (OSError, SyntaxError, UnicodeError):
+			continue
+		modules: list[str] = []
+		for node in ast.walk(tree):
+			if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+				modules.append(node.module)
+			elif isinstance(node, ast.Import):
+				modules.extend(alias.name for alias in node.names)
+		for module in modules:
+			module_path = Path(*module.split("."))
+			for candidate in (module_path.with_suffix(".py"), module_path / "__init__.py"):
+				if (repository / candidate).is_file():
+					path = candidate.as_posix()
+					if path not in paths:
+						paths.append(path)
+					break
+	return paths
 
 
 def paths_from_search_output(output: str) -> list[str]:
@@ -84,6 +117,9 @@ def run_fix_pipeline(
 		for path in extract_failure_paths(test_output):
 			if path not in read_paths:
 				read_paths.append(path)
+		for path in _source_paths_imported_by_tests(repository_path, read_paths):
+			if path not in read_paths:
+				read_paths.append(path)
 
 	for path in resolve_named_paths(repository_path, extract_search_targets(context)):
 		if path not in read_paths:
@@ -132,9 +168,10 @@ def nudge_after_fix_pipeline() -> ResponseNudge:
 	return ResponseNudge(
 		user_message=(
 			f"{PIPELINE_FALLBACK_PREFIX} 'fix' loaded failing test and source files. "
-			"Use the read_file results already in the conversation and reply with a "
-			"complete unified diff inside a ```diff block. Each changed line must "
-			"start with ---/+++, @@, space, +, or -."
+			"Use the read_file results already in the conversation. You MUST call "
+			"propose_file with the repository-relative source path and the complete "
+			"corrected file content. CASI will generate the unified diff; do not "
+			"write the diff yourself."
 		),
 	)
 

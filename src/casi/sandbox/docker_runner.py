@@ -12,6 +12,7 @@ from pathlib import Path
 from casi.config import settings
 from casi.repository.security import resolve_repository
 from casi.sandbox.base import TestResult
+from casi.sandbox.project_environment import ignore_sandbox_files
 
 
 class DockerRunner:
@@ -77,7 +78,7 @@ class DockerRunner:
 			shutil.copytree(
 				root,
 				workspace,
-				ignore=shutil.ignore_patterns(".git", ".venv", "__pycache__"),
+				ignore=ignore_sandbox_files,
 				dirs_exist_ok=True,
 			)
 			return self.run_in_workspace(

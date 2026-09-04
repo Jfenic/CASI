@@ -31,7 +31,7 @@ def apply_patch(
 
 	root = Path(repository).expanduser().resolve()
 	result = subprocess.run(
-		["git", "apply", "--whitespace=error-all", "-"],
+		["git", "apply", "--recount", "--whitespace=error-all", "-"],
 		cwd=root,
 		input=patch,
 		capture_output=True,

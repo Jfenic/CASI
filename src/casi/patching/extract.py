@@ -98,6 +98,11 @@ def _trim_trailing_prose(patch: str) -> str:
 	for line in lines:
 		if line.startswith("@@"):
 			saw_hunk = True
+		if saw_hunk and not line:
+			# Small local models commonly insert a visual blank line between
+			# the hunk header and its first diff line. It is not valid unified
+			# diff syntax, so discard it instead of truncating the whole patch.
+			continue
 		if saw_hunk and line and not _is_diff_line(line):
 			break
 		trimmed.append(line)

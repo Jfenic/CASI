@@ -41,7 +41,7 @@ def validate_patch(repository: str | Path, patch: str) -> PatchValidation:
 			return PatchValidation(False, paths, f"Sensitive patch path: {path}")
 
 	check = subprocess.run(
-		["git", "apply", "--check", "--whitespace=error-all", "-"],
+		["git", "apply", "--check", "--recount", "--whitespace=error-all", "-"],
 		cwd=root,
 		input=patch,
 		capture_output=True,

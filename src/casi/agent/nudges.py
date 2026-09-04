@@ -157,6 +157,8 @@ def nudge_for_patch_correction(reason: str, output: str) -> ResponseNudge:
 		user_message=(
 			f"{reason}\n"
 			f"Output:\n{output}\n"
-			f"{_PREFIX_PATCH_CORRECTION} that fixes the failures."
+			f"{_PREFIX_PATCH_CORRECTION} that fixes the failures. "
+			"Do not repeat the same change. Read the failed assertion carefully, "
+			"work out the expected value, and call propose_file with corrected content."
 		),
 	)

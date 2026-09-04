@@ -26,3 +26,4 @@ class AgentResult:
 	messages: list[ChatMessage] = field(default_factory=list)
 	patch_verification: PatchVerification | None = None
 	requested_code_change: bool = False
+	trace: list[str] = field(default_factory=list)

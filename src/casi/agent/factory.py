@@ -8,7 +8,8 @@ from pathlib import Path
 
 from casi.agent.conversation import ContextCompactNotifier, ContextCompactPrompt
 from casi.agent.intent import RoutingMode, TaskIntent, build_task_context, classify_intent
-from casi.agent.loop import AgentLoop
+from casi.agent.loop import ActivityNotifier, AgentLoop
+from casi.agent.trace import AgentTraceRecorder
 from casi.agent.profiles import AgentProfile, resolve_profile
 from casi.agent.response_policy import ResponsePolicy
 from casi.agent.state import AgentResult
@@ -66,6 +67,8 @@ class AgentFactory:
 		require_tool_confirmation: ToolConfirmation | None = None,
 		on_context_compact: ContextCompactNotifier | None = None,
 		on_context_compact_prompt: ContextCompactPrompt | None = None,
+		on_activity: ActivityNotifier | None = None,
+		trace: AgentTraceRecorder | None = None,
 		routing_mode: str | RoutingMode | None = None,
 		response_policy: ResponsePolicy | None = None,
 	) -> SpecializedAgent:
@@ -84,6 +87,8 @@ class AgentFactory:
 			require_tool_confirmation=require_tool_confirmation,
 			on_context_compact=on_context_compact,
 			on_context_compact_prompt=on_context_compact_prompt,
+			on_activity=on_activity,
+			trace=trace,
 			routing_mode=routing_mode,
 			response_policy=response_policy,
 		)
@@ -101,6 +106,8 @@ class AgentFactory:
 		require_tool_confirmation: ToolConfirmation | None = None,
 		on_context_compact: ContextCompactNotifier | None = None,
 		on_context_compact_prompt: ContextCompactPrompt | None = None,
+		on_activity: ActivityNotifier | None = None,
+		trace: AgentTraceRecorder | None = None,
 		routing_mode: str | RoutingMode | None = None,
 		response_policy: ResponsePolicy | None = None,
 	) -> SpecializedAgent:
@@ -119,6 +126,8 @@ class AgentFactory:
 			require_tool_confirmation=require_tool_confirmation,
 			on_context_compact=on_context_compact,
 			on_context_compact_prompt=on_context_compact_prompt,
+			on_activity=on_activity,
+			trace=trace,
 			routing_mode=routing_mode,
 			response_policy=response_policy,
 		)

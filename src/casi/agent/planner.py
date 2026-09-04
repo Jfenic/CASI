@@ -94,9 +94,38 @@ def _tools_goal(intent: TaskIntent, tier: PermissionTier) -> str:
 		return "git_diff"
 	if intent in {TaskIntent.OVERVIEW, TaskIntent.INSPECT}:
 		return "list_files, search_code, read_file"
-	if intent in {TaskIntent.CONVERSATION, TaskIntent.META}:
+	if intent in {TaskIntent.CONVERSATION, TaskIntent.META, TaskIntent.PRESENT}:
 		return "direct answer"
 	return "repository tools as needed"
+
+
+def _should_append_presenter(steps: list[AgentPlanStep]) -> bool:
+	"""Return whether a final presenter agent should polish the user-facing answer."""
+
+	if not steps:
+		return False
+	if any(step.objective is TaskIntent.PRESENT for step in steps):
+		return False
+	if any(step.tier is not PermissionTier.READ for step in steps):
+		return False
+	if len(steps) == 1 and steps[0].objective is TaskIntent.CONVERSATION:
+		return False
+	return True
+
+
+def _presenter_step(original_task: str) -> AgentPlanStep:
+	profile = resolve_profile(TaskIntent.PRESENT)
+	return AgentPlanStep(
+		objective=TaskIntent.PRESENT,
+		task=(
+			"Format and structure the final answer for this user request: "
+			f"{original_task}"
+		),
+		tier=PermissionTier.READ,
+		agent_name=profile.name,
+		agent_role=profile.role,
+		tools_goal="structure markdown answer",
+	)
 
 
 def decompose_task(task: str) -> list[str]:
@@ -159,6 +188,8 @@ class TaskPlanner:
 			AgentPlanStep.from_task(subtask, session_messages=session)
 			for subtask in subtasks
 		]
+		if _should_append_presenter(steps):
+			steps.append(_presenter_step(task.strip()))
 		return AgentPlan(
 			original_task=task.strip(),
 			segments=tuple(group_segments(steps)),

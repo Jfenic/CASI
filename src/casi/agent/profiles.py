@@ -96,10 +96,26 @@ PROFILES: dict[TaskIntent, AgentProfile] = {
 		mission="Run tests, inspect failures, and produce a valid unified diff.",
 		prompt_instructions=_instructions(
 			"You are the fix specialist.",
-			"Call run_tests first, inspect failing files, then reply with a complete unified diff.",
-			"Never claim the repository changed without including --- a/ and +++ b/ headers.",
+			"Call run_tests first and inspect failing files.",
+			"After files are loaded, you MUST call propose_file with the path and complete corrected file content.",
+			"Do not hand-write a diff when propose_file is available and never call apply_patch.",
 		),
 		max_steps=12,
+	),
+	TaskIntent.PRESENT: AgentProfile(
+		objective=TaskIntent.PRESENT,
+		name="presenter",
+		role="Output Formatting Specialist",
+		mission="Turn raw specialist answers into clear, structured markdown for the user.",
+		prompt_instructions=_instructions(
+			"You are the presenter specialist.",
+			"You receive another agent's draft answer in the conversation; do not call repository tools.",
+			"Rewrite it as polished markdown: a short title, sections, bullet lists, and `path` references.",
+			"Preserve every factual claim from the draft; do not invent files, symbols, or behavior.",
+			"Use the user's language. Reply with one final JSON response only.",
+			"Suggested sections when relevant: Resumen, Estructura, Puntos clave, Archivos relevantes, Próximos pasos.",
+		),
+		max_steps=2,
 	),
 	TaskIntent.UNKNOWN: AgentProfile(
 		objective=TaskIntent.UNKNOWN,

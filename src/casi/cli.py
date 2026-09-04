@@ -14,6 +14,10 @@ from casi.llm.ollama_client import OllamaClient
 from casi.repository.explorer import list_files
 from casi.repository.reader import read_file
 from casi.repository.search import search_code
+from casi.sandbox.project_environment import (
+    detect_project_environment,
+    prepare_project_environment,
+)
 from casi.sandbox.test_execution import run_repository_pytest
 from casi.tools.registry import ToolRegistry
 
@@ -99,6 +103,22 @@ def build_parser() -> argparse.ArgumentParser:
         help="Timeout in seconds for the test command.",
     )
 
+    env_parser = subparsers.add_parser(
+        "env",
+        help="Manage a repository-specific test environment.",
+    )
+    env_subparsers = env_parser.add_subparsers(dest="env_command", required=True)
+    prepare_parser = env_subparsers.add_parser(
+        "prepare",
+        help="Build a cached Docker image containing project dependencies.",
+    )
+    prepare_parser.add_argument("--repo", required=True, help="Repository path.")
+    prepare_parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="Approve the networked dependency installation without prompting.",
+    )
+
     return parser
 
 
@@ -128,6 +148,13 @@ def _run_search(repository: str | Path, query: str, limit: int) -> int:
     return 0
 
 
+def _emit_run_progress(plan) -> None:
+    print("[plan]", file=sys.stderr)
+    for line in plan.summary_lines():
+        print(line, file=sys.stderr)
+    print("[working] Executing plan...", file=sys.stderr)
+
+
 def _run_agent(
     repository: str | Path,
     task: str,
@@ -143,7 +170,14 @@ def _run_agent(
         routing_mode=routing,
         approve_segment=lambda _segment: True,
         on_context_compact=lambda message: print(f"[context] {message}", file=sys.stderr),
+        on_plan=lambda plan: _emit_run_progress(plan),
+        on_step_start=lambda step, number, total: print(
+            f"[working] Step {number}/{total}: {step.agent_name} ({step.agent_role})",
+            file=sys.stderr,
+        ),
+        on_activity=lambda message: print(f"[working] {message}", file=sys.stderr),
     )
+    print("[working] Running agent...", file=sys.stderr)
     result = orchestrator.run(task)
 
     if result.success:
@@ -186,6 +220,38 @@ def _run_test(repository: str | Path, timeout: float) -> int:
     return 0 if result.exit_code == 0 and not result.timed_out else 1
 
 
+def _prepare_environment(repository: str | Path, *, approved: bool) -> int:
+    """Prepare a cached dependency image after explicit approval."""
+
+    environment = detect_project_environment(repository)
+    if environment is None:
+        raise ValueError("No supported Python dependency files were found")
+
+    print(f"manager={environment.manager}")
+    print(f"files={','.join(environment.dependency_files)}")
+    print(f"image={environment.image}")
+    print("This build downloads dependencies and may execute package build scripts.")
+    if not approved:
+        answer = input("Build project environment with network access? [y/N] ")
+        if answer.strip().lower() not in {"y", "yes"}:
+            print("Environment preparation cancelled.")
+            return 1
+
+    result = prepare_project_environment(repository)
+    if result.stdout:
+        print(result.stdout.rstrip())
+    if result.stderr:
+        print(result.stderr.rstrip(), file=sys.stderr)
+    if result.success:
+        print(f"Prepared image: {result.image}")
+        return 0
+    print(
+        f"Environment build failed with exit code {result.returncode}.",
+        file=sys.stderr,
+    )
+    return 1
+
+
 def main(argv: list[str] | None = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
@@ -217,10 +283,13 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "test":
             return _run_test(args.repo, args.timeout)
 
+        if args.command == "env" and args.env_command == "prepare":
+            return _prepare_environment(args.repo, approved=args.yes)
+
         parser.error(f"Unknown command: {args.command}")
     except CasiError as exc:
         print(str(exc), file=sys.stderr)
         return 1
-    except (FileNotFoundError, IsADirectoryError, ValueError) as exc:
+    except (FileNotFoundError, IsADirectoryError, RuntimeError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
         return 1

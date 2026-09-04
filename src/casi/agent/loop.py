@@ -34,14 +34,18 @@ from casi.agent.profiles import AgentProfile
 from casi.agent.response_policy import ResponsePolicy, RetryBudget
 from casi.agent.session import TaskScope
 from casi.agent.state import AgentResult, PatchVerification
+from casi.agent.trace import AgentTraceRecorder
 from casi.config import settings
 from casi.llm.base import ChatMessage, LLMClient, LLMResponse, ToolDefinition
 from casi.tools.registry import ToolRegistry
+from casi.tools.result import ToolResult
 
 _MISSING_PATCH_ERROR = (
 	"The agent finished without a valid unified diff. "
 	"Ask CASI again to provide a ```diff patch."
 )
+
+ActivityNotifier = Callable[[str], None]
 
 
 @dataclass
@@ -74,6 +78,8 @@ class AgentLoop:
 		require_tool_confirmation: Callable[[str, dict[str, object]], bool] | None = None,
 		on_context_compact: ContextCompactNotifier | None = None,
 		on_context_compact_prompt: ContextCompactPrompt | None = None,
+		on_activity: ActivityNotifier | None = None,
+		trace: AgentTraceRecorder | None = None,
 		routing_mode: str | RoutingMode | None = None,
 		response_policy: ResponsePolicy | None = None,
 	) -> None:
@@ -100,6 +106,8 @@ class AgentLoop:
 		self.require_tool_confirmation = require_tool_confirmation
 		self.on_context_compact = on_context_compact
 		self.on_context_compact_prompt = on_context_compact_prompt
+		self.on_activity = on_activity
+		self.trace = trace
 		self.response_policy = response_policy or ResponsePolicy()
 		self._clarification_pending = False
 		self._active_task: _ActiveTask | None = None
@@ -124,6 +132,73 @@ class AgentLoop:
 	def _mark_clarification_pending(self) -> None:
 		self._clarification_pending = True
 
+	def _notify_activity(self, message: str) -> None:
+		if self.on_activity is not None:
+			self.on_activity(message)
+
+	def _with_trace(self, result: AgentResult) -> AgentResult:
+		if self.trace is None or not self.trace.events:
+			return result
+		return AgentResult(
+			success=result.success,
+			response=result.response,
+			clarification=result.clarification,
+			plan=result.plan,
+			error=result.error,
+			steps=result.steps,
+			messages=result.messages,
+			patch_verification=result.patch_verification,
+			requested_code_change=result.requested_code_change,
+			trace=list(self.trace.events),
+		)
+
+	def _step_limit_error(self, step_limit: int, active: _ActiveTask) -> str:
+		message = f"Agent reached the maximum of {step_limit} steps"
+		if active.intent is TaskIntent.FIX:
+			message += " without a valid patch"
+		if self.trace is not None and self.trace.events:
+			last = self.trace.events[-1]
+			message += f". Last event: {last}"
+		return message
+
+	def _tools_for_task(self) -> list[ToolDefinition]:
+		if self.profile is not None and self.profile.objective is TaskIntent.PRESENT:
+			return []
+		tools = self.registry.definitions(agent_safe=True)
+		if self.profile is not None and self.profile.objective is TaskIntent.FIX:
+			# Final patches are validated automatically by verify_patch_response().
+			# Exposing validate_patch encourages smaller local models to validate
+			# incomplete guesses instead of returning the requested unified diff.
+			return [tool for tool in tools if tool.name != "validate_patch"]
+		return tools
+
+	def _tools_for_step(
+		self,
+		intent: TaskIntent,
+		tools: list[ToolDefinition],
+	) -> list[ToolDefinition]:
+		"""Stop tool loops once a fix has enough repository context."""
+
+		if intent is TaskIntent.FIX:
+			if (
+				self.conversation.tool_was_used("run_tests")
+				and self.conversation.read_file_paths()
+			):
+				return [
+					tool for tool in tools if tool.name in {"read_file", "propose_file"}
+				]
+			return [tool for tool in tools if tool.name != "validate_patch"]
+		return tools
+
+	def _model_label(self) -> str:
+		model = getattr(self.client, "model", None)
+		timeout = getattr(self.client, "timeout_seconds", None)
+		if isinstance(model, str) and model:
+			if isinstance(timeout, (int, float)):
+				return f"{model} (timeout {int(timeout)}s)"
+			return model
+		return "model"
+
 	def run(self, task: str) -> AgentResult:
 		"""Run the agent until it returns a final response or reaches the limit."""
 
@@ -134,10 +209,12 @@ class AgentLoop:
 		return self._start(task.strip())
 
 	def _start(self, task: str) -> AgentResult:
-		scope = TaskScope(session_messages=self.messages)
+		if self.trace is not None:
+			self.trace.clear()
+		scope = TaskScope(session_messages=self._session_merge_target())
 		self.conversation = self._build_conversation(scope.task_messages)
 		self.conversation.append("user", task)
-		tools = self.registry.definitions(agent_safe=True)
+		tools = self._tools_for_task()
 		task_context = build_task_context(task, self.messages)
 		intent = self._resolve_intent(task_context)
 		active = _ActiveTask(
@@ -150,9 +227,15 @@ class AgentLoop:
 		self._active_task = active
 
 		if self._should_prefetch_repository(intent, task_context, False):
+			self._notify_activity("Inspecting repository before first model call...")
 			self._run_pipeline(intent, task_context, active.retries)
 
 		return self._run_steps(active, tools)
+
+	def _session_merge_target(self) -> list[ChatMessage] | None:
+		if self.profile is not None and self.profile.objective is TaskIntent.PRESENT:
+			return None
+		return self.messages
 
 	def _resume(self, answer: str) -> AgentResult:
 		active = self._active_task
@@ -161,12 +244,13 @@ class AgentLoop:
 
 		self._clarification_pending = False
 		self.conversation.append("user", answer)
-		tools = self.registry.definitions(agent_safe=True)
+		tools = self._tools_for_task()
 		active.task_context = build_task_context(answer, self.messages)
 		active.intent = self._resolve_intent(active.task_context)
 		active.continuing_after_clarification = True
 
 		if intent_supports_pipeline(active.intent):
+			self._notify_activity("Inspecting repository after clarification...")
 			self._run_pipeline(active.intent, active.task_context, active.retries)
 
 		return self._run_steps(active, tools)
@@ -176,7 +260,7 @@ class AgentLoop:
 		self._active_task = None
 		self._clarification_pending = False
 		self.conversation = self._build_conversation(self.messages)
-		return result
+		return self._with_trace(result)
 
 	def _run_steps(
 		self,
@@ -188,17 +272,79 @@ class AgentLoop:
 
 		for step in range(active.next_step, step_limit + 1):
 			self.conversation.compact_if_needed()
-			response = self.client.complete(active_messages, tools)
+			step_tools = self._tools_for_step(active.intent, tools)
+			self._notify_activity(
+				f"Thinking with {self._model_label()} "
+				f"(decision {step}/{step_limit})..."
+			)
+			response = self.client.complete(
+				active_messages,
+				step_tools,
+			)
 
 			if response.kind == "tool_call":
-				self._handle_tool_call(
-					response,
-					intent=active.intent,
-					task_context=active.task_context,
-				)
-				continue
+				tool_name = response.tool_name or "unknown"
+				if self.trace is not None:
+					self.trace.record_tool_call(
+						step,
+						step_limit,
+						tool_name,
+						response.arguments,
+					)
+				if tool_name == "propose_file" and any(
+					tool.name == tool_name for tool in step_tools
+				):
+					result = self.conversation.execute_tool(tool_name, response.arguments)
+					if self.trace is not None:
+						self.trace.record_tool_result(
+							tool_name,
+							success=result.success,
+							output=result.output or result.error or "",
+							metadata=result.metadata,
+						)
+					if not result.success:
+						continue
+					response = LLMResponse.final(result.output)
+				elif active.intent is TaskIntent.FIX and not any(
+					tool.name == tool_name for tool in step_tools
+				):
+					if tool_name == "search_code":
+						message = nudge_for_read_file_instead_of_search(
+							self.conversation.unread_search_code_paths(),
+							sources_already_read=True,
+						).user_message
+					else:
+						message = (
+							"Repository inspection is complete. Only read_file and propose_file "
+							"are available now. Re-read a loaded file only if needed, then call "
+							"propose_file with its repository-relative path and complete corrected "
+							"content. Do not hand-write another diff."
+						)
+					self.conversation.append_nudge(
+						Conversation.format_tool_call(tool_name, response.arguments),
+						message,
+					)
+					if self.trace is not None:
+						allowed = ", ".join(tool.name for tool in step_tools) or "none"
+						self.trace.record_tool_result(
+							tool_name,
+							success=False,
+							output=f"Tool unavailable in this phase; allowed: {allowed}",
+						)
+					continue
+				if response.kind == "tool_call":
+					self._handle_tool_call(
+						response,
+						intent=active.intent,
+						task_context=active.task_context,
+						step=step,
+						step_limit=step_limit,
+					)
+					continue
 
 			if response.kind == "clarification":
+				if self.trace is not None:
+					self.trace.record_decision(step, step_limit, "clarification")
 				result = self._handle_clarification(
 					response,
 					task_context=active.task_context,
@@ -224,6 +370,9 @@ class AgentLoop:
 					),
 				)
 
+			if self.trace is not None:
+				self.trace.record_final_preview(step, step_limit, response.content)
+
 			nudge = self.response_policy.evaluate_nudge(
 				response.content,
 				task_context=active.task_context,
@@ -233,12 +382,16 @@ class AgentLoop:
 				continuing_after_clarification=active.continuing_after_clarification,
 			)
 			if nudge is not None:
+				if self.trace is not None:
+					self.trace.record_nudge(nudge.user_message)
 				self.conversation.append_nudge(response.content, nudge.user_message)
 				continue
 
 			if self._should_fallback_to_pipeline(
 				active.intent, active.task_context, active.retries
 			):
+				if self.trace is not None:
+					self.trace.record("pipeline fallback triggered")
 				self._run_pipeline(active.intent, active.task_context, active.retries)
 				continue
 
@@ -247,6 +400,9 @@ class AgentLoop:
 				response.content,
 				correction_attempts=active.correction_attempts,
 				max_correction_attempts=self.max_correction_attempts,
+				on_retry=lambda reason: self.trace.record_nudge(reason)
+				if self.trace is not None
+				else None,
 			)
 			active.patch_verification = patch_verification
 			if should_retry:
@@ -259,6 +415,8 @@ class AgentLoop:
 				active.task_context,
 				repository_inspected=self.conversation.repository_inspected(),
 			):
+				if self.trace is not None:
+					self.trace.record_nudge("missing required unified diff in final answer")
 				return self._finish(
 					active,
 					AgentResult(
@@ -288,10 +446,11 @@ class AgentLoop:
 			active,
 			AgentResult(
 				success=False,
-				error=f"Agent reached the maximum of {step_limit} steps",
+				error=self._step_limit_error(step_limit, active),
 				steps=step_limit,
 				messages=active_messages,
 				patch_verification=active.patch_verification,
+				requested_code_change=task_requests_code_change(active.task_context),
 			),
 		)
 
@@ -315,7 +474,7 @@ class AgentLoop:
 			return False
 		if continuing_after_clarification:
 			return False
-		if intent is TaskIntent.FIX:
+		if intent is TaskIntent.FIX or intent is TaskIntent.PRESENT:
 			return False
 		if not intent_supports_pipeline(intent):
 			return False
@@ -361,13 +520,15 @@ class AgentLoop:
 		*,
 		test_output: str | None = None,
 	) -> None:
+		self._notify_activity("Running repository pipeline...")
+		execute = self._execute_pipeline_tool
 		if intent is TaskIntent.FIX:
 			if test_output is None:
 				last_tests = self.conversation.last_tool_result("run_tests")
 				test_output = last_tests.output if last_tests is not None else None
 			run_fix_pipeline(
 				task_context,
-				self.conversation.execute_tool,
+				execute,
 				repository_path=self.registry.repository_path,
 				test_output=test_output,
 			)
@@ -376,7 +537,7 @@ class AgentLoop:
 			run_repository_pipeline(
 				intent,
 				task_context,
-				self.conversation.execute_tool,
+				execute,
 				repository_path=self.registry.repository_path,
 			)
 			nudge = nudge_after_pipeline_fallback(intent)
@@ -389,16 +550,21 @@ class AgentLoop:
 		*,
 		intent: TaskIntent,
 		task_context: str,
+		step: int,
+		step_limit: int,
 	) -> None:
 		"""Execute a tool call, optionally redirecting redundant searches."""
 
 		tool_name = response.tool_name or ""
+		self._notify_activity(f"Running tool `{tool_name}`...")
 		if self._should_redirect_search_to_read(intent, tool_name):
 			paths = self.conversation.unread_search_code_paths()
 			nudge = nudge_for_read_file_instead_of_search(
 				paths,
 				sources_already_read=bool(self.conversation.read_file_paths()),
 			)
+			if self.trace is not None:
+				self.trace.record_nudge("redirect repeated search_code to read_file")
 			self.conversation.append_nudge(
 				Conversation.format_tool_call(tool_name, response.arguments),
 				nudge.user_message,
@@ -406,17 +572,47 @@ class AgentLoop:
 			return
 
 		result = self.conversation.execute_tool(tool_name, response.arguments)
-		if tool_name == "run_tests" and not result.success and intent is TaskIntent.FIX:
+		if self.trace is not None:
+			self.trace.record_tool_result(
+				tool_name,
+				success=result.success,
+				output=result.output or result.error or "",
+				metadata=result.metadata,
+			)
+		if tool_name == "run_tests" and intent is TaskIntent.FIX:
 			self._run_fix_pipeline(task_context, test_output=result.output)
 
 	def _run_fix_pipeline(self, task_context: str, *, test_output: str | None) -> None:
 		run_fix_pipeline(
 			task_context,
-			self.conversation.execute_tool,
+			self._execute_pipeline_tool,
 			repository_path=self.registry.repository_path,
 			test_output=test_output,
 		)
 		self.conversation.append("user", nudge_after_fix_pipeline().user_message)
+
+	def _execute_pipeline_tool(
+		self,
+		tool_name: str,
+		arguments: dict[str, object],
+	) -> ToolResult:
+		"""Execute deterministic pipeline work while retaining diagnostic evidence."""
+
+		if self.trace is not None:
+			self.trace.record(
+				f"pipeline tool {tool_name}",
+				kind="pipeline_tool_call",
+				data={"tool": tool_name},
+			)
+		result = self.conversation.execute_tool(tool_name, arguments)
+		if self.trace is not None:
+			self.trace.record_tool_result(
+				tool_name,
+				success=result.success,
+				output=result.output or result.error or "",
+				metadata=result.metadata,
+			)
+		return result
 
 	def _should_redirect_search_to_read(self, intent: TaskIntent, tool_name: str) -> bool:
 		if intent is not TaskIntent.FIX or tool_name != "search_code":

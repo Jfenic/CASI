@@ -14,7 +14,7 @@ from casi.tools.git_tools import GitDiffTool
 from casi.tools.result import ToolResult
 from casi.tools.search_tools import SearchCodeTool
 from casi.tools.test_tools import RunTestsTool
-from casi.tools.patch_tools import ValidatePatchTool
+from casi.tools.patch_tools import ProposeFileTool, ValidatePatchTool
 from casi.tools.patch_tools import ApplyPatchTool
 
 
@@ -31,6 +31,7 @@ class ToolRegistry:
             self.register(RunTestsTool(self.repository_path))
             self.register(GitDiffTool(self.repository_path))
             self.register(ValidatePatchTool(self.repository_path))
+            self.register(ProposeFileTool(self.repository_path))
             self.register(ApplyPatchTool(self.repository_path))
 
     def register(self, tool: Tool) -> None:

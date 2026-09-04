@@ -19,6 +19,7 @@ TOOL_PERMISSIONS: dict[str, ToolPermission] = {
 	"search_code": ToolPermission.READ,
 	"git_diff": ToolPermission.READ,
 	"validate_patch": ToolPermission.READ,
+	"propose_file": ToolPermission.READ,
 	"run_tests": ToolPermission.EXECUTE,
 	"apply_patch": ToolPermission.MUTATE,
 }

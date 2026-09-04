@@ -13,8 +13,9 @@ from casi.agent.orchestrator import (
 	PendingOrchestration,
 	format_segment_approval_prompt,
 )
-from casi.agent.planner import AgentPlan, PlanSegment
+from casi.agent.planner import AgentPlan, AgentPlanStep, PlanSegment
 from casi.agent.state import AgentResult
+from casi.agent.trace import AgentTraceRecorder
 from casi.config import settings
 from casi.llm.base import ChatMessage, LLMClient
 from casi.patching.applier import PatchApplicationError, apply_patch
@@ -54,6 +55,12 @@ class InteractiveSession:
 		)
 		self._awaiting_clarification = False
 		self._pending_orchestration: PendingOrchestration | None = None
+		self._trace_enabled = False
+		self._last_trace: list[str] = []
+		self._trace = AgentTraceRecorder(
+			on_event=lambda message: self._emit(f"[trace] {message}"),
+			live=False,
+		)
 		self._orchestrator = AgentOrchestrator(
 			self.client,
 			self.repository,
@@ -65,12 +72,28 @@ class InteractiveSession:
 			on_context_compact=lambda message: self._emit(f"[context] {message}"),
 			on_context_compact_prompt=self._prompt_context_compact,
 			on_plan=self._emit_plan,
+			on_step_start=self._emit_step_start,
+			on_activity=self._emit_activity,
+			trace=self._trace,
+		)
+
+	def _emit_activity(self, message: str) -> None:
+		self._emit(f"[working] {message}")
+
+	def _emit_step_start(self, step: AgentPlanStep, step_number: int, total_steps: int) -> None:
+		self._emit(
+			f"[working] Step {step_number}/{total_steps}: "
+			f"{step.agent_name} ({step.agent_role})"
 		)
 
 	def _emit_plan(self, plan: AgentPlan) -> None:
 		self._emit("[plan]")
 		for line in plan.summary_lines():
 			self._emit(line)
+		self._emit(
+			"[working] Executing plan… please wait. "
+			"Read phases start automatically; do not type at CASI> until a response appears."
+		)
 
 	def run(self) -> int:
 		"""Start the session and return a process-style exit code."""
@@ -105,12 +128,78 @@ class InteractiveSession:
 				self._display_response(agent_result)
 				self._maybe_warn_context_usage()
 			elif not agent_result.success and not result.cancelled:
-				self._emit(f"[error] {agent_result.error or 'Agent failed.'}")
+				self._emit(self._format_error(agent_result.error))
+				self._emit_trace_summary(result.trace)
+
+	def _format_error(self, error: str | None) -> str:
+		message = error or "Agent failed."
+		if "timed out" in message.lower():
+			timeout = int(settings.ollama_timeout_seconds)
+			return (
+				f"[error] {message}\n"
+				f"[hint] Ollama did not respond within {timeout}s. "
+				"Check `ollama serve`, try a faster model, or raise "
+				"LOCALCODE_AGENT_OLLAMA_TIMEOUT."
+			)
+		if "maximum of" in message.lower() and "steps" in message.lower():
+			return (
+				f"[error] {message}\n"
+				f"[hint] Use /trace on before the next run, or /last-trace to review. "
+				f"For fixes, try LOCALCODE_AGENT_FIX_MAX_STEPS=20 or --max-steps 20."
+			)
+		if "without a valid unified diff" in message.lower():
+			return (
+				f"[error] {message}\n"
+				"[hint] Run /last-trace to inspect rejected tools and the exact patch "
+				"validation error. Use /save-trace PATH.json to export diagnostics."
+			)
+		return f"[error] {message}"
+
+	def _emit_trace_summary(self, trace: list[str]) -> None:
+		if not trace:
+			return
+		self._last_trace = list(trace)
+		self._emit("[trace] Run summary:")
+		for line in trace:
+			self._emit(f"[trace] {line}")
+
+	def _set_trace_enabled(self, enabled: bool) -> None:
+		self._trace_enabled = enabled
+		self._trace.set_live(enabled)
+		state = "on" if enabled else "off"
+		self._emit(f"[trace] Live trace {state}.")
+
+	def _show_last_trace(self) -> None:
+		if not self._last_trace:
+			self._emit("[trace] No trace captured yet. Failures store one automatically.")
+			return
+		self._emit("[trace] Last run:")
+		for line in self._last_trace:
+			self._emit(f"[trace] {line}")
+
+	def _save_last_trace(self, path: str) -> None:
+		if not path:
+			self._emit("[trace] Usage: /save-trace PATH.json")
+			return
+		if not self._last_trace:
+			self._emit("[trace] No trace captured yet.")
+			return
+		try:
+			target = self._trace.save(path, events=self._last_trace)
+		except OSError as exc:
+			self._emit(f"[error] Could not save trace: {exc}")
+			return
+		self._emit(f"[trace] Saved diagnostic trace to {target}")
 
 	def _start_turn(self, task: str) -> OrchestratorResult | None:
 		"""Begin a new user task using the multi-agent orchestrator."""
 
-		return self._handle_orchestrator_result(self._orchestrator.run(task))
+		self._trace.clear()
+		self._emit("[working] Planning your request...")
+		result = self._handle_orchestrator_result(self._orchestrator.run(task))
+		if result is not None and result.trace:
+			self._last_trace = list(result.trace)
+		return result
 
 	def _continue_clarification(self, answer: str) -> OrchestratorResult | None:
 		"""Resume the current turn after the user answers a model question."""
@@ -169,6 +258,7 @@ class InteractiveSession:
 			plan=result.plan,
 			patch_verification=result.patch_verification,
 			requested_code_change=result.requested_code_change,
+			trace=result.trace,
 		)
 
 	def _prompt_context_compact(
@@ -269,6 +359,12 @@ class InteractiveSession:
 		self._emit(patch)
 		if not validation.valid:
 			return
+		if result.patch_verification is not None and not result.patch_verification.passed:
+			self._emit(
+				"[error] Patch was not applied because its sandbox tests failed. "
+				"No repository files were changed."
+			)
+			return
 
 		approval = self.input_fn("Apply patch? [y/N] ").strip().lower()
 		if approval not in {"y", "yes"}:
@@ -307,8 +403,30 @@ class InteractiveSession:
 				"/context  Show the conversation thread sent to the model\n"
 				f"/compact [instrucciones]  Summarize older context (warn from {warn_at} msgs)\n"
 				"/clear  Clear session task history and conversation context\n"
-				"/exit  Leave interactive mode"
+				"/trace [on|off]  Show or toggle live decision trace\n"
+				"/last-trace  Show trace from the last run\n"
+				"/save-trace PATH.json  Save the last trace as structured JSON\n"
+				"/exit  Leave interactive mode\n"
+				"\n"
+				"While CASI works, watch for [working] status lines. "
+				"Use /trace on to see each tool call and nudge live. "
+				"Do not type at CASI> until you see [agent] or [question]."
 			)
+			return False
+		if name == "/trace":
+			argument = remainder.strip().lower()
+			if argument in {"on", "off"}:
+				self._set_trace_enabled(argument == "on")
+			elif self._trace_enabled:
+				self._emit("[trace] Live trace is on.")
+			else:
+				self._emit("[trace] Live trace is off. Use /trace on to enable.")
+			return False
+		if name == "/last-trace":
+			self._show_last_trace()
+			return False
+		if name == "/save-trace":
+			self._save_last_trace(remainder.strip())
 			return False
 		if name == "/history":
 			if not self.history:

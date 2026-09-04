@@ -27,13 +27,46 @@ class GitDiffTool(Tool):
 		}
 
 	def run(self, arguments: dict[str, Any]) -> ToolResult:
+		runner = LocalRunner(
+			max_output_chars=settings.max_command_output_chars,
+		)
+		root_result = runner.run(
+			self.repository_path,
+			["git", "rev-parse", "--show-toplevel"],
+			timeout_seconds=settings.git_timeout_seconds,
+		)
+		requested_root = Path(self.repository_path).resolve()
+		discovered_root = (
+			Path(root_result.stdout.strip()).resolve()
+			if root_result.exit_code == 0 and root_result.stdout.strip()
+			else None
+		)
+		if root_result.timed_out:
+			return ToolResult(
+				success=False,
+				output=root_result.stdout,
+				error="Git repository check timed out",
+				metadata={"command": root_result.command, "timed_out": True},
+			)
+		if root_result.exit_code != 0 or discovered_root != requested_root:
+			return ToolResult(
+				success=False,
+				output=root_result.stdout,
+				error=(
+					root_result.stderr
+					or f"Not a Git repository root: {requested_root}"
+				),
+				metadata={
+					"command": root_result.command,
+					"exit_code": root_result.exit_code or 128,
+				},
+			)
+
 		command = ["git", "diff", "--no-ext-diff", "--unified=3"]
 		if arguments["staged"]:
 			command.append("--cached")
 
-		result = LocalRunner(
-			max_output_chars=settings.max_command_output_chars,
-		).run(
+		result = runner.run(
 			self.repository_path,
 			command,
 			timeout_seconds=settings.git_timeout_seconds,

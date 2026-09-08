@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from casi.agent.failure_classification import FailureKind, failure_kind_label
+
 _PREFIX_MALFORMED_JSON = "Your last reply was not a valid CASI"
 _PREFIX_MISSING_PATCH = "The user requested a code change"
 _PREFIX_REPOSITORY_DEFERRAL = "The repository is available through tools"
@@ -151,7 +153,14 @@ def nudge_for_premature_clarification() -> ResponseNudge:
 	)
 
 
-def nudge_for_patch_correction(reason: str, output: str) -> ResponseNudge:
+def nudge_for_patch_correction(
+	reason: str,
+	output: str,
+	*,
+	failure_kind: FailureKind | None = None,
+) -> ResponseNudge:
+	if failure_kind is not None:
+		return nudge_for_failure_kind(failure_kind, reason, output)
 	if "corrupt patch" in output.lower():
 		return nudge_for_corrupt_patch(output)
 	return ResponseNudge(
@@ -163,6 +172,56 @@ def nudge_for_patch_correction(reason: str, output: str) -> ResponseNudge:
 			f"work out the expected value, and {_PROPOSE_FILE_INSTRUCTION}"
 		),
 	)
+
+
+def nudge_for_failure_kind(
+	kind: FailureKind,
+	reason: str,
+	output: str,
+) -> ResponseNudge:
+	"""Return a recovery nudge tailored to the classified failure kind."""
+
+	label = failure_kind_label(kind)
+	guidance = _FAILURE_GUIDANCE[kind]
+	return ResponseNudge(
+		user_message=(
+			f"{reason}\n"
+			f"Failure kind: {kind.value} ({label}).\n"
+			f"Output:\n{output}\n"
+			f"{guidance} {_PROPOSE_FILE_INSTRUCTION}"
+		),
+	)
+
+
+_FAILURE_GUIDANCE = {
+	FailureKind.CODE: (
+		"Inspect the failing assertion and test output carefully, then provide "
+		"corrected file content."
+	),
+	FailureKind.DEPENDENCY: (
+		"The failure looks like a missing dependency or import. Verify imports "
+		"against the loaded source files before proposing changes."
+	),
+	FailureKind.DOCKER: (
+		"The Docker sandbox failed before tests could run. Retry only after the "
+		"environment issue is resolved or use an approved local fallback."
+	),
+	FailureKind.TIMEOUT: (
+		"The test command timed out. Propose a smaller, focused fix rather than "
+		"adding expensive work."
+	),
+	FailureKind.PATCH_INVALID: (
+		"The patch format or paths were rejected. Do not hand-write a diff;"
+	),
+	FailureKind.PATCH_APPLY: (
+		"The patch could not be applied to the current file contents. Re-read the "
+		"target file and"
+	),
+	FailureKind.MODEL_FORMAT: (
+		"The diff format was invalid. Do not hand-write a unified diff;"
+	),
+	FailureKind.UNKNOWN: _PREFIX_PATCH_CORRECTION + " that fixes the failures.",
+}
 
 
 def nudge_for_propose_file_failure(error: str) -> ResponseNudge:

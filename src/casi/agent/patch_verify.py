@@ -5,6 +5,11 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from casi.agent.conversation import Conversation
+from casi.agent.failure_classification import (
+	FailureKind,
+	classify_patch_validation_error,
+	classify_test_result,
+)
 from casi.agent.nudges import nudge_for_patch_correction
 from casi.agent.state import PatchVerification
 from casi.patching.applier import PatchApplicationError
@@ -23,6 +28,7 @@ def _request_patch_correction(
 	runner: str,
 	output: str,
 	passed: bool,
+	failure_kind: FailureKind | None = None,
 	on_retry: Callable[[str], None] | None = None,
 ) -> tuple[PatchVerification | None, bool]:
 	verification = PatchVerification(
@@ -30,16 +36,18 @@ def _request_patch_correction(
 		output=output,
 		runner=runner,
 		correction_attempts=correction_attempts,
+		failure_kind=failure_kind,
 	)
 	if passed or correction_attempts >= max_correction_attempts:
 		return verification, False
 
-	nudge = nudge_for_patch_correction(reason, output)
+	nudge = nudge_for_patch_correction(reason, output, failure_kind=failure_kind)
 	if on_retry is not None:
 		detail = " ".join(output.split())
 		if len(detail) > 240:
 			detail = f"{detail[:237]}..."
-		on_retry(f"patch retry: {reason} Detail: {detail}")
+		kind_label = failure_kind.value if failure_kind is not None else "unknown"
+		on_retry(f"patch retry ({kind_label}): {reason} Detail: {detail}")
 	conversation.append_nudge(content, nudge.user_message)
 	return None, True
 
@@ -70,6 +78,7 @@ def verify_patch_response(
 			runner="validation",
 			output=error,
 			passed=False,
+			failure_kind=classify_patch_validation_error(error),
 			on_retry=on_retry,
 		)
 
@@ -79,6 +88,7 @@ def verify_patch_response(
 			patch,
 		)
 	except (ValueError, PatchApplicationError) as exc:
+		error = str(exc)
 		return _request_patch_correction(
 			conversation,
 			content,
@@ -86,8 +96,9 @@ def verify_patch_response(
 			correction_attempts=correction_attempts,
 			max_correction_attempts=max_correction_attempts,
 			runner="validation",
-			output=str(exc),
+			output=error,
 			passed=False,
+			failure_kind=classify_patch_validation_error(error),
 			on_retry=on_retry,
 		)
 
@@ -95,6 +106,7 @@ def verify_patch_response(
 	if test_result.stderr:
 		output = f"{output}\n{test_result.stderr}".strip()
 	passed = test_result.exit_code == 0 and not test_result.timed_out
+	failure_kind = None if passed else classify_test_result(test_result, runner)
 	return _request_patch_correction(
 		conversation,
 		content,
@@ -104,5 +116,6 @@ def verify_patch_response(
 		runner=runner,
 		output=output,
 		passed=passed,
+		failure_kind=failure_kind,
 		on_retry=on_retry,
 	)

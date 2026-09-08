@@ -51,5 +51,6 @@ strict = false
 addopts = [
     "-q",
     "--import-mode=importlib",
+    "--ignore=tests/fixtures",
 ]
 testpaths = ["tests"]

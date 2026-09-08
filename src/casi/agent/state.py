@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from casi.agent.failure_classification import FailureKind
 from casi.llm.base import ChatMessage
 
 
@@ -13,6 +14,7 @@ class PatchVerification:
 	output: str
 	runner: str
 	correction_attempts: int = 0
+	failure_kind: FailureKind | None = None
 
 
 @dataclass(frozen=True)

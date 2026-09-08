@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from casi.agent.orchestrator import AgentOrchestrator
+from casi.cli_help import format_help
 from casi.config import settings
 from casi.exceptions import CasiError
 from casi.interactive import InteractiveSession
@@ -22,8 +23,40 @@ from casi.sandbox.test_execution import run_repository_pytest
 from casi.tools.registry import ToolRegistry
 
 
+def _add_agent_task_parser(
+    subparsers,
+    name: str,
+    *,
+    help_text: str,
+) -> argparse.ArgumentParser:
+    parser = subparsers.add_parser(name, help=help_text)
+    parser.add_argument("--repo", required=True, help="Repository path.")
+    parser.add_argument("--task", required=True, help="Task for the coding agent.")
+    parser.add_argument(
+        "--max-steps",
+        type=int,
+        default=None,
+        help="Maximum model decisions per agent. Defaults to each agent's profile limit.",
+    )
+    parser.add_argument(
+        "--routing",
+        choices=("assist", "strict", "off"),
+        default=settings.agent_routing_mode,
+        help="Repository routing mode: assist, strict, or off.",
+    )
+    return parser
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="casi")
+    parser = argparse.ArgumentParser(
+        prog="casi",
+        description=(
+            "CASI — local code agent for repository inspection, patching, "
+            "sandboxed testing, and evaluation."
+        ),
+        epilog="Run `casi help` for a guided overview of each command.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     inspect_parser = subparsers.add_parser(
@@ -54,23 +87,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="Maximum number of results to show.",
     )
 
-    run_parser = subparsers.add_parser(
+    _add_agent_task_parser(
+        subparsers,
         "run",
-        help="Run the coding agent on a repository task.",
+        help_text="Run the coding agent on a repository task.",
     )
-    run_parser.add_argument("--repo", required=True, help="Repository path.")
-    run_parser.add_argument("--task", required=True, help="Task for the coding agent.")
-    run_parser.add_argument(
-        "--max-steps",
-        type=int,
-        default=None,
-        help="Maximum model decisions per agent. Defaults to each agent's profile limit.",
+    _add_agent_task_parser(
+        subparsers,
+        "ask",
+        help_text="Ask a read-focused question about the repository.",
     )
-    run_parser.add_argument(
-        "--routing",
-        choices=("assist", "strict", "off"),
-        default=settings.agent_routing_mode,
-        help="Repository routing mode: assist, strict, or off.",
+    _add_agent_task_parser(
+        subparsers,
+        "fix",
+        help_text="Ask CASI to fix code or tests in the repository.",
     )
 
     interactive_parser = subparsers.add_parser(
@@ -117,6 +147,17 @@ def build_parser() -> argparse.ArgumentParser:
         "--yes",
         action="store_true",
         help="Approve the networked dependency installation without prompting.",
+    )
+
+    help_parser = subparsers.add_parser(
+        "help",
+        help="Explain CASI commands and show usage examples.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    help_parser.add_argument(
+        "topic",
+        nargs="?",
+        help="Command to explain (inspect, read, search, run, ask, fix, interactive, test, env).",
     )
 
     return parser
@@ -274,7 +315,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "search":
             return _run_search(args.repo, args.query, args.limit)
 
-        if args.command == "run":
+        if args.command in {"run", "ask", "fix"}:
             return _run_agent(args.repo, args.task, args.max_steps, args.routing)
 
         if args.command == "interactive":
@@ -285,6 +326,10 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "env" and args.env_command == "prepare":
             return _prepare_environment(args.repo, approved=args.yes)
+
+        if args.command == "help":
+            print(format_help(getattr(args, "topic", None)))
+            return 0
 
         parser.error(f"Unknown command: {args.command}")
     except CasiError as exc:

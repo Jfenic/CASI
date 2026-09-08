@@ -9,11 +9,11 @@
 - Fase 4: completada; bucle del agente y comando `casi run`.
 - Fase 5: completada; validación de parches, aprobación humana y bloqueo de mutaciones vía agente.
 - Fase 6: completada para Python/Pytest; incluye `DockerRunner`, entornos de dependencias cacheados, ejecución sin red y ciclo patch → tests → retry.
-- Fase 7: en progreso avanzado; CLI e interacción funcionan, pero faltan alias `ask`/`fix`, selección de comandos de test y guardado directo de parches.
+- Fase 7: en progreso avanzado; CLI e interacción funcionan; alias `ask`/`fix` añadidos; falta guardado directo de parches.
 - Fase 9: parcialmente completada; hay trazas en vivo, errores de herramientas y parches, redacción y exportación JSON. Faltan logs, tiempos, métricas y correlación completa.
 - Fase 10: iniciada; existen cargador de benchmarks, métricas e informes básicos, pero falta una suite reproducible amplia y comparación de modelos.
-- Verificación actual: 193 pruebas aprobadas y 1 omitida; compilación Python y `git diff --check` correctos.
-- Próximo bloque: fiabilidad end-to-end con Ollama, endurecimiento del sandbox y clasificación de fallos. FastAPI comenzará después de estabilizar el núcleo.
+- Verificación actual: 211 pruebas aprobadas y 2 omitidas; compilación Python correcta.
+- Próximo bloque: validar fiabilidad end-to-end con Ollama real y cerrar Fase 7 antes de FastAPI.
 
 El proyecto se desarrollará de forma incremental. Cada fase debe dejar una parte **funcional, probada y documentada** antes de avanzar.
 

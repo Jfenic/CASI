@@ -72,6 +72,38 @@ def test_cli_run_executes_agent_task(
     assert capsys.readouterr().out.strip() == "Task completed"
 
 
+def test_cli_ask_executes_agent_task(tmp_path: Path, capsys, monkeypatch) -> None:
+    monkeypatch.setattr("casi.cli.OllamaClient", FakeOllamaClient)
+
+    exit_code = main(["ask", "--repo", str(tmp_path), "--task", "Explain the repo"])
+
+    assert exit_code == 0
+    assert capsys.readouterr().out.strip() == "Task completed"
+
+
+def test_cli_fix_executes_agent_task(tmp_path: Path, capsys, monkeypatch) -> None:
+    from casi.agent.orchestrator import OrchestratorResult
+
+    monkeypatch.setattr(
+        "casi.cli.AgentOrchestrator.run",
+        lambda self, task: OrchestratorResult(success=True, response="Task completed"),
+    )
+
+    exit_code = main(["fix", "--repo", str(tmp_path), "--task", "Fix failing tests"])
+
+    assert exit_code == 0
+    assert capsys.readouterr().out.strip() == "Task completed"
+
+
+def test_cli_help_lists_ask_and_fix(capsys) -> None:
+    exit_code = main(["help"])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "ask" in output
+    assert "fix" in output
+
+
 def test_cli_test_command(tmp_path: Path, capsys) -> None:
     (tmp_path / "test_sample.py").write_text(
         "def test_ok():\n    assert True\n",
@@ -117,3 +149,31 @@ def test_cli_prepares_environment_with_explicit_approval(
 
     assert exit_code == 0
     assert "Prepared image: casi-project-env:abc" in capsys.readouterr().out
+
+
+def test_cli_help_shows_overview(capsys) -> None:
+    exit_code = main(["help"])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Comandos principales" in output
+    assert "inspect" in output
+    assert "interactive" in output
+
+
+def test_cli_help_shows_command_topic(capsys) -> None:
+    exit_code = main(["help", "read"])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "casi read" in output
+    assert "--file" in output
+
+
+def test_cli_help_reports_unknown_topic(capsys) -> None:
+    exit_code = main(["help", "unknown-command"])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Unknown help topic" in output
+    assert "Available topics" in output

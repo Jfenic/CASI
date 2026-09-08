@@ -21,19 +21,19 @@ Lista priorizada de próximos pasos del proyecto.
 
 ## Prioridad inmediata
 
-- [ ] Sustituir el enrutamiento rígido por selección adaptativa de herramientas dirigida por el modelo.
-- [ ] Mantener el clasificador de intención como orientación para prompts y planes, no como bloqueo del conjunto de herramientas.
-- [ ] Permitir que el modelo solicite elevar una tarea de `READ` a `EXECUTE` o `MUTATE` cuando descubra que lo necesita.
-- [ ] Implementar autorización acumulada por tarea (`READ < EXECUTE < MUTATE`) para no repetir confirmaciones ya cubiertas.
-- [ ] Mantener `apply_patch` fuera del alcance directo del modelo y exigir validación, tests y aprobación humana.
+- [x] Sustituir el enrutamiento rígido por selección adaptativa de herramientas dirigida por el modelo.
+- [x] Mantener el clasificador de intención como orientación para prompts y planes, no como bloqueo del conjunto de herramientas.
+- [x] Permitir que el modelo solicite elevar una tarea de `READ` a `EXECUTE` o `MUTATE` cuando descubra que lo necesita.
+- [x] Implementar autorización acumulada por tarea (`READ < EXECUTE < MUTATE`) para no repetir confirmaciones ya cubiertas.
+- [x] Mantener `apply_patch` fuera del alcance directo del modelo y exigir validación, tests y aprobación humana.
 - [ ] Registrar en la traza cada cambio de estrategia, herramienta solicitada, permiso concedido o rechazado y motivo de escalada.
 - [ ] Añadir pruebas donde una petición inicialmente ambigua termina necesitando tests o una modificación.
-- [ ] Crear fixtures end-to-end reproducibles para correcciones reales con Ollama.
+- [x] Crear fixtures end-to-end reproducibles para correcciones reales con Ollama.
 - [ ] Cubrir recuperación ante JSON inválido, herramientas rechazadas, diffs mal formados y parches que no pasan tests.
-- [ ] Clasificar por separado fallos del código, dependencias, Docker, timeout y formato del modelo.
-- [ ] Evitar el fallback local silencioso para repositorios no confiables; exigir una decisión explícita.
-- [ ] Endurecer `sandbox.Dockerfile` con usuario no root y límites adicionales de procesos.
-- [ ] Detectar el comando de test del proyecto manteniendo Pytest como primera implementación.
+- [x] Clasificar por separado fallos del código, dependencias, Docker, timeout y formato del modelo.
+- [x] Evitar el fallback local silencioso para repositorios no confiables; exigir una decisión explícita.
+- [x] Endurecer `sandbox.Dockerfile` con usuario no root y límites adicionales de procesos.
+- [x] Detectar el comando de test del proyecto manteniendo Pytest como primera implementación.
 
 ## Calidad y seguridad
 
@@ -43,7 +43,7 @@ Lista priorizada de próximos pasos del proyecto.
 
 ## CLI y evaluación
 
-- [ ] Añadir alias `casi ask` y `casi fix` sobre `casi run`.
+- [x] Añadir alias `casi ask` y `casi fix` sobre `casi run`.
 - [ ] Generar informes de benchmark en fichero (JSON/Markdown).
 - [ ] Comparar resultados entre varios modelos locales.
 
@@ -64,7 +64,7 @@ Lista priorizada de próximos pasos del proyecto.
 
 ## Cierre de cada hito
 
-- [x] Ejecutar la suite completa de pruebas (193 passed, 1 skipped).
+- [x] Ejecutar la suite completa de pruebas (211 passed, 2 skipped).
 - [x] Ejecutar `python3 -m compileall -q src tests`.
 - [x] Ejecutar `git diff --check`.
 - [x] Actualizar `README.md`, `planning.md` y `docs/implementation-tracker.md`.

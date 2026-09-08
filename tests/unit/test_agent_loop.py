@@ -70,6 +70,10 @@ def test_fix_agent_hides_patch_validator_and_limits_tools_after_context(
     tmp_path: Path,
 ) -> None:
     (tmp_path / "module.py").write_text("value = 1\n", encoding="utf-8")
+    (tmp_path / "test_module.py").write_text(
+        "from module import value\n\ndef test_value():\n    assert value == 2\n",
+        encoding="utf-8",
+    )
     client = FakeClient(
         [
             LLMResponse.tool_call("run_tests", {}),
@@ -94,6 +98,10 @@ def test_fix_agent_hides_patch_validator_and_limits_tools_after_context(
 
 def test_fix_agent_allows_source_reread_after_inspection(tmp_path: Path) -> None:
     (tmp_path / "module.py").write_text("value = 1\n", encoding="utf-8")
+    (tmp_path / "test_module.py").write_text(
+        "from module import value\n\ndef test_value():\n    assert value == 2\n",
+        encoding="utf-8",
+    )
     patch = "--- a/module.py\n+++ b/module.py\n@@ -1 +1 @@\n-value = 1\n+value = 2\n"
     client = FakeClient(
         [
@@ -116,7 +124,7 @@ def test_fix_agent_allows_source_reread_after_inspection(tmp_path: Path) -> None
         message for message in result.messages
         if message.role == "tool" and message.content.startswith("tool=read_file")
     ]
-    assert len(read_results) == 2
+    assert len(read_results) == 3
 
 
 def test_agent_loop_blocks_apply_patch_tool_call(tmp_path: Path) -> None:
@@ -497,3 +505,40 @@ def test_agent_loop_redirects_repeat_search_code_to_read_file(tmp_path: Path) ->
         if message.role == "tool" and message.content.startswith("tool=search_code")
     ]
     assert len(search_tool_results) == 0
+
+
+def test_agent_loop_nudges_when_propose_file_fails(tmp_path: Path) -> None:
+    (tmp_path / "module.py").write_text("value = 1\n", encoding="utf-8")
+    (tmp_path / "test_module.py").write_text(
+        "from module import value\n\ndef test_value():\n    assert value == 2\n",
+        encoding="utf-8",
+    )
+    patch = "--- a/module.py\n+++ b/module.py\n@@ -1 +1 @@\n-value = 1\n+value = 2\n"
+    client = FakeClient(
+        [
+            LLMResponse.tool_call("run_tests", {}),
+            LLMResponse.tool_call("read_file", {"path": "module.py"}),
+            LLMResponse.tool_call(
+                "propose_file",
+                {"path": "module.py", "content": "value = 1\n"},
+            ),
+            LLMResponse.tool_call(
+                "propose_file",
+                {"path": "module.py", "content": "value = 2\n"},
+            ),
+            LLMResponse.final(patch),
+        ]
+    )
+
+    result = AgentLoop(
+        client,
+        ToolRegistry(tmp_path),
+        max_correction_attempts=0,
+        require_tool_confirmation=lambda *_args: True,
+    ).run("corrige module.py")
+
+    assert result.success is True
+    assert client.calls[3][0][-1].content.startswith(
+        "propose_file could not build the patch"
+    )
+    assert "does not change the file" in client.calls[3][0][-1].content

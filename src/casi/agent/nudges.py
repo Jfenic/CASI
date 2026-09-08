@@ -14,9 +14,15 @@ _PREFIX_FIX_WITHOUT_INSPECTION = "The user asked to fix code or pass tests"
 _PREFIX_PATCH_INVALID = "The proposed patch is invalid"
 _PREFIX_PATCH_NOT_APPLIED = "The proposed patch could not be applied"
 _PREFIX_PATCH_FAILED_TESTS = "The proposed patch failed tests"
-_PREFIX_PATCH_CORRECTION = "Provide a corrected unified diff"
+_PREFIX_PATCH_CORRECTION = "Provide corrected file content via propose_file"
 _PREFIX_READ_INSTEAD_OF_SEARCH = "search_code results are already available"
 _PREFIX_CORRUPT_PATCH = "The diff format was invalid for git apply"
+_PREFIX_PROPOSE_FILE_FAILURE = "propose_file could not build the patch"
+
+_PROPOSE_FILE_INSTRUCTION = (
+	"Call propose_file with the repository-relative path and the complete "
+	"file content. CASI will build the unified diff; do not write the diff yourself."
+)
 
 AGENT_NUDGE_PREFIXES = (
 	_PREFIX_MALFORMED_JSON,
@@ -32,6 +38,7 @@ AGENT_NUDGE_PREFIXES = (
 	_PREFIX_PATCH_CORRECTION,
 	_PREFIX_READ_INSTEAD_OF_SEARCH,
 	_PREFIX_CORRUPT_PATCH,
+	_PREFIX_PROPOSE_FILE_FAILURE,
 )
 
 
@@ -73,9 +80,8 @@ def nudge_for_missing_patch() -> ResponseNudge:
 		user_message=(
 			f"{_PREFIX_MISSING_PATCH} or passing tests. "
 			"Call read_file on the failing source and test files if you have not "
-			"loaded them yet, then reply with a complete unified diff only, starting "
-			"with --- a/ and +++ b/, preferably inside a ```diff block. "
-			"Do not describe the fix without the diff."
+			f"loaded them yet, then {_PROPOSE_FILE_INSTRUCTION} "
+			"Do not describe the fix without calling propose_file."
 		),
 	)
 
@@ -90,8 +96,7 @@ def nudge_for_read_file_instead_of_search(
 			user_message=(
 				f"{_PREFIX_READ_INSTEAD_OF_SEARCH}. "
 				"Source files are already loaded with read_file. "
-				"Do not call search_code again; reply with a complete unified diff "
-				"inside a ```diff block."
+				f"Do not call search_code again; {_PROPOSE_FILE_INSTRUCTION}"
 			),
 		)
 
@@ -99,8 +104,8 @@ def nudge_for_read_file_instead_of_search(
 	return ResponseNudge(
 		user_message=(
 			f"{_PREFIX_READ_INSTEAD_OF_SEARCH} for {joined}. "
-			"Call read_file on those paths to load the full source, then reply with "
-			"a complete unified diff inside a ```diff block."
+			f"Call read_file on those paths to load the full source, then "
+			f"{_PROPOSE_FILE_INSTRUCTION}"
 		),
 	)
 
@@ -110,11 +115,7 @@ def nudge_for_corrupt_patch(output: str) -> ResponseNudge:
 		user_message=(
 			f"{_PREFIX_CORRUPT_PATCH}.\n"
 			f"Output:\n{output}\n"
-			"Reply with a valid unified diff inside a ```diff block. Requirements:\n"
-			"- Start with --- a/path and +++ b/path on their own lines\n"
-			"- Include a hunk header like @@ -1,3 +1,3 @@ on its own line\n"
-			"- Prefix every content line with space (context), + (added), or - (removed)\n"
-			"- Do not put code on the same line as the hunk header\n"
+			f"Do not hand-write a unified diff. {_PROPOSE_FILE_INSTRUCTION} "
 			f"{_PREFIX_PATCH_CORRECTION} that fixes the failures."
 		),
 	)
@@ -125,7 +126,7 @@ def nudge_for_fix_without_inspection() -> ResponseNudge:
 		user_message=(
 			f"{_PREFIX_FIX_WITHOUT_INSPECTION}. "
 			"Call run_tests first, inspect failures with read_file or search_code, "
-			"then reply with a complete unified diff inside a ```diff block."
+			f"then {_PROPOSE_FILE_INSTRUCTION}"
 		),
 	)
 
@@ -159,6 +160,15 @@ def nudge_for_patch_correction(reason: str, output: str) -> ResponseNudge:
 			f"Output:\n{output}\n"
 			f"{_PREFIX_PATCH_CORRECTION} that fixes the failures. "
 			"Do not repeat the same change. Read the failed assertion carefully, "
-			"work out the expected value, and call propose_file with corrected content."
+			f"work out the expected value, and {_PROPOSE_FILE_INSTRUCTION}"
+		),
+	)
+
+
+def nudge_for_propose_file_failure(error: str) -> ResponseNudge:
+	return ResponseNudge(
+		user_message=(
+			f"{_PREFIX_PROPOSE_FILE_FAILURE}: {error} "
+			f"Fix the issue and {_PROPOSE_FILE_INSTRUCTION}"
 		),
 	)

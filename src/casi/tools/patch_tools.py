@@ -2,14 +2,58 @@
 
 from __future__ import annotations
 
+import ast
 import difflib
+import re
 from pathlib import Path
 from typing import Any
 
 from casi.patching.validator import validate_patch
 from casi.patching.applier import PatchApplicationError, apply_patch
+from casi.repository.security import is_sensitive_path
 from casi.tools.base import Tool, ToolArgumentSpec
 from casi.tools.result import ToolResult
+
+_NUMBERED_LINE = re.compile(r"^(\d+):(?: ?)(.*)$")
+
+
+def _strip_numbered_reader_output(content: str) -> tuple[str, bool]:
+	"""Remove ``read_file`` display prefixes when a model echoes them verbatim."""
+
+	lines = content.splitlines()
+	if not lines:
+		return content, False
+	matches = [_NUMBERED_LINE.match(line) for line in lines]
+	if not all(matches):
+		return content, False
+	numbers = [int(match.group(1)) for match in matches if match is not None]
+	if numbers != list(range(1, len(lines) + 1)):
+		return content, False
+	cleaned = "\n".join(match.group(2) for match in matches if match is not None)
+	return cleaned, True
+
+
+def _new_test_functions(before: str, after: str) -> set[str]:
+	"""Return test functions newly inserted into a non-test Python module."""
+
+	try:
+		before_tree = ast.parse(before)
+		after_tree = ast.parse(after)
+	except SyntaxError:
+		return set()
+	before_tests = {
+		node.name
+		for node in before_tree.body
+		if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+		and node.name.startswith("test_")
+	}
+	return {
+		node.name
+		for node in after_tree.body
+		if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+		and node.name.startswith("test_")
+		and node.name not in before_tests
+	}
 
 
 class ProposeFileTool(Tool):
@@ -17,8 +61,9 @@ class ProposeFileTool(Tool):
 
 	name = "propose_file"
 	description = (
-		"Propose a file change without writing it. Provide the repository-relative "
-		"path and the complete desired file content; CASI builds the unified diff."
+		"Propose a file create or update without writing it. Provide the "
+		"repository-relative path and the complete desired file content; CASI "
+		"builds the unified diff."
 	)
 
 	def __init__(self, repository_path: str | Path) -> None:
@@ -36,24 +81,63 @@ class ProposeFileTool(Tool):
 		target = (self.repository_path / relative).resolve()
 		if relative.is_absolute() or self.repository_path not in target.parents:
 			raise ValueError("Path must stay inside the repository")
-		if not target.is_file():
-			raise FileNotFoundError(f"File not found: {relative.as_posix()}")
-		before = target.read_text(encoding="utf-8").splitlines(keepends=True)
-		content = arguments["content"]
+		if is_sensitive_path(relative):
+			raise ValueError(f"Sensitive path is not allowed: {relative.as_posix()}")
+		creating = not target.is_file()
+		if creating:
+			if target.exists() and target.is_dir():
+				raise ValueError(f"Path is a directory: {relative.as_posix()}")
+			if not target.parent.exists():
+				raise ValueError(
+					f"Parent directory does not exist for {relative.as_posix()}. "
+					"Choose a path inside an existing directory."
+				)
+			before_content = ""
+		else:
+			before_content = target.read_text(encoding="utf-8")
+		before = before_content.splitlines(keepends=True)
+		content, stripped_numbers = _strip_numbered_reader_output(arguments["content"])
+		is_test_file = relative.name.startswith("test_") or "tests" in relative.parts
+		unexpected_tests = set() if is_test_file else _new_test_functions(before_content, content)
+		if unexpected_tests:
+			names = ", ".join(sorted(unexpected_tests))
+			raise ValueError(
+				f"Content for {relative.as_posix()} includes test functions from another "
+				f"file ({names}). Propose only the complete content of the requested file."
+			)
 		if content and not content.endswith("\n"):
 			content += "\n"
 		after = content.splitlines(keepends=True)
-		patch = "".join(
-			difflib.unified_diff(
+		if creating:
+			diff = difflib.unified_diff(
+				before,
+				after,
+				fromfile="/dev/null",
+				tofile=f"b/{relative.as_posix()}",
+			)
+		else:
+			diff = difflib.unified_diff(
 				before,
 				after,
 				fromfile=f"a/{relative.as_posix()}",
 				tofile=f"b/{relative.as_posix()}",
 			)
-		)
+		patch = "".join(diff)
 		if not patch:
-			raise ValueError("The proposed content does not change the file")
-		return ToolResult(success=True, output=patch, metadata={"path": relative.as_posix()})
+			raise ValueError(
+				"The proposed content does not change the file"
+				if not creating
+				else "The proposed content is empty; new files need non-empty content"
+			)
+		return ToolResult(
+			success=True,
+			output=patch,
+			metadata={
+				"path": relative.as_posix(),
+				"stripped_line_numbers": stripped_numbers,
+				"created": creating,
+			},
+		)
 
 
 class ValidatePatchTool(Tool):

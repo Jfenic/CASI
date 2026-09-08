@@ -20,6 +20,7 @@ from casi.agent.intent import (
 )
 from casi.agent.nudges import (
 	nudge_for_premature_clarification,
+	nudge_for_propose_file_failure,
 	nudge_for_read_file_instead_of_search,
 	nudge_for_repeated_clarification,
 )
@@ -41,8 +42,8 @@ from casi.tools.registry import ToolRegistry
 from casi.tools.result import ToolResult
 
 _MISSING_PATCH_ERROR = (
-	"The agent finished without a valid unified diff. "
-	"Ask CASI again to provide a ```diff patch."
+	"The agent finished without a valid patch. "
+	"Ask CASI again to call propose_file with the complete corrected file content."
 )
 
 ActivityNotifier = Callable[[str], None]
@@ -303,6 +304,15 @@ class AgentLoop:
 							metadata=result.metadata,
 						)
 					if not result.success:
+						error = result.error or "propose_file failed"
+						self.conversation.append_nudge(
+							Conversation.format_tool_call(tool_name, response.arguments),
+							nudge_for_propose_file_failure(error).user_message,
+						)
+						if self.trace is not None:
+							self.trace.record_nudge(
+								f"propose_file failed: {error}",
+							)
 						continue
 					response = LLMResponse.final(result.output)
 				elif active.intent is TaskIntent.FIX and not any(
@@ -409,6 +419,21 @@ class AgentLoop:
 				active.correction_attempts += 1
 				active.retries.patch_nudges = 0
 				continue
+			if patch_verification is not None and not patch_verification.passed:
+				return self._finish(
+					active,
+					AgentResult(
+						success=False,
+						error=(
+							"Patch verification failed after exhausting correction "
+							f"attempts: {patch_verification.output}"
+						),
+						steps=step,
+						messages=active_messages,
+						patch_verification=patch_verification,
+						requested_code_change=True,
+					),
+				)
 
 			if self.response_policy.missing_required_patch(
 				response.content,

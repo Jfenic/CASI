@@ -200,3 +200,66 @@ def test_apply_patch_rejection_leaves_repository_unchanged(tmp_path: Path) -> No
         raise AssertionError("Expected apply_patch to require approval")
 
     assert (repository / "app.py").read_text(encoding="utf-8") == original
+
+
+def test_propose_file_strips_numbered_reader_output(tmp_path: Path) -> None:
+    repository = _repository(tmp_path)
+    numbered_content = "1: return True\n"
+
+    result = ToolRegistry(repository).execute(
+        "propose_file",
+        {"path": "app.py", "content": numbered_content},
+    )
+
+    assert result.success is True
+    assert "+return True" in result.output
+    assert "+1: return True" not in result.output
+    assert result.metadata["stripped_line_numbers"] is True
+
+
+def test_propose_file_rejects_tests_copied_into_source_module(tmp_path: Path) -> None:
+    repository = _repository(tmp_path)
+    contaminated = (
+        "1: return True\n"
+        "2: \n"
+        "3: def test_return_value():\n"
+        "4:     assert True\n"
+    )
+
+    result = ToolRegistry(repository).execute(
+        "propose_file",
+        {"path": "app.py", "content": contaminated},
+    )
+
+    assert result.success is False
+    assert "includes test functions from another file" in (result.error or "")
+
+
+def test_propose_file_creates_new_file(tmp_path: Path) -> None:
+    repository = _repository(tmp_path)
+    content = "def created():\n    return True\n"
+
+    result = ToolRegistry(repository).execute(
+        "propose_file",
+        {"path": "new_module.py", "content": content},
+    )
+
+    assert result.success is True
+    assert result.metadata["created"] is True
+    assert "--- /dev/null" in result.output
+    assert "+++ b/new_module.py" in result.output
+    validation = validate_patch(repository, result.output)
+    assert validation.valid is True
+    assert validation.files == ["new_module.py"]
+
+
+def test_propose_file_rejects_missing_parent_directory(tmp_path: Path) -> None:
+    repository = _repository(tmp_path)
+
+    result = ToolRegistry(repository).execute(
+        "propose_file",
+        {"path": "missing/new_module.py", "content": "value = 1\n"},
+    )
+
+    assert result.success is False
+    assert "Parent directory does not exist" in (result.error or "")

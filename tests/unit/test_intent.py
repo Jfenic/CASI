@@ -16,11 +16,15 @@ def test_classify_meta_and_conversation() -> None:
 def test_classify_inspect_and_fix() -> None:
     assert classify_intent("Explain what foo_bar does") is TaskIntent.INSPECT
     assert classify_intent("pasa los tests") is TaskIntent.FIX
+    assert classify_intent("busca el error y corrigelo") is TaskIntent.FIX
+    assert classify_intent("corrígelo") is TaskIntent.FIX
+    assert classify_intent("arreglalo") is TaskIntent.FIX
 
 
 def test_task_requests_code_change_detects_patch_prompts() -> None:
     assert task_requests_code_change("genera un parche valido") is True
     assert task_requests_code_change("provide a valid diff") is True
+    assert task_requests_code_change("corrigelo") is True
 
 
 def test_build_task_context_keeps_recent_user_turns() -> None:

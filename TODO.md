@@ -21,16 +21,25 @@ Lista priorizada de próximos pasos del proyecto.
 
 ## Prioridad inmediata
 
-- [ ] Exponer API FastAPI con aprobación de parches y consulta de estado.
-- [ ] Construir y documentar imagen Docker `casi-sandbox:latest` para sandbox completo.
-- [ ] Ampliar entornos de proyecto a Node.js y otros ecosistemas.
+- [ ] Sustituir el enrutamiento rígido por selección adaptativa de herramientas dirigida por el modelo.
+- [ ] Mantener el clasificador de intención como orientación para prompts y planes, no como bloqueo del conjunto de herramientas.
+- [ ] Permitir que el modelo solicite elevar una tarea de `READ` a `EXECUTE` o `MUTATE` cuando descubra que lo necesita.
+- [ ] Implementar autorización acumulada por tarea (`READ < EXECUTE < MUTATE`) para no repetir confirmaciones ya cubiertas.
+- [ ] Mantener `apply_patch` fuera del alcance directo del modelo y exigir validación, tests y aprobación humana.
+- [ ] Registrar en la traza cada cambio de estrategia, herramienta solicitada, permiso concedido o rechazado y motivo de escalada.
+- [ ] Añadir pruebas donde una petición inicialmente ambigua termina necesitando tests o una modificación.
+- [ ] Crear fixtures end-to-end reproducibles para correcciones reales con Ollama.
+- [ ] Cubrir recuperación ante JSON inválido, herramientas rechazadas, diffs mal formados y parches que no pasan tests.
+- [ ] Clasificar por separado fallos del código, dependencias, Docker, timeout y formato del modelo.
+- [ ] Evitar el fallback local silencioso para repositorios no confiables; exigir una decisión explícita.
+- [ ] Endurecer `sandbox.Dockerfile` con usuario no root y límites adicionales de procesos.
+- [ ] Detectar el comando de test del proyecto manteniendo Pytest como primera implementación.
 
 ## Calidad y seguridad
 
-- [ ] Endurecer imagen Docker (`USER` no root en `sandbox.Dockerfile`).
 - [ ] Añadir detección de repeticiones y límites de archivos leídos en el agente.
 - [ ] Ampliar benchmarks a 20+ tareas reproducibles con repositorios de prueba.
-- [ ] Corregir test de integración `git_diff` en directorios no-git dentro del repo.
+- [x] Corregir `git_diff` para rechazar directorios no-Git situados dentro de otro repositorio.
 
 ## CLI y evaluación
 
@@ -40,15 +49,24 @@ Lista priorizada de próximos pasos del proyecto.
 
 ## Observabilidad (Fase 9)
 
+- [x] Trazas en vivo y resumen del último intento.
+- [x] Exportación JSON con redacción de argumentos sensibles.
+- [x] Registrar herramientas rechazadas, pipeline automático y errores exactos de parches.
 - [ ] Logs estructurados por ejecución.
-- [ ] Métricas de pasos, herramientas y duración.
-- [ ] Trazas reconstruibles de cada tarea del agente.
+- [ ] Métricas agregadas de pasos, herramientas, reintentos y duración.
+- [ ] Correlacionar una misma traza entre planificador, especialistas y presentador.
+
+## Después de estabilizar el núcleo
+
+- [ ] Exponer API FastAPI con aprobación de parches y consulta de estado.
+- [ ] Ampliar entornos de proyecto a Node.js y otros ecosistemas.
+- [ ] Diseñar interfaz visual sobre la API estable.
 
 ## Cierre de cada hito
 
-- [x] Ejecutar la suite completa de pruebas (87 passed, 1 skipped; 2 fallos de integración por entorno).
+- [x] Ejecutar la suite completa de pruebas (193 passed, 1 skipped).
 - [x] Ejecutar `python3 -m compileall -q src tests`.
-- [ ] Ejecutar `git diff --check`.
+- [x] Ejecutar `git diff --check`.
 - [x] Actualizar `README.md`, `planning.md` y `docs/implementation-tracker.md`.
-- [ ] Crear un commit Git pequeño y descriptivo.
-- [ ] Confirmar que el working tree queda limpio.
+- [x] Crear commits Git pequeños y descriptivos.
+- [x] Confirmar que el working tree queda limpio antes de iniciar el siguiente cambio.

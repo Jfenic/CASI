@@ -85,7 +85,9 @@ _APPLY_PATCH_PATTERN = re.compile(
 )
 
 _CHANGE_REQUEST_PATTERN = re.compile(
-	r"\b(?:fix|corrige|corregir|arregla|repair|actualiza|update)\b"
+	r"\b(?:fix|fixes|corrige(?:lo|la|los|las)?|corrígelo|corrígela|corregir|"
+	r"arregla(?:lo|la|los|las)?|arréglalo|arréglala|repara(?:lo|la)?|repáralo|"
+	r"repair|actualiza|update|modifica|cambia)\b"
 	r"|\b(?:pass|pasa|pasan|pasen|make|haz)\b.{0,40}\b(?:test|tests|prueba|pruebas)\b"
 	r"|\b(?:test|tests|prueba|pruebas)\b.{0,40}\b(?:pass|pasa|pasan|pasen|fix|corrige)\b",
 	re.IGNORECASE | re.DOTALL,

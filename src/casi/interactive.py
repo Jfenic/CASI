@@ -55,6 +55,7 @@ class InteractiveSession:
 		)
 		self._awaiting_clarification = False
 		self._pending_orchestration: PendingOrchestration | None = None
+		self._last_plan: AgentPlan | None = None
 		self._trace_enabled = False
 		self._last_trace: list[str] = []
 		self._trace = AgentTraceRecorder(
@@ -87,6 +88,7 @@ class InteractiveSession:
 		)
 
 	def _emit_plan(self, plan: AgentPlan) -> None:
+		self._last_plan = plan
 		self._emit("[plan]")
 		for line in plan.summary_lines():
 			self._emit(line)
@@ -102,7 +104,11 @@ class InteractiveSession:
 
 		while True:
 			try:
-				prompt = "Answer> " if self._awaiting_clarification else "CASI> "
+				prompt = (
+					"Answer (/plan, /cancel)> "
+					if self._awaiting_clarification
+					else "CASI> "
+				)
 				task = self.input_fn(prompt).strip()
 			except (EOFError, KeyboardInterrupt):
 				self._emit("\nSession ended.")
@@ -113,6 +119,9 @@ class InteractiveSession:
 			if task.startswith("/"):
 				if self._handle_command(task):
 					return 0
+				continue
+			if self._awaiting_clarification and self._is_plan_request(task):
+				self._show_plan()
 				continue
 
 			if self._awaiting_clarification:
@@ -177,6 +186,41 @@ class InteractiveSession:
 		for line in self._last_trace:
 			self._emit(f"[trace] {line}")
 
+	@staticmethod
+	def _is_plan_request(message: str) -> bool:
+		normalized = " ".join(message.lower().strip(" ¿?¡!").split())
+		return normalized in {
+			"dime el plan",
+			"muestra el plan",
+			"muéstrame el plan",
+			"ver el plan",
+			"cual es el plan",
+			"cuál es el plan",
+		}
+
+	def _show_plan(self) -> None:
+		plan = (
+			self._pending_orchestration.plan
+			if self._pending_orchestration is not None
+			else self._last_plan
+		)
+		if plan is None:
+			self._emit("[plan] No plan is available for this session.")
+			return
+		self._emit("[plan] Current plan:")
+		for line in plan.summary_lines():
+			self._emit(line)
+		if self._awaiting_clarification:
+			self._emit("[pending] Answer the question to continue, or use /cancel.")
+
+	def _cancel_pending(self) -> None:
+		if not self._awaiting_clarification and self._pending_orchestration is None:
+			self._emit("[pending] There is no pending task to cancel.")
+			return
+		self._awaiting_clarification = False
+		self._pending_orchestration = None
+		self._emit("[pending] Pending task cancelled. You can enter a new request.")
+
 	def _save_last_trace(self, path: str) -> None:
 		if not path:
 			self._emit("[trace] Usage: /save-trace PATH.json")
@@ -238,7 +282,10 @@ class InteractiveSession:
 			self._awaiting_clarification = True
 			self._pending_orchestration = result.pending
 			self._emit(f"[question] {result.clarification}")
-			self._emit("Reply at Answer> (or /exit to leave).")
+			self._emit(
+				"[pending] Reply to continue. Use /plan to review the current plan, "
+				"/cancel to discard it, or /exit to leave."
+			)
 			return result
 
 		self._awaiting_clarification = False
@@ -406,6 +453,8 @@ class InteractiveSession:
 				"/trace [on|off]  Show or toggle live decision trace\n"
 				"/last-trace  Show trace from the last run\n"
 				"/save-trace PATH.json  Save the last trace as structured JSON\n"
+				"/plan  Show the current or last generated plan\n"
+				"/cancel  Cancel a task waiting for clarification\n"
 				"/exit  Leave interactive mode\n"
 				"\n"
 				"While CASI works, watch for [working] status lines. "
@@ -428,6 +477,12 @@ class InteractiveSession:
 		if name == "/save-trace":
 			self._save_last_trace(remainder.strip())
 			return False
+		if name == "/plan":
+			self._show_plan()
+			return False
+		if name == "/cancel":
+			self._cancel_pending()
+			return False
 		if name == "/history":
 			if not self.history:
 				self._emit("No tasks in this session.")
@@ -449,6 +504,7 @@ class InteractiveSession:
 			self.messages.clear()
 			self._awaiting_clarification = False
 			self._pending_orchestration = None
+			self._last_plan = None
 			self._emit("Session history and conversation context cleared.")
 			return False
 

@@ -198,9 +198,9 @@ def test_interactive_session_uses_answer_prompt_during_clarification(tmp_path: P
     ).run()
 
     assert prompts[0] == "CASI> "
-    assert prompts[1] == "Answer> "
+    assert prompts[1] == "Answer (/plan, /cancel)> "
     assert prompts[2] == "CASI> "
-    assert any("Reply at Answer>" in message for message in output)
+    assert any("[pending] Reply to continue" in message for message in output)
 
 
 def test_interactive_session_skips_clarification_for_fix_requests(tmp_path: Path) -> None:
@@ -230,6 +230,42 @@ def test_interactive_session_can_exit_during_clarification(tmp_path: Path) -> No
     ).run()
 
     assert "Session ended." in output
+
+
+def test_interactive_plan_request_does_not_consume_pending_answer(tmp_path: Path) -> None:
+    prompts: list[str] = []
+    commands = iter([
+        "Improve things please",
+        "dime el plan",
+        "Focus on readability",
+        "/exit",
+    ])
+    output: list[str] = []
+
+    InteractiveSession(
+        tmp_path,
+        ClarifyingClient(),
+        input_fn=lambda prompt: prompts.append(prompt) or next(commands),
+        output_fn=output.append,
+    ).run()
+
+    assert prompts.count("Answer (/plan, /cancel)> ") == 2
+    assert "[plan] Current plan:" in output
+    assert any("I will inspect the email validator." in message for message in output)
+
+
+def test_interactive_cancel_discards_pending_clarification(tmp_path: Path) -> None:
+    commands = iter(["Improve things please", "/cancel", "/exit"])
+    output: list[str] = []
+
+    InteractiveSession(
+        tmp_path,
+        ClarifyingClient(),
+        input_fn=lambda prompt: next(commands),
+        output_fn=output.append,
+    ).run()
+
+    assert "[pending] Pending task cancelled. You can enter a new request." in output
 
 
 class PatchClient:

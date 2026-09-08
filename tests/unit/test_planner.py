@@ -33,6 +33,14 @@ def test_plan_fix_request_is_single_mutate_segment() -> None:
     assert plan.segments[0].steps[0].objective is TaskIntent.FIX
 
 
+def test_brief_spanish_fix_request_does_not_add_presenter() -> None:
+    plan = TaskPlanner.create_plan("busca el error y corrigelo")
+
+    assert plan.step_count() == 1
+    assert plan.segments[0].tier is PermissionTier.MUTATE
+    assert plan.segments[0].steps[0].objective is TaskIntent.FIX
+
+
 def test_plan_appends_presenter_for_overview_requests() -> None:
     plan = TaskPlanner.create_plan("dime que trata este proyecto")
     assert plan.step_count() == 2

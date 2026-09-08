@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 
 from dataclasses import dataclass, field
@@ -243,7 +244,14 @@ class AgentLoop:
 
 	def _start(self, task: str) -> AgentResult:
 		if self.trace is not None:
-			self.trace.clear()
+			model = getattr(self.client, "model", None)
+			self.trace.set_context(
+				model=model if isinstance(model, str) else None,
+				repository=str(self.registry.repository_path),
+				task=task,
+			)
+			if self.trace.started_at is None:
+				self.trace.mark_started()
 		scope = TaskScope(session_messages=self._session_merge_target())
 		tools = self._tools_for_task()
 		task_context = build_task_context(task, self.messages)
@@ -324,10 +332,18 @@ class AgentLoop:
 				f"Thinking with {self._model_label()} "
 				f"(decision {step}/{step_limit})..."
 			)
+			started = time.perf_counter()
 			response = self.client.complete(
 				active_messages,
 				step_tools,
 			)
+			duration_ms = (time.perf_counter() - started) * 1000
+			if self.trace is not None:
+				self.trace.record_step_timing(step, step_limit, response.kind, duration_ms)
+				self.trace.record_usage(
+					prompt_tokens=response.prompt_tokens,
+					completion_tokens=response.completion_tokens,
+				)
 
 			if response.kind == "tool_call":
 				tool_name = response.tool_name or "unknown"

@@ -78,6 +78,11 @@ runner and exit status, rejected calls, steering messages, and exact patch
 validation failures. Large source arguments are shortened and argument names
 that indicate passwords, tokens, secrets, or keys are redacted.
 
+With `-v` on `run`, `ask`, or `fix`, CASI also emits one structured JSON log
+line to stderr with step timings, aggregate metrics, and token usage when the
+model reports it. API task responses include the same `metrics` and
+`execution` summaries after each run.
+
 If the model asks for clarification, answer at the `Answer>` prompt. CASI will
 search the repository automatically after you clarify scope. Use `/exit` to leave
 during a clarification prompt.

@@ -8,8 +8,10 @@ from pathlib import Path
 
 from casi.agent.orchestrator import AgentOrchestrator, format_segment_approval_prompt
 from casi.agent.planner import PlanSegment
+from casi.agent.trace import AgentTraceRecorder
 from casi.cli_agent import finalize_agent_run
 from casi.cli_help import format_help
+from casi.observability.logging import emit_execution_log
 from casi.config import settings
 from casi.exceptions import CasiError
 from casi.interactive import InteractiveSession
@@ -260,6 +262,7 @@ def _run_agent(
 ) -> int:
     """Run the bounded agent loop using the configured Ollama client."""
 
+    trace = AgentTraceRecorder()
     orchestrator = AgentOrchestrator(
         OllamaClient(),
         repository,
@@ -277,9 +280,13 @@ def _run_agent(
             f"[working] {message}" if not verbose else f"[verbose] {message}",
             file=sys.stderr,
         ),
+        trace=trace,
     )
     print("[working] Running agent...", file=sys.stderr)
     result = orchestrator.run(task)
+
+    if verbose:
+        emit_execution_log(trace)
 
     return finalize_agent_run(
         repository,

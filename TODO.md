@@ -54,8 +54,8 @@ Lista priorizada de próximos pasos del proyecto.
 - [x] Trazas en vivo y resumen del último intento.
 - [x] Exportación JSON con redacción de argumentos sensibles.
 - [x] Registrar herramientas rechazadas, pipeline automático y errores exactos de parches.
-- [ ] Logs estructurados por ejecución.
-- [ ] Métricas agregadas de pasos, herramientas, reintentos y duración.
+- [x] Logs estructurados por ejecución (`-v` en CLI, respuesta API con `metrics`).
+- [x] Métricas agregadas de pasos, herramientas, tokens y duración.
 - [ ] Correlacionar una misma traza entre planificador, especialistas y presentador.
 
 ## Después de estabilizar el núcleo

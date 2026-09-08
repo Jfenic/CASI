@@ -62,9 +62,11 @@ def test_trace_redacts_sensitive_arguments_and_saves_json(tmp_path: Path) -> Non
 	target = trace.save(tmp_path / "trace.json")
 	payload = json.loads(target.read_text(encoding="utf-8"))
 
-	assert payload["schema_version"] == 1
+	assert payload["schema_version"] == 2
 	assert payload["run_id"]
 	assert len(payload["events"]) == 2
+	assert "metrics" in payload
+	assert "execution" in payload
 	assert "secret-value" not in trace.events[0]
 	assert "<redacted>" in trace.events[0]
 	assert len(trace.events[0]) < 300

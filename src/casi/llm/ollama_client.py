@@ -57,7 +57,20 @@ class OllamaClient:
 			payload["tools"] = [self._tool_schema(tool) for tool in tools]
 
 		response_payload = self._post(payload)
-		return self._parse_payload(response_payload)
+		parsed = self._parse_payload(response_payload)
+		prompt_tokens = _optional_int(response_payload.get("prompt_eval_count"))
+		completion_tokens = _optional_int(response_payload.get("eval_count"))
+		if prompt_tokens is None and completion_tokens is None:
+			return parsed
+		return LLMResponse(
+			kind=parsed.kind,
+			content=parsed.content,
+			tool_name=parsed.tool_name,
+			arguments=parsed.arguments,
+			plan=list(parsed.plan),
+			prompt_tokens=prompt_tokens,
+			completion_tokens=completion_tokens,
+		)
 
 	def _post(self, payload: dict[str, Any]) -> dict[str, Any]:
 		request = Request(
@@ -171,3 +184,11 @@ class OllamaClient:
 		if not isinstance(name, str) or not isinstance(arguments, dict):
 			raise LLMError("Ollama returned invalid tool-call fields")
 		return LLMResponse.tool_call(name, arguments)
+
+
+def _optional_int(value: object) -> int | None:
+	if isinstance(value, bool):
+		return None
+	if isinstance(value, int):
+		return value
+	return None

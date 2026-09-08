@@ -41,6 +41,8 @@ class TaskResponse(BaseModel):
 	applied_files: list[str] = Field(default_factory=list)
 	plan: list[str] = Field(default_factory=list)
 	trace: list[str] = Field(default_factory=list)
+	metrics: dict[str, object] = Field(default_factory=dict)
+	execution: dict[str, object] = Field(default_factory=dict)
 
 	@classmethod
 	def from_record(cls, record: TaskRecord) -> TaskResponse:
@@ -65,6 +67,8 @@ class TaskResponse(BaseModel):
 			applied_files=record.applied_files,
 			plan=record.plan,
 			trace=record.trace,
+			metrics=record.metrics,
+			execution=record.execution,
 		)
 
 

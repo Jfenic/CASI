@@ -56,7 +56,13 @@ def _wait_for_status(client: TestClient, task_id: str, status: TaskStatus, *, ti
 
 @pytest.fixture
 def text_task_client() -> TestClient:
-	def runner(_repository: Path, _task: str, _max_steps: int | None, _routing: str) -> OrchestratorResult:
+	def runner(
+		_repository: Path,
+		_task: str,
+		_max_steps: int | None,
+		_routing: str,
+		_trace=None,
+	) -> OrchestratorResult:
 		return OrchestratorResult(success=True, response="Task completed")
 
 	store = TaskStore(runner=runner)
@@ -84,6 +90,7 @@ def test_create_and_get_task(text_task_client: TestClient, tmp_path: Path) -> No
 
 	final = _wait_for_status(text_task_client, task_id, TaskStatus.COMPLETED)
 	assert final["response"] == "Task completed"
+	assert final["metrics"]
 
 
 def test_create_task_rejects_missing_repository(text_task_client: TestClient) -> None:
@@ -107,7 +114,13 @@ def test_patch_approve_and_reject_flow(tmp_path: Path) -> None:
 	repo.mkdir()
 	_init_git_repo(repo)
 
-	def runner(_repository: Path, _task: str, _max_steps: int | None, _routing: str) -> OrchestratorResult:
+	def runner(
+		_repository: Path,
+		_task: str,
+		_max_steps: int | None,
+		_routing: str,
+		_trace=None,
+	) -> OrchestratorResult:
 		return OrchestratorResult(success=True, response=_PATCH)
 
 	client = TestClient(create_app(task_store=TaskStore(runner=runner)))

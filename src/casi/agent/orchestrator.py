@@ -112,6 +112,17 @@ class AgentOrchestrator:
 		if pending is not None:
 			return self._continue_pending(task, pending)
 
+		if self.trace is not None:
+			self.trace.clear()
+			self.trace.set_context(
+				repository=str(self.repository),
+				task=task.strip(),
+				model=getattr(self.client, "model", None)
+				if isinstance(getattr(self.client, "model", None), str)
+				else None,
+			)
+			self.trace.mark_started()
+
 		plan = TaskPlanner.create_plan(task, self.session_messages)
 		if plan.step_count() == 0:
 			return OrchestratorResult(success=False, error="Task must not be empty")

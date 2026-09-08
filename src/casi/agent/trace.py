@@ -46,6 +46,34 @@ class AgentTraceRecorder:
 		self.run_id = uuid4().hex
 		self.on_event = on_event
 		self.live = live
+		self.model: str | None = None
+		self.repository: str | None = None
+		self.task: str | None = None
+		self.started_at: datetime | None = None
+		self.finished_at: datetime | None = None
+		self.prompt_tokens = 0
+		self.completion_tokens = 0
+
+	def set_context(
+		self,
+		*,
+		model: str | None = None,
+		repository: str | None = None,
+		task: str | None = None,
+	) -> None:
+		if model is not None:
+			self.model = model
+		if repository is not None:
+			self.repository = repository
+		if task is not None:
+			self.task = task
+
+	def mark_started(self) -> None:
+		if self.started_at is None:
+			self.started_at = datetime.now(UTC)
+
+	def mark_finished(self) -> None:
+		self.finished_at = datetime.now(UTC)
 
 	def set_live(self, enabled: bool) -> None:
 		self.live = enabled
@@ -54,6 +82,10 @@ class AgentTraceRecorder:
 		self.events.clear()
 		self.structured_events.clear()
 		self.run_id = uuid4().hex
+		self.started_at = None
+		self.finished_at = None
+		self.prompt_tokens = 0
+		self.completion_tokens = 0
 
 	def record(
 		self,
@@ -119,6 +151,45 @@ class AgentTraceRecorder:
 			data={"tool": tool_name, "success": success, **(metadata or {})},
 		)
 
+	def record_usage(self, *, prompt_tokens: int | None, completion_tokens: int | None) -> None:
+		if prompt_tokens is not None:
+			self.prompt_tokens += max(prompt_tokens, 0)
+		if completion_tokens is not None:
+			self.completion_tokens += max(completion_tokens, 0)
+		if prompt_tokens is None and completion_tokens is None:
+			return
+		self.record(
+			f"usage prompt={prompt_tokens or 0} completion={completion_tokens or 0}",
+			kind="usage",
+			data={
+				"prompt_tokens": prompt_tokens,
+				"completion_tokens": completion_tokens,
+			},
+		)
+
+	def record_step_timing(
+		self,
+		step: int,
+		step_limit: int,
+		decision_kind: str,
+		duration_ms: float,
+	) -> None:
+		self.record(
+			f"timing {step}/{step_limit}: {decision_kind} {duration_ms:.1f}ms",
+			kind="step_timing",
+			data={
+				"step": step,
+				"step_limit": step_limit,
+				"decision_kind": decision_kind,
+				"duration_ms": round(duration_ms, 2),
+			},
+		)
+
+	def total_duration_ms(self) -> float | None:
+		if self.started_at is None or self.finished_at is None:
+			return None
+		return (self.finished_at - self.started_at).total_seconds() * 1000
+
 	def record_nudge(self, reason: str) -> None:
 		self.record(f"  -> nudge: {reason}", kind="nudge")
 
@@ -132,20 +203,27 @@ class AgentTraceRecorder:
 	def save(self, path: str | Path, *, events: list[str] | None = None) -> Path:
 		"""Save a structured diagnostic snapshot to an explicitly requested path."""
 
+		from casi.observability.logging import build_execution_payload
+		from casi.observability.metrics import summarize_trace
+		from casi.observability.tracing import reconstruct_trace
+
 		target = Path(path).expanduser().resolve()
 		target.parent.mkdir(parents=True, exist_ok=True)
 		structured_events = self.structured_events
 		if events is not None:
 			structured_events = [
-				{"kind": "event", "message": message, "data": {}}
+				{
+					"timestamp": datetime.now(UTC).isoformat(),
+					"kind": "event",
+					"message": message,
+					"data": {},
+				}
 				for message in events
 			]
-		payload = {
-			"schema_version": 1,
-			"run_id": self.run_id,
-			"created_at": datetime.now(UTC).isoformat(),
-			"events": structured_events,
-		}
+		execution = reconstruct_trace(self)
+		metrics = summarize_trace(execution)
+		payload = build_execution_payload(execution, metrics)
+		payload["events"] = structured_events
 		target.write_text(
 			json.dumps(payload, indent=2, ensure_ascii=False) + "\n",
 			encoding="utf-8",

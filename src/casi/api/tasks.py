@@ -12,7 +12,11 @@ from pathlib import Path
 
 from casi.agent.orchestrator import AgentOrchestrator, OrchestratorResult
 from casi.agent.run_outcome import resolve_agent_run_outcome
+from casi.agent.trace import AgentTraceRecorder
 from casi.llm.ollama_client import OllamaClient
+from casi.observability.logging import build_execution_payload
+from casi.observability.metrics import summarize_trace
+from casi.observability.tracing import reconstruct_trace
 from casi.patching.applier import PatchApplicationError, apply_patch
 from casi.repository.security import resolve_repository
 
@@ -27,7 +31,10 @@ class TaskStatus(str, Enum):
 	CANCELLED = "cancelled"
 
 
-OrchestratorRunner = Callable[[Path, str, int | None, str], OrchestratorResult]
+OrchestratorRunner = Callable[
+	[Path, str, int | None, str, AgentTraceRecorder | None],
+	OrchestratorResult,
+]
 
 
 @dataclass
@@ -52,6 +59,8 @@ class TaskRecord:
 	applied_files: list[str] = field(default_factory=list)
 	plan: list[str] = field(default_factory=list)
 	trace: list[str] = field(default_factory=list)
+	metrics: dict[str, object] = field(default_factory=dict)
+	execution: dict[str, object] = field(default_factory=dict)
 
 
 def default_orchestrator_runner(
@@ -59,6 +68,7 @@ def default_orchestrator_runner(
 	task: str,
 	max_steps: int | None,
 	routing: str,
+	trace: AgentTraceRecorder | None = None,
 ) -> OrchestratorResult:
 	orchestrator = AgentOrchestrator(
 		OllamaClient(),
@@ -67,6 +77,7 @@ def default_orchestrator_runner(
 		routing_mode=routing,
 		require_tool_confirmation=lambda _tool, _args: True,
 		approve_segment=lambda _segment: True,
+		trace=trace,
 	)
 	return orchestrator.run(task)
 
@@ -174,11 +185,14 @@ class TaskStore:
 			record.updated_at = datetime.now(tz=UTC)
 
 		try:
+			trace = AgentTraceRecorder()
+			trace.set_context(repository=record.repository, task=record.task)
 			result = self._runner(
 				Path(record.repository),
 				record.task,
 				record.max_steps,
 				record.routing,
+				trace,
 			)
 		except Exception as exc:  # noqa: BLE001 - surface unexpected failures to clients
 			with self._lock:
@@ -189,13 +203,22 @@ class TaskStore:
 			return
 
 		outcome = resolve_agent_run_outcome(record.repository, result)
+		trace.mark_finished()
+		execution = reconstruct_trace(trace)
+		metrics = summarize_trace(execution)
+		payload = build_execution_payload(execution, metrics)
 		with self._lock:
 			record = self._tasks[task_id]
 			record.response = outcome.response
 			record.error = outcome.error
 			record.clarification = outcome.clarification
 			record.plan = list(outcome.plan)
-			record.trace = list(outcome.trace)
+			record.trace = list(trace.events) or list(outcome.trace)
+			record.metrics = dict(metrics.to_dict())
+			execution_payload = payload.get("execution")
+			record.execution = (
+				dict(execution_payload) if isinstance(execution_payload, dict) else {}
+			)
 			record.patch = outcome.patch
 			record.patch_files = list(outcome.patch_files)
 			record.patch_error = outcome.patch_error
@@ -257,4 +280,6 @@ def _copy_record(record: TaskRecord) -> TaskRecord:
 		applied_files=list(record.applied_files),
 		plan=list(record.plan),
 		trace=list(record.trace),
+		metrics=dict(record.metrics),
+		execution=dict(record.execution),
 	)

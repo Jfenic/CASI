@@ -11,10 +11,10 @@
 - Fase 6: completada para Python/Pytest; incluye `DockerRunner`, entornos de dependencias cacheados, ejecución sin red y ciclo patch → tests → retry.
 - Fase 7: completada; CLI con `ask`/`fix`/`help`, modo verbose, confirmación de parches, `--save-patch` y códigos de salida.
 - Fase 8: completada; API FastAPI con ciclo de vida de tareas, Swagger y aprobación de parches.
-- Fase 9: parcialmente completada; hay trazas en vivo, errores de herramientas y parches, redacción y exportación JSON. Faltan logs, tiempos, métricas y correlación completa.
+- Fase 9: completada; trazas estructuradas, métricas agregadas, tiempos por paso y logs JSON.
 - Fase 10: iniciada; existen cargador de benchmarks, métricas e informes básicos, pero falta una suite reproducible amplia y comparación de modelos.
-- Verificación actual: 228 pruebas aprobadas y 2 omitidas; compilación Python correcta.
-- Próximo bloque: validar fiabilidad end-to-end con Ollama real y completar observabilidad (Fase 9).
+- Verificación actual: 231 pruebas aprobadas y 2 omitidas; compilación Python correcta.
+- Próximo bloque: validar fiabilidad end-to-end con Ollama real y ampliar benchmarks (Fase 10).
 
 El proyecto se desarrollará de forma incremental. Cada fase debe dejar una parte **funcional, probada y documentada** antes de avanzar.
 

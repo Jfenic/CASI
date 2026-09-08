@@ -26,6 +26,8 @@ class LLMResponse:
 	tool_name: str | None = None
 	arguments: dict[str, Any] = field(default_factory=dict)
 	plan: list[str] = field(default_factory=list)
+	prompt_tokens: int | None = None
+	completion_tokens: int | None = None
 
 	@classmethod
 	def final(cls, content: str) -> "LLMResponse":

@@ -44,6 +44,8 @@ Lista priorizada de próximos pasos del proyecto.
 ## CLI y evaluación
 
 - [x] Añadir alias `casi ask` y `casi fix` sobre `casi run`.
+- [x] Completar Fase 7: `--verbose`, `--save-patch`, confirmación de parches y códigos de salida.
+- [x] Completar Fase 8: API FastAPI, `casi serve`, aprobación/rechazo de parches.
 - [ ] Generar informes de benchmark en fichero (JSON/Markdown).
 - [ ] Comparar resultados entre varios modelos locales.
 
@@ -58,7 +60,7 @@ Lista priorizada de próximos pasos del proyecto.
 
 ## Después de estabilizar el núcleo
 
-- [ ] Exponer API FastAPI con aprobación de parches y consulta de estado.
+- [x] Exponer API FastAPI con aprobación de parches y consulta de estado.
 - [ ] Ampliar entornos de proyecto a Node.js y otros ecosistemas.
 - [ ] Diseñar interfaz visual sobre la API estable.
 

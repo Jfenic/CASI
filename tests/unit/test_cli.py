@@ -95,6 +95,65 @@ def test_cli_fix_executes_agent_task(tmp_path: Path, capsys, monkeypatch) -> Non
     assert capsys.readouterr().out.strip() == "Task completed"
 
 
+def test_cli_fix_save_patch_writes_file(tmp_path: Path, capsys, monkeypatch) -> None:
+    import subprocess
+
+    from casi.agent.orchestrator import OrchestratorResult
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "module.py").write_text("value = 1\n", encoding="utf-8")
+    subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "config", "user.email", "test@example.com"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "CASI Test"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(["git", "add", "module.py"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "init"], cwd=repo, check=True, capture_output=True)
+
+    patch_response = (
+        "```diff\n"
+        "--- a/module.py\n"
+        "+++ b/module.py\n"
+        "@@ -1 +1 @@\n"
+        "-value = 1\n"
+        "+value = 2\n"
+        "```"
+    )
+    monkeypatch.setattr(
+        "casi.cli.AgentOrchestrator.run",
+        lambda self, task: OrchestratorResult(success=True, response=patch_response),
+    )
+    patch_path = tmp_path / "fix.diff"
+
+    exit_code = main(
+        [
+            "fix",
+            "--repo",
+            str(repo),
+            "--task",
+            "Fix module",
+            "--save-patch",
+            str(patch_path),
+            "--yes",
+        ]
+    )
+
+    assert exit_code == 0
+    assert patch_path.exists()
+    assert (repo / "module.py").read_text(encoding="utf-8") == "value = 2\n"
+    captured = capsys.readouterr()
+    assert "Patch applied to: module.py" in captured.err
+
+
 def test_cli_help_lists_ask_and_fix(capsys) -> None:
     exit_code = main(["help"])
     output = capsys.readouterr().out

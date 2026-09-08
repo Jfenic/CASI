@@ -22,6 +22,7 @@ TOPICS: dict[str, str] = {
 		  fix           Pide una corrección o cambio de código/tests
 		  interactive   Abre una sesión interactiva con el agente
 		  test          Ejecuta la suite de tests del repositorio
+		  serve         Inicia la API HTTP (FastAPI + Swagger)
 		  env prepare   Prepara un entorno Docker con dependencias del proyecto
 		  help          Muestra esta ayuda o la de un comando concreto
 
@@ -110,17 +111,28 @@ TOPICS: dict[str, str] = {
 		aprobación antes de escribir en disco.
 
 		Uso:
-		  casi run --repo PATH --task "DESCRIPCION" [--max-steps N] [--routing MODO]
+		  casi run --repo PATH --task "DESCRIPCION"
+		               [--max-steps N] [--routing MODO]
+		               [-v] [--save-patch PATH] [--yes]
 
 		Opciones:
 		  --repo PATH       Ruta al repositorio
 		  --task TEXTO      Tarea para el agente
 		  --max-steps N     Máximo de decisiones del modelo por agente
 		  --routing MODO    Enrutamiento del repo: assist, strict u off
+		  -v, --verbose     Muestra plan y traza detallada en stderr
+		  --save-patch PATH Guarda el diff propuesto en un archivo
+		  --yes             Aprueba herramientas y aplica parches sin preguntar
+
+		Códigos de salida:
+		  0  Éxito (sin parche, parche aplicado o guardado)
+		  1  Error del agente, parche inválido o tests fallidos
+		  2  Parche válido mostrado pero no aplicado ni guardado
 
 		Ejemplo:
 		  casi run --repo . --task "Explica cómo funciona el bucle del agente"
-		  casi run --repo ./app --task "Corrige los tests que fallan"
+		  casi fix --repo . --task "Corrige los tests" --save-patch /tmp/fix.diff
+		  casi fix --repo . --task "Corrige los tests" --yes
 
 		Nota:
 		  Para varias tareas seguidas con contexto conversacional, usa
@@ -135,7 +147,9 @@ TOPICS: dict[str, str] = {
 		opciones y el mismo agente; confirma `run_tests` solo si el modelo lo pide.
 
 		Uso:
-		  casi ask --repo PATH --task "DESCRIPCION" [--max-steps N] [--routing MODO]
+		  casi ask --repo PATH --task "DESCRIPCION"
+		               [--max-steps N] [--routing MODO]
+		               [-v] [--save-patch PATH] [--yes]
 
 		Ejemplo:
 		  casi ask --repo . --task "Explica el flujo de validación de email"
@@ -149,10 +163,13 @@ TOPICS: dict[str, str] = {
 		ejecutar tests (con confirmación) y proponer parches con `propose_file`.
 
 		Uso:
-		  casi fix --repo PATH --task "DESCRIPCION" [--max-steps N] [--routing MODO]
+		  casi fix --repo PATH --task "DESCRIPCION"
+		               [--max-steps N] [--routing MODO]
+		               [-v] [--save-patch PATH] [--yes]
 
 		Ejemplo:
 		  casi fix --repo . --task "Haz que pasen los tests de validate_email"
+		  casi fix --repo . --task "Corrige el bug" --save-patch fix.diff
 		"""
 	),
 	"interactive": dedent(
@@ -222,6 +239,36 @@ TOPICS: dict[str, str] = {
 		  casi test --repo PATH
 		"""
 	),
+	"serve": dedent(
+		"""\
+		casi serve — iniciar la API HTTP de CASI
+
+		Expone el agente como servicio REST con documentación Swagger en /docs.
+		Las tareas se ejecutan en segundo plano; los parches válidos quedan en
+		`awaiting_approval` hasta que los apruebes o rechaces por API.
+
+		Requisitos:
+		  pip install -e '.[api]'
+
+		Uso:
+		  casi serve [--host HOST] [--port PUERTO]
+
+		Opciones:
+		  --host HOST    Dirección de escucha (default: 127.0.0.1)
+		  --port PUERTO  Puerto HTTP (default: 8000)
+
+		Endpoints:
+		  GET  /health
+		  POST /tasks
+		  GET  /tasks/{task_id}
+		  POST /tasks/{task_id}/approve
+		  POST /tasks/{task_id}/reject
+
+		Ejemplo:
+		  casi serve --host 127.0.0.1 --port 8000
+		  curl http://127.0.0.1:8000/health
+		"""
+	),
 	"env": dedent(
 		"""\
 		casi env — gestionar entornos de test del proyecto
@@ -262,6 +309,8 @@ TOPIC_ALIASES: dict[str, str] = {
 	"repl": "interactive",
 	"test": "test",
 	"tests": "test",
+	"serve": "serve",
+	"api": "serve",
 	"env": "env",
 	"environment": "env",
 	"prepare": "env",

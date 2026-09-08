@@ -94,6 +94,16 @@ Environment variables:
 - `LOCALCODE_AGENT_MAX_CORRECTION_ATTEMPTS` — patch retry limit after test failures (default: `2`).
 - `LOCALCODE_AGENT_DOCKER_IMAGE` — sandbox image tag (default: `casi-sandbox:latest`).
 
+Start the HTTP API (requires `pip install -e '.[api]'`):
+
+```bash
+casi serve --host 127.0.0.1 --port 8000
+```
+
+Swagger UI is available at `http://127.0.0.1:8000/docs`. Create a task with
+`POST /tasks`, poll `GET /tasks/{task_id}`, then approve or reject a proposed
+patch with `POST /tasks/{task_id}/approve` or `/reject`.
+
 Build the sandbox image when Docker isolation is required:
 
 ```bash

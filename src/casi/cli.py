@@ -6,7 +6,9 @@ import argparse
 import sys
 from pathlib import Path
 
-from casi.agent.orchestrator import AgentOrchestrator
+from casi.agent.orchestrator import AgentOrchestrator, format_segment_approval_prompt
+from casi.agent.planner import PlanSegment
+from casi.cli_agent import finalize_agent_run
 from casi.cli_help import format_help
 from casi.config import settings
 from casi.exceptions import CasiError
@@ -43,6 +45,22 @@ def _add_agent_task_parser(
         choices=("assist", "strict", "off"),
         default=settings.agent_routing_mode,
         help="Repository routing mode: assist, strict, or off.",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Print plan and trace details on stderr.",
+    )
+    parser.add_argument(
+        "--save-patch",
+        metavar="PATH",
+        help="Write a proposed patch to PATH without applying it.",
+    )
+    parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="Approve tools and apply a valid patch without prompting.",
     )
     return parser
 
@@ -157,7 +175,23 @@ def build_parser() -> argparse.ArgumentParser:
     help_parser.add_argument(
         "topic",
         nargs="?",
-        help="Command to explain (inspect, read, search, run, ask, fix, interactive, test, env).",
+        help="Command to explain (inspect, read, search, run, ask, fix, interactive, test, serve, env).",
+    )
+
+    serve_parser = subparsers.add_parser(
+        "serve",
+        help="Start the CASI HTTP API server.",
+    )
+    serve_parser.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="Bind address for the API server.",
+    )
+    serve_parser.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Port for the API server.",
     )
 
     return parser
@@ -189,11 +223,29 @@ def _run_search(repository: str | Path, query: str, limit: int) -> int:
     return 0
 
 
-def _emit_run_progress(plan) -> None:
-    print("[plan]", file=sys.stderr)
-    for line in plan.summary_lines():
-        print(line, file=sys.stderr)
+def _emit_run_progress(plan, *, verbose: bool) -> None:
+    if verbose:
+        print("[plan]", file=sys.stderr)
+        for line in plan.summary_lines():
+            print(line, file=sys.stderr)
     print("[working] Executing plan...", file=sys.stderr)
+
+
+def _confirm_tool(tool_name: str, arguments: dict[str, object], *, yes: bool) -> bool:
+    _ = arguments
+    if yes:
+        return True
+    print(f"[confirm] The agent wants to run `{tool_name}`.", file=sys.stderr)
+    answer = input(f"Run {tool_name}? [y/N] ").strip().lower()
+    return answer in {"y", "yes"}
+
+
+def _approve_plan_segment(segment: PlanSegment, *, yes: bool) -> bool:
+    if yes:
+        return True
+    print(format_segment_approval_prompt(segment), file=sys.stderr)
+    answer = input("Approve phase> ").strip().lower()
+    return answer in {"y", "yes", "s", "si", "sí"}
 
 
 def _run_agent(
@@ -201,6 +253,10 @@ def _run_agent(
     task: str,
     max_steps: int | None,
     routing: str,
+    *,
+    save_patch: str | None = None,
+    yes: bool = False,
+    verbose: bool = False,
 ) -> int:
     """Run the bounded agent loop using the configured Ollama client."""
 
@@ -209,24 +265,29 @@ def _run_agent(
         repository,
         max_steps=max_steps,
         routing_mode=routing,
-        approve_segment=lambda _segment: True,
+        require_tool_confirmation=lambda tool, args: _confirm_tool(tool, args, yes=yes),
+        approve_segment=lambda segment: _approve_plan_segment(segment, yes=yes),
         on_context_compact=lambda message: print(f"[context] {message}", file=sys.stderr),
-        on_plan=lambda plan: _emit_run_progress(plan),
+        on_plan=lambda plan: _emit_run_progress(plan, verbose=verbose),
         on_step_start=lambda step, number, total: print(
             f"[working] Step {number}/{total}: {step.agent_name} ({step.agent_role})",
             file=sys.stderr,
         ),
-        on_activity=lambda message: print(f"[working] {message}", file=sys.stderr),
+        on_activity=lambda message: print(
+            f"[working] {message}" if not verbose else f"[verbose] {message}",
+            file=sys.stderr,
+        ),
     )
     print("[working] Running agent...", file=sys.stderr)
     result = orchestrator.run(task)
 
-    if result.success:
-        print(result.response)
-        return 0
-
-    print(result.error or "Agent failed without an error message.", file=sys.stderr)
-    return 1
+    return finalize_agent_run(
+        repository,
+        result,
+        save_patch=save_patch,
+        yes=yes,
+        verbose=verbose,
+    )
 
 
 def _run_interactive(repository: str | Path, max_steps: int | None, routing: str) -> int:
@@ -259,6 +320,23 @@ def _run_test(repository: str | Path, timeout: float) -> int:
         f"timed_out={result.timed_out}"
     )
     return 0 if result.exit_code == 0 and not result.timed_out else 1
+
+
+def _run_serve(host: str, port: int) -> int:
+    """Start the FastAPI application with uvicorn."""
+
+    try:
+        import uvicorn
+    except ImportError as exc:
+        raise CasiError(
+            "The API server requires optional dependencies. "
+            "Install them with: pip install -e '.[api]'"
+        ) from exc
+
+    from casi.api.app import create_app
+
+    uvicorn.run(create_app(), host=host, port=port)
+    return 0
 
 
 def _prepare_environment(repository: str | Path, *, approved: bool) -> int:
@@ -316,7 +394,15 @@ def main(argv: list[str] | None = None) -> int:
             return _run_search(args.repo, args.query, args.limit)
 
         if args.command in {"run", "ask", "fix"}:
-            return _run_agent(args.repo, args.task, args.max_steps, args.routing)
+            return _run_agent(
+                args.repo,
+                args.task,
+                args.max_steps,
+                args.routing,
+                save_patch=getattr(args, "save_patch", None),
+                yes=getattr(args, "yes", False),
+                verbose=getattr(args, "verbose", False),
+            )
 
         if args.command == "interactive":
             return _run_interactive(args.repo, args.max_steps, args.routing)
@@ -330,6 +416,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "help":
             print(format_help(getattr(args, "topic", None)))
             return 0
+
+        if args.command == "serve":
+            return _run_serve(args.host, args.port)
 
         parser.error(f"Unknown command: {args.command}")
     except CasiError as exc:

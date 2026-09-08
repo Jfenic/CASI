@@ -1,0 +1,12 @@
+id: task_018
+name: search_email_validation
+repository: email_app
+category: search
+instruction: >
+  Search the repository for email validation logic and summarize the current rules.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 8

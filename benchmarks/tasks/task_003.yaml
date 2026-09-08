@@ -1,2 +1,13 @@
-name: task_003
-description: Sandbox execution task
+id: task_003
+name: search_excerpt
+repository: healthy_lib
+category: search
+instruction: >
+  Search the repository for the excerpt helper and summarize where it is defined
+  and how it behaves.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 8

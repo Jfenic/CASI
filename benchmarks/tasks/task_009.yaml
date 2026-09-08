@@ -1,0 +1,12 @@
+id: task_009
+name: explain_math_failure
+repository: math_app
+category: read
+instruction: >
+  Read the failing tests and explain why divide currently fails.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 10

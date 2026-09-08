@@ -7,7 +7,7 @@ Estado rapido del proyecto y de las partes ya implementadas.
 - [x] Repository safety helpers: repository resolution, safe path checks, sensitive path blocking, symlink blocking, and `.git` ignoring.
 - [x] Repository read helper: safe file reading, binary rejection, file size checks, and numbered line output.
 - [x] Repository search helper: safe text search with path, line number, and line content results.
-- [x] CLI commands: `inspect`, `read`, `search`, `run`, `ask`, `fix`, `interactive`, `test`, `serve`, and `help`.
+- [x] CLI commands: `inspect`, `read`, `search`, `run`, `ask`, `fix`, `interactive`, `test`, `benchmark`, `serve`, and `help`.
 - [x] Structured tool system: base tool model, structured result model, tool registry, and argument validation.
 - [x] Initial tools: `list_files`, `read_file`, and `search_code`.
 - [x] Unit tests for repository helpers, CLI, and tools.
@@ -42,6 +42,7 @@ Estado rapido del proyecto y de las partes ya implementadas.
 - [x] CLI patch workflow: `--save-patch`, confirmation before apply, `--yes`, verbose mode, and exit codes 0/1/2.
 - [x] FastAPI task lifecycle with patch approval endpoints and `casi serve`.
 - [x] Structured execution logs, step timings, aggregate metrics, and trace export schema v2.
+- [x] Benchmark suite with 20 reproducible tasks, isolated runner, and JSON/Markdown reports.
 
 ## Current status
 
@@ -56,7 +57,6 @@ Estado rapido del proyecto y de las partes ya implementadas.
 ## In progress
 
 - [ ] Validate repair reliability with real Ollama runs (`OLLAMA_E2E=1`).
-- [ ] Expand benchmark suite with reproducible repositories and model comparisons.
 
 ## Later
 

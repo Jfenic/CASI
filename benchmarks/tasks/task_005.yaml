@@ -1,0 +1,13 @@
+id: task_005
+name: summarize_exports
+repository: healthy_lib
+category: inspect
+instruction: >
+  Identify the public helper functions exported by the library and describe their
+  inputs and outputs.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 8

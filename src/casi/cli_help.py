@@ -23,6 +23,7 @@ TOPICS: dict[str, str] = {
 		  interactive   Abre una sesión interactiva con el agente
 		  test          Ejecuta la suite de tests del repositorio
 		  serve         Inicia la API HTTP (FastAPI + Swagger)
+		  benchmark     Ejecuta tareas reproducibles y genera informes
 		  env prepare   Prepara un entorno Docker con dependencias del proyecto
 		  help          Muestra esta ayuda o la de un comando concreto
 
@@ -269,6 +270,27 @@ TOPICS: dict[str, str] = {
 		  curl http://127.0.0.1:8000/health
 		"""
 	),
+	"benchmark": dedent(
+		"""\
+		casi benchmark — ejecutar la suite de evaluación
+
+		Corre tareas reproducibles contra repositorios de prueba en `benchmarks/`
+		y genera métricas agregadas. Cada tarea se ejecuta en una copia aislada;
+		las tareas de reparación aplican parches válidos automáticamente antes
+		de verificar con pytest.
+
+		Uso:
+		  casi benchmark [--tasks-dir PATH] [--repos-dir PATH]
+		               [--model MODELO | --models m1,m2]
+		               [--output informe] [--format text|json|markdown|both]
+		               [--list]
+
+		Ejemplo:
+		  casi benchmark --list
+		  casi benchmark --model qwen2.5-coder:7b --output /tmp/benchmark.json
+		  casi benchmark --models qwen2.5-coder:7b,llama3.2 --format both --output report
+		"""
+	),
 	"env": dedent(
 		"""\
 		casi env — gestionar entornos de test del proyecto
@@ -311,6 +333,8 @@ TOPIC_ALIASES: dict[str, str] = {
 	"tests": "test",
 	"serve": "serve",
 	"api": "serve",
+	"benchmark": "benchmark",
+	"benchmarks": "benchmark",
 	"env": "env",
 	"environment": "env",
 	"prepare": "env",

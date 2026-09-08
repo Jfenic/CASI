@@ -1,0 +1,12 @@
+id: task_007
+name: fix_email_empty_string
+repository: email_app
+category: fix
+instruction: >
+  Ensure empty email strings are rejected and keep the existing tests passing.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 12

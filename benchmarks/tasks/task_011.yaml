@@ -1,0 +1,12 @@
+id: task_011
+name: fix_counter_increment
+repository: counter_app
+category: fix
+instruction: >
+  Fix the Counter so increment increases the stored value and all tests pass.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 12

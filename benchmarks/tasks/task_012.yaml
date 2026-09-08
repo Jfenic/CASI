@@ -1,0 +1,12 @@
+id: task_012
+name: inspect_counter_repo
+repository: counter_app
+category: inspect
+instruction: >
+  Inspect the repository and describe why the counter test is failing.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 10

@@ -1,0 +1,12 @@
+id: task_008
+name: fix_divide_by_zero
+repository: math_app
+category: fix
+instruction: >
+  Fix divide so dividing by zero returns 0 and all tests pass.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 12

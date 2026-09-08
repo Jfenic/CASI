@@ -196,6 +196,52 @@ def build_parser() -> argparse.ArgumentParser:
         help="Port for the API server.",
     )
 
+    benchmark_parser = subparsers.add_parser(
+        "benchmark",
+        help="Run reproducible benchmark tasks and generate reports.",
+    )
+    benchmark_parser.add_argument(
+        "--tasks-dir",
+        default="benchmarks/tasks",
+        help="Directory containing benchmark task YAML files.",
+    )
+    benchmark_parser.add_argument(
+        "--repos-dir",
+        default="benchmarks/repositories",
+        help="Directory containing benchmark repository fixtures.",
+    )
+    benchmark_parser.add_argument(
+        "--model",
+        default=settings.ollama_model,
+        help="Ollama model to use for a single-model run.",
+    )
+    benchmark_parser.add_argument(
+        "--models",
+        help="Comma-separated list of models to compare.",
+    )
+    benchmark_parser.add_argument(
+        "--output",
+        type=Path,
+        help="Write JSON (and optional Markdown) reports to this path.",
+    )
+    benchmark_parser.add_argument(
+        "--format",
+        choices=("text", "json", "markdown", "both"),
+        default="text",
+        help="Report format for stdout or file output.",
+    )
+    benchmark_parser.add_argument(
+        "--routing",
+        choices=("assist", "strict", "off"),
+        default=settings.agent_routing_mode,
+        help="Repository routing mode for agent tasks.",
+    )
+    benchmark_parser.add_argument(
+        "--list",
+        action="store_true",
+        help="List loaded benchmark tasks and exit.",
+    )
+
     return parser
 
 
@@ -378,6 +424,79 @@ def _prepare_environment(repository: str | Path, *, approved: bool) -> int:
     return 1
 
 
+def _run_benchmark(
+    tasks_dir: Path,
+    repos_dir: Path,
+    *,
+    model: str,
+    models: str | None,
+    output: Path | None,
+    report_format: str,
+    routing: str,
+    list_only: bool,
+) -> int:
+    from casi.evaluation.benchmark import load_tasks
+    from casi.evaluation.report import (
+        build_comparison_payload,
+        build_report_payload,
+        render_comparison_report,
+        render_markdown_report,
+        render_report,
+        write_report_files,
+    )
+    from casi.evaluation.runner import BenchmarkRunOptions, compare_models, run_model_benchmark
+
+    tasks = load_tasks(tasks_dir)
+    if list_only:
+        for task in tasks:
+            print(f"{task.task_id}\t{task.category}\t{task.repository}\t{task.name}")
+        return 0
+
+    options = BenchmarkRunOptions(repositories_root=repos_dir, routing=routing)
+    if models:
+        model_list = [item.strip() for item in models.split(",") if item.strip()]
+        if not model_list:
+            raise ValueError("Provide at least one model in --models")
+        runs = compare_models(tasks, model_list, options=options)
+        if report_format == "text":
+            print(render_comparison_report(runs))
+        payload = build_comparison_payload(runs)
+        markdown = None
+        if report_format in {"markdown", "both"}:
+            markdown = "\n\n".join(
+                render_markdown_report(run.results, model=run.model) for run in runs
+            )
+        if output is not None:
+            write_report_files(payload, output, markdown=markdown)
+        elif report_format == "json":
+            import json
+
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
+        elif report_format in {"markdown", "both"} and markdown is not None:
+            print(markdown)
+        return 0
+
+    client = OllamaClient(model=model)
+    run = run_model_benchmark(tasks, client=client, options=options)
+    if report_format == "text":
+        print(render_report(run.results, model=run.model))
+    payload = build_report_payload(run.results, model=run.model)
+    markdown = render_markdown_report(run.results, model=run.model)
+    if output is not None:
+        write_report_files(
+            payload,
+            output,
+            markdown=markdown if report_format in {"markdown", "both"} else None,
+        )
+    elif report_format == "json":
+        import json
+
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+    elif report_format in {"markdown", "both"}:
+        print(markdown)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
@@ -426,6 +545,18 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "serve":
             return _run_serve(args.host, args.port)
+
+        if args.command == "benchmark":
+            return _run_benchmark(
+                Path(args.tasks_dir),
+                Path(args.repos_dir),
+                model=args.model,
+                models=args.models,
+                output=args.output,
+                report_format=args.format,
+                routing=args.routing,
+                list_only=args.list,
+            )
 
         parser.error(f"Unknown command: {args.command}")
     except CasiError as exc:

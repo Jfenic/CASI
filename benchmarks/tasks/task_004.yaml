@@ -1,9 +1,9 @@
-id: task_002
-name: read_slugify
+id: task_004
+name: read_tests
 repository: healthy_lib
 category: read
 instruction: >
-  Read lib.py and explain how slugify transforms input text.
+  Read the repository tests and list which behaviors they verify.
 success_command:
   - python3
   - -m

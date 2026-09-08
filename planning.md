@@ -12,9 +12,9 @@
 - Fase 7: completada; CLI con `ask`/`fix`/`help`, modo verbose, confirmación de parches, `--save-patch` y códigos de salida.
 - Fase 8: completada; API FastAPI con ciclo de vida de tareas, Swagger y aprobación de parches.
 - Fase 9: completada; trazas estructuradas, métricas agregadas, tiempos por paso y logs JSON.
-- Fase 10: iniciada; existen cargador de benchmarks, métricas e informes básicos, pero falta una suite reproducible amplia y comparación de modelos.
-- Verificación actual: 231 pruebas aprobadas y 2 omitidas; compilación Python correcta.
-- Próximo bloque: validar fiabilidad end-to-end con Ollama real y ampliar benchmarks (Fase 10).
+- Fase 10: completada; 20 tareas reproducibles, runner, informes JSON/Markdown y comparación de modelos.
+- Verificación actual: 235+ pruebas aprobadas y 2 omitidas; compilación Python correcta.
+- Próximo bloque: validar fiabilidad end-to-end con Ollama real sobre benchmarks.
 
 El proyecto se desarrollará de forma incremental. Cada fase debe dejar una parte **funcional, probada y documentada** antes de avanzar.
 

@@ -1,0 +1,12 @@
+id: task_019
+name: read_math_module
+repository: math_app
+category: read
+instruction: >
+  Read math_ops.py and describe each function's behavior.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 8

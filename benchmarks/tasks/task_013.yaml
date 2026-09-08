@@ -1,0 +1,12 @@
+id: task_013
+name: fix_greet_title_case
+repository: greet_app
+category: fix
+instruction: >
+  Update greet so it returns a title-case greeting and all tests pass.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 12

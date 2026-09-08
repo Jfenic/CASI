@@ -1,0 +1,12 @@
+id: task_014
+name: read_greet_tests
+repository: greet_app
+category: read
+instruction: >
+  Read the greet tests and explain the expected output format.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 8

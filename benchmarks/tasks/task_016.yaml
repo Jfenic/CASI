@@ -1,0 +1,12 @@
+id: task_016
+name: search_parse_helper
+repository: parse_app
+category: search
+instruction: >
+  Search for the strip_lines helper and summarize its current behavior.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 8

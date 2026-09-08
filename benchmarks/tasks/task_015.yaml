@@ -1,0 +1,13 @@
+id: task_015
+name: fix_strip_lines
+repository: parse_app
+category: fix
+instruction: >
+  Fix strip_lines so it removes surrounding whitespace from each line and all
+  tests pass.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 12

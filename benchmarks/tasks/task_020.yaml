@@ -1,0 +1,13 @@
+id: task_020
+name: fix_add_documentation
+repository: healthy_lib
+category: fix
+instruction: >
+  Add a concise docstring to the add-like helpers if missing and ensure all tests
+  still pass. Only modify documentation comments, not behavior.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 10

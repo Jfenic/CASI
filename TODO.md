@@ -38,7 +38,7 @@ Lista priorizada de próximos pasos del proyecto.
 ## Calidad y seguridad
 
 - [ ] Añadir detección de repeticiones y límites de archivos leídos en el agente.
-- [ ] Ampliar benchmarks a 20+ tareas reproducibles con repositorios de prueba.
+- [x] Ampliar benchmarks a 20+ tareas reproducibles con repositorios de prueba.
 - [x] Corregir `git_diff` para rechazar directorios no-Git situados dentro de otro repositorio.
 
 ## CLI y evaluación
@@ -46,8 +46,8 @@ Lista priorizada de próximos pasos del proyecto.
 - [x] Añadir alias `casi ask` y `casi fix` sobre `casi run`.
 - [x] Completar Fase 7: `--verbose`, `--save-patch`, confirmación de parches y códigos de salida.
 - [x] Completar Fase 8: API FastAPI, `casi serve`, aprobación/rechazo de parches.
-- [ ] Generar informes de benchmark en fichero (JSON/Markdown).
-- [ ] Comparar resultados entre varios modelos locales.
+- [x] Generar informes de benchmark en fichero (JSON/Markdown).
+- [x] Comparar resultados entre varios modelos locales (`--models`).
 
 ## Observabilidad (Fase 9)
 

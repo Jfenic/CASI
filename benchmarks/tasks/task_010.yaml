@@ -1,0 +1,12 @@
+id: task_010
+name: fix_sort_ascending
+repository: sort_app
+category: fix
+instruction: >
+  Fix sort_asc so it returns values in ascending order and all tests pass.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 12

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Callable
 
 import yaml
 
@@ -18,6 +18,8 @@ class BenchmarkTask:
 	task_id: str
 	name: str
 	instruction: str
+	repository: str = ""
+	category: str = "general"
 	max_steps: int = 8
 	success_command: list[str] = field(default_factory=list)
 
@@ -27,11 +29,32 @@ class BenchmarkTaskResult:
 	"""Outcome for one benchmark task execution."""
 
 	task_id: str
-	agent_success: bool
+	name: str = ""
+	repository: str = ""
+	category: str = ""
+	model: str = ""
+	agent_success: bool = False
+	task_success: bool = False
 	agent_response: str = ""
 	agent_error: str | None = None
 	steps: int = 0
+	duration_seconds: float = 0.0
 	command_success: bool | None = None
+	patch_valid: bool | None = None
+	patch_applied: bool = False
+	files_read: int = 0
+	tool_calls: int = 0
+	prompt_tokens: int = 0
+	completion_tokens: int = 0
+	correction_attempts: int = 0
+
+
+@dataclass(frozen=True)
+class BenchmarkModelRun:
+	"""Results for one model across all benchmark tasks."""
+
+	model: str
+	results: list[BenchmarkTaskResult]
 
 
 def load_tasks(tasks_dir: str | Path) -> list[BenchmarkTask]:
@@ -52,6 +75,8 @@ def load_tasks(tasks_dir: str | Path) -> list[BenchmarkTask]:
 		instruction = str(
 			data.get("instruction") or data.get("description") or name
 		)
+		repository = str(data.get("repository") or "")
+		category = str(data.get("category") or "general")
 		max_steps = int(data.get("max_steps", 8))
 		success_command = data.get("success_command") or []
 		if not isinstance(success_command, list):
@@ -62,6 +87,8 @@ def load_tasks(tasks_dir: str | Path) -> list[BenchmarkTask]:
 				task_id=task_id,
 				name=name,
 				instruction=instruction,
+				repository=repository,
+				category=category,
 				max_steps=max_steps,
 				success_command=[str(part) for part in success_command],
 			)
@@ -76,7 +103,7 @@ def run_benchmark(
 	*,
 	verify_command: Callable[[BenchmarkTask], bool] | None = None,
 ) -> list[BenchmarkTaskResult]:
-	"""Execute benchmark tasks and collect structured results."""
+	"""Execute benchmark tasks with a legacy AgentResult callback."""
 
 	results: list[BenchmarkTaskResult] = []
 	for task in tasks:
@@ -85,10 +112,18 @@ def run_benchmark(
 		if verify_command is not None and task.success_command:
 			command_success = verify_command(task)
 
+		task_success = agent_result.success
+		if command_success is not None:
+			task_success = agent_result.success and command_success
+
 		results.append(
 			BenchmarkTaskResult(
 				task_id=task.task_id,
+				name=task.name,
+				repository=task.repository,
+				category=task.category,
 				agent_success=agent_result.success,
+				task_success=task_success,
 				agent_response=agent_result.response,
 				agent_error=agent_result.error,
 				steps=agent_result.steps,

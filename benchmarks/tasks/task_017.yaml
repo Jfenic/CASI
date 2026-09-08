@@ -1,0 +1,13 @@
+id: task_017
+name: fix_sort_empty_list
+repository: sort_app
+category: fix
+instruction: >
+  Ensure sort_asc handles empty lists correctly while keeping ascending order for
+  non-empty inputs.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 12

@@ -1,2 +1,13 @@
-name: task_001
-description: Basic repository exploration task
+id: task_001
+name: inspect_healthy_lib
+repository: healthy_lib
+category: inspect
+instruction: >
+  Inspect the repository and list the Python source files with a one-line summary
+  of each module's responsibility.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 8

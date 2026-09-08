@@ -1,0 +1,12 @@
+"""Simple counter."""
+
+
+class Counter:
+	def __init__(self) -> None:
+		self._value = 0
+
+	def increment(self) -> None:
+		self._value += 0
+
+	def value(self) -> int:
+		return self._value

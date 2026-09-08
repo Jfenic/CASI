@@ -1,0 +1,12 @@
+id: task_006
+name: fix_email_missing_at
+repository: email_app
+category: fix
+instruction: >
+  Reject email addresses without an @ character and make all tests pass.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 12

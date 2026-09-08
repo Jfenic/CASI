@@ -99,6 +99,14 @@ Environment variables:
 - `LOCALCODE_AGENT_MAX_CORRECTION_ATTEMPTS` — patch retry limit after test failures (default: `2`).
 - `LOCALCODE_AGENT_DOCKER_IMAGE` — sandbox image tag (default: `casi-sandbox:latest`).
 
+Run the benchmark suite:
+
+```bash
+casi benchmark --list
+casi benchmark --model qwen2.5-coder:7b --output /tmp/benchmark.json --format both
+casi benchmark --models qwen2.5-coder:7b,llama3.2 --format text
+```
+
 Start the HTTP API (requires `pip install -e '.[api]'`):
 
 ```bash

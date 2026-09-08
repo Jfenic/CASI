@@ -39,10 +39,11 @@ def response_missing_required_patch(
 	context: str,
 	*,
 	repository_inspected: bool,
+	mutation_workflow: bool = False,
 ) -> bool:
 	"""Detect fix requests that ended without a unified diff."""
 
-	if not task_requests_code_change(context):
+	if not mutation_workflow and not task_requests_code_change(context):
 		return False
 	if not repository_inspected:
 		return False

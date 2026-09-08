@@ -18,7 +18,8 @@ from casi.agent.planner import AgentPlan, AgentPlanStep, PlanSegment, TaskPlanne
 from casi.agent.response_policy import ResponsePolicy
 from casi.agent.state import AgentResult, PatchVerification
 from casi.agent.trace import AgentTraceRecorder
-from casi.llm.base import ChatMessage, LLMClient
+from casi.llm.base import ChatMessage
+from casi.tools.registry import ToolRegistry
 
 SegmentApproval = Callable[[PlanSegment], bool]
 StepStartNotifier = Callable[[AgentPlanStep, int, int], None]
@@ -83,6 +84,7 @@ class AgentOrchestrator:
 		on_activity: ActivityNotifier | None = None,
 		trace: AgentTraceRecorder | None = None,
 		response_policy: ResponsePolicy | None = None,
+		registry: ToolRegistry | None = None,
 	) -> None:
 		self.client = client
 		self.repository = repository
@@ -99,6 +101,7 @@ class AgentOrchestrator:
 		self.on_activity = on_activity
 		self.trace = trace
 		self.response_policy = response_policy
+		self.registry = registry
 
 	def run(
 		self,
@@ -119,6 +122,55 @@ class AgentOrchestrator:
 	def _continue_pending(self, answer: str, pending: PendingOrchestration) -> OrchestratorResult:
 		segment = pending.plan.segments[pending.segment_index]
 		step = segment.steps[pending.step_index]
+
+		if step.objective is TaskIntent.PRESENT and pending.step_index > 0:
+			worker_index = pending.step_index - 1
+			worker_step = segment.steps[worker_index]
+			worker_agent = self._create_agent(worker_step.objective, segment)
+			merged_task = (
+				f"{worker_step.task}\n\n"
+				f"Additional user context: {answer.strip()}"
+			)
+			result = worker_agent.run(merged_task)
+			if result.clarification is not None:
+				worker_pending = PendingOrchestration(
+					plan=pending.plan,
+					segment_index=pending.segment_index,
+					step_index=worker_index,
+					step_results=pending.step_results,
+					agent=worker_agent,
+				)
+				return OrchestratorResult(
+					success=True,
+					clarification=result.clarification,
+					plan=result.plan,
+					step_results=pending.step_results,
+					executed_plan=pending.plan,
+					pending=worker_pending,
+				)
+			if not result.success:
+				failed_results = [
+					*pending.step_results,
+					AgentStepResult(step=worker_step, result=result),
+				]
+				return OrchestratorResult(
+					success=False,
+					error=result.error,
+					step_results=failed_results,
+					executed_plan=pending.plan,
+					trace=_collect_trace(failed_results),
+				)
+			step_results = [
+				*pending.step_results,
+				AgentStepResult(step=worker_step, result=result),
+			]
+			return self._execute_plan(
+				pending.plan,
+				start_segment=pending.segment_index,
+				start_step=pending.step_index,
+				prior_results=step_results,
+			)
+
 		agent = pending.agent or self._create_agent(step.objective, segment)
 		pending.agent = agent
 		result = agent.run(answer.strip())
@@ -273,6 +325,7 @@ class AgentOrchestrator:
 			trace=self.trace,
 			routing_mode=self.routing_mode,
 			response_policy=self.response_policy,
+			registry=self.registry,
 		)
 
 	def _confirmation_for_segment(self, segment: PlanSegment) -> ToolConfirmation | None:

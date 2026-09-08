@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from casi.agent.failure_classification import is_docker_infrastructure_failure
 from casi.sandbox.base import TestResult as SandboxTestResult
-from casi.sandbox.test_execution import is_docker_infrastructure_failure
 
 
 def test_is_docker_infrastructure_failure_detects_missing_python() -> None:

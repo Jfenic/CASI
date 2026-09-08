@@ -55,7 +55,7 @@ def test_factory_create_assigns_profile_and_role_instructions(tmp_path: Path) ->
     assert result.success is True
 
 
-def test_factory_for_task_selects_fix_profile(tmp_path: Path) -> None:
+def test_factory_for_task_uses_general_agent(tmp_path: Path) -> None:
     client = FakeClient(
         [
             LLMResponse.tool_call("run_tests", {}),
@@ -70,7 +70,8 @@ def test_factory_for_task_selects_fix_profile(tmp_path: Path) -> None:
         require_tool_confirmation=lambda *_args: True,
     )
 
-    assert agent.profile.objective is TaskIntent.FIX
+    assert agent.profile.objective is TaskIntent.UNKNOWN
+    assert agent.profile.name == "general"
     assert agent.loop.max_steps == 12
 
 

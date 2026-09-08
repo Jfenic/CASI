@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from casi.agent.conversation import ContextCompactNotifier, ContextCompactPrompt, Conversation
 from casi.agent.intent import (
@@ -34,6 +34,10 @@ from casi.agent.pipelines import (
 from casi.agent.profiles import AgentProfile
 from casi.agent.response_policy import ResponsePolicy, RetryBudget
 from casi.agent.session import TaskScope
+from casi.agent.permissions import PermissionTier
+from casi.agent.task_permission import TaskPermissionState
+from casi.agent.test_failures import extract_failure_paths
+from casi.agent.tool_confirmation import build_task_tool_confirmation
 from casi.agent.state import AgentResult, PatchVerification
 from casi.agent.trace import AgentTraceRecorder
 from casi.config import settings
@@ -58,6 +62,7 @@ class _ActiveTask:
 	task_context: str
 	intent: TaskIntent
 	retries: RetryBudget
+	permissions: TaskPermissionState = field(default_factory=TaskPermissionState)
 	correction_attempts: int = 0
 	patch_verification: PatchVerification | None = None
 	continuing_after_clarification: bool = False
@@ -120,14 +125,32 @@ class AgentLoop:
 
 		return self._clarification_pending and self._active_task is not None
 
-	def _build_conversation(self, messages: list[ChatMessage]) -> Conversation:
+	def _build_conversation(
+		self,
+		messages: list[ChatMessage],
+		*,
+		permission_state: TaskPermissionState | None = None,
+		intent: TaskIntent | None = None,
+	) -> Conversation:
+		confirmation = self.require_tool_confirmation
+		if permission_state is not None:
+			confirmation = build_task_tool_confirmation(
+				self.require_tool_confirmation,
+				permission_state,
+				intent=intent,
+				on_escalation=lambda tier: self.trace.record(
+					f"permission escalated to {tier.value}",
+				)
+				if self.trace is not None
+				else None,
+			)
 		return Conversation(
 			messages,
 			self.registry,
 			llm_client=self.client,
 			on_context_compact=self.on_context_compact,
 			on_context_compact_prompt=self.on_context_compact_prompt,
-			require_tool_confirmation=self.require_tool_confirmation,
+			require_tool_confirmation=confirmation,
 		)
 
 	def _mark_clarification_pending(self) -> None:
@@ -162,25 +185,34 @@ class AgentLoop:
 			message += f". Last event: {last}"
 		return message
 
+	def _in_mutation_workflow(self, active: _ActiveTask) -> bool:
+		"""Return whether the task has moved into test or code-change work."""
+
+		if active.intent is TaskIntent.FIX:
+			return True
+		last_tests = self.conversation.last_tool_result("run_tests")
+		if last_tests is not None and self._should_run_fix_pipeline(last_tests.output):
+			return True
+		return self.conversation.tool_was_used("propose_file")
+
 	def _tools_for_task(self) -> list[ToolDefinition]:
 		if self.profile is not None and self.profile.objective is TaskIntent.PRESENT:
 			return []
 		tools = self.registry.definitions(agent_safe=True)
-		if self.profile is not None and self.profile.objective is TaskIntent.FIX:
-			# Final patches are validated automatically by verify_patch_response().
-			# Exposing validate_patch encourages smaller local models to validate
-			# incomplete guesses instead of returning the requested unified diff.
-			return [tool for tool in tools if tool.name != "validate_patch"]
-		return tools
+		if self.profile is not None and self.profile.objective is TaskIntent.RECALL_PLAN:
+			return [tool for tool in tools if tool.name == "get_session_plan"]
+		return [tool for tool in tools if tool.name != "validate_patch"]
 
 	def _tools_for_step(
 		self,
 		intent: TaskIntent,
 		tools: list[ToolDefinition],
+		*,
+		mutation_workflow: bool,
 	) -> list[ToolDefinition]:
 		"""Stop tool loops once a fix has enough repository context."""
 
-		if intent is TaskIntent.FIX:
+		if mutation_workflow or intent is TaskIntent.FIX:
 			if (
 				self.conversation.tool_was_used("run_tests")
 				and self.conversation.read_file_paths()
@@ -213,8 +245,6 @@ class AgentLoop:
 		if self.trace is not None:
 			self.trace.clear()
 		scope = TaskScope(session_messages=self._session_merge_target())
-		self.conversation = self._build_conversation(scope.task_messages)
-		self.conversation.append("user", task)
 		tools = self._tools_for_task()
 		task_context = build_task_context(task, self.messages)
 		intent = self._resolve_intent(task_context)
@@ -226,6 +256,12 @@ class AgentLoop:
 			retries=RetryBudget(),
 		)
 		self._active_task = active
+		self.conversation = self._build_conversation(
+			active.scope.task_messages,
+			permission_state=active.permissions,
+			intent=active.intent,
+		)
+		self.conversation.append("user", task)
 
 		if self._should_prefetch_repository(intent, task_context, False):
 			self._notify_activity("Inspecting repository before first model call...")
@@ -244,6 +280,11 @@ class AgentLoop:
 			return self._start(answer)
 
 		self._clarification_pending = False
+		self.conversation = self._build_conversation(
+			active.scope.task_messages,
+			permission_state=active.permissions,
+			intent=active.intent,
+		)
 		self.conversation.append("user", answer)
 		tools = self._tools_for_task()
 		active.task_context = build_task_context(answer, self.messages)
@@ -268,12 +309,17 @@ class AgentLoop:
 		active: _ActiveTask,
 		tools: list[ToolDefinition],
 	) -> AgentResult:
-		step_limit = self._step_limit_for_intent(active.intent)
+		step_limit = self._step_limit_for_intent(active.intent, active)
 		active_messages = active.scope.task_messages
 
 		for step in range(active.next_step, step_limit + 1):
 			self.conversation.compact_if_needed()
-			step_tools = self._tools_for_step(active.intent, tools)
+			mutation_workflow = self._in_mutation_workflow(active)
+			step_tools = self._tools_for_step(
+				active.intent,
+				tools,
+				mutation_workflow=mutation_workflow,
+			)
 			self._notify_activity(
 				f"Thinking with {self._model_label()} "
 				f"(decision {step}/{step_limit})..."
@@ -315,7 +361,7 @@ class AgentLoop:
 							)
 						continue
 					response = LLMResponse.final(result.output)
-				elif active.intent is TaskIntent.FIX and not any(
+				elif mutation_workflow and not any(
 					tool.name == tool_name for tool in step_tools
 				):
 					if tool_name == "search_code":
@@ -349,6 +395,7 @@ class AgentLoop:
 						task_context=active.task_context,
 						step=step,
 						step_limit=step_limit,
+						mutation_workflow=mutation_workflow,
 					)
 					continue
 
@@ -390,6 +437,7 @@ class AgentLoop:
 				retries=active.retries,
 				repository_inspected=self.conversation.repository_inspected(),
 				continuing_after_clarification=active.continuing_after_clarification,
+				mutation_workflow=mutation_workflow,
 			)
 			if nudge is not None:
 				if self.trace is not None:
@@ -398,11 +446,16 @@ class AgentLoop:
 				continue
 
 			if self._should_fallback_to_pipeline(
-				active.intent, active.task_context, active.retries
+				active.intent, active.task_context, active.retries, active=active
 			):
 				if self.trace is not None:
 					self.trace.record("pipeline fallback triggered")
-				self._run_pipeline(active.intent, active.task_context, active.retries)
+				self._run_pipeline(
+					active.intent,
+					active.task_context,
+					active.retries,
+					use_fix_pipeline=mutation_workflow,
+				)
 				continue
 
 			patch_verification, should_retry = verify_patch_response(
@@ -439,6 +492,7 @@ class AgentLoop:
 				response.content,
 				active.task_context,
 				repository_inspected=self.conversation.repository_inspected(),
+				mutation_workflow=mutation_workflow,
 			):
 				if self.trace is not None:
 					self.trace.record_nudge("missing required unified diff in final answer")
@@ -463,7 +517,8 @@ class AgentLoop:
 					steps=step,
 					messages=active_messages,
 					patch_verification=patch_verification,
-					requested_code_change=task_requests_code_change(active.task_context),
+					requested_code_change=self._in_mutation_workflow(active)
+					or task_requests_code_change(active.task_context),
 				),
 			)
 
@@ -475,7 +530,8 @@ class AgentLoop:
 				steps=step_limit,
 				messages=active_messages,
 				patch_verification=active.patch_verification,
-				requested_code_change=task_requests_code_change(active.task_context),
+				requested_code_change=self._in_mutation_workflow(active)
+				or task_requests_code_change(active.task_context),
 			),
 		)
 
@@ -484,7 +540,13 @@ class AgentLoop:
 			return self.profile.objective
 		return classify_intent(task_context)
 
-	def _step_limit_for_intent(self, intent: TaskIntent) -> int:
+	def _step_limit_for_intent(
+		self,
+		intent: TaskIntent,
+		active: _ActiveTask | None = None,
+	) -> int:
+		if active is not None and self._in_mutation_workflow(active):
+			return max(self.max_steps, settings.fix_max_steps)
 		if intent is TaskIntent.FIX:
 			return max(self.max_steps, settings.fix_max_steps)
 		return self.max_steps
@@ -499,7 +561,9 @@ class AgentLoop:
 			return False
 		if continuing_after_clarification:
 			return False
-		if intent is TaskIntent.FIX or intent is TaskIntent.PRESENT:
+		if intent is TaskIntent.FIX or intent is TaskIntent.PRESENT or intent is TaskIntent.RECALL_PLAN:
+			return False
+		if intent is TaskIntent.CONVERSATION or intent is TaskIntent.META:
 			return False
 		if not intent_supports_pipeline(intent):
 			return False
@@ -514,12 +578,15 @@ class AgentLoop:
 		intent: TaskIntent,
 		task_context: str,
 		retries: RetryBudget,
+		*,
+		active: _ActiveTask,
 	) -> bool:
 		if self.routing_mode is RoutingMode.OFF:
 			return False
 		if not intent_supports_pipeline(intent):
 			return False
-		if intent is TaskIntent.FIX:
+		mutation_workflow = self._in_mutation_workflow(active)
+		if intent is TaskIntent.FIX or mutation_workflow:
 			if not self.conversation.tool_was_used("run_tests"):
 				return False
 			if self.conversation.read_file_paths():
@@ -544,10 +611,11 @@ class AgentLoop:
 		retries: RetryBudget,
 		*,
 		test_output: str | None = None,
+		use_fix_pipeline: bool = False,
 	) -> None:
 		self._notify_activity("Running repository pipeline...")
 		execute = self._execute_pipeline_tool
-		if intent is TaskIntent.FIX:
+		if intent is TaskIntent.FIX or use_fix_pipeline:
 			if test_output is None:
 				last_tests = self.conversation.last_tool_result("run_tests")
 				test_output = last_tests.output if last_tests is not None else None
@@ -577,12 +645,13 @@ class AgentLoop:
 		task_context: str,
 		step: int,
 		step_limit: int,
+		mutation_workflow: bool,
 	) -> None:
 		"""Execute a tool call, optionally redirecting redundant searches."""
 
 		tool_name = response.tool_name or ""
 		self._notify_activity(f"Running tool `{tool_name}`...")
-		if self._should_redirect_search_to_read(intent, tool_name):
+		if self._should_redirect_search_to_read(tool_name, mutation_workflow=mutation_workflow):
 			paths = self.conversation.unread_search_code_paths()
 			nudge = nudge_for_read_file_instead_of_search(
 				paths,
@@ -604,8 +673,16 @@ class AgentLoop:
 				output=result.output or result.error or "",
 				metadata=result.metadata,
 			)
-		if tool_name == "run_tests" and intent is TaskIntent.FIX:
+		if tool_name == "run_tests" and self._should_run_fix_pipeline(result.output):
 			self._run_fix_pipeline(task_context, test_output=result.output)
+
+	def _should_run_fix_pipeline(self, test_output: str | None) -> bool:
+		if not test_output:
+			return False
+		if extract_failure_paths(test_output):
+			return True
+		lowered = test_output.lower()
+		return "failed" in lowered or "errors" in lowered
 
 	def _run_fix_pipeline(self, task_context: str, *, test_output: str | None) -> None:
 		run_fix_pipeline(
@@ -639,8 +716,15 @@ class AgentLoop:
 			)
 		return result
 
-	def _should_redirect_search_to_read(self, intent: TaskIntent, tool_name: str) -> bool:
-		if intent is not TaskIntent.FIX or tool_name != "search_code":
+	def _should_redirect_search_to_read(
+		self,
+		tool_name: str,
+		*,
+		mutation_workflow: bool,
+	) -> bool:
+		if tool_name != "search_code":
+			return False
+		if not mutation_workflow and not self.conversation.tool_was_used("run_tests"):
 			return False
 		if not self.conversation.tool_was_used("run_tests"):
 			return False

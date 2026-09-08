@@ -100,6 +100,14 @@ _PATCH_REQUEST_PATTERN = re.compile(
 	re.IGNORECASE | re.DOTALL,
 )
 
+_PLAN_RECALL_PATTERN = re.compile(
+	r"\b(?:dime|muestra|muéstrame|muestrame|ver|recuerda|recuerdame|recuérdame|"
+	r"cual|cuál|que|qué|what)\b.{0,40}\b(?:plan|planes|pasos|estrategia|"
+	r"ibas a hacer|vas a hacer|next steps)\b"
+	r"|\b(?:what(?:'s| is) the plan|show me the plan)\b",
+	re.IGNORECASE | re.DOTALL,
+)
+
 USER_DEFERRAL_PATTERN = re.compile(
 	r"\b(?:provide|proporciona|proporcioname|proporción|share|comparte|"
 	r"paste|pega|send|envia|envía|give me|dame|need)\b"
@@ -126,6 +134,7 @@ class TaskIntent(str, Enum):
 	INSPECT = "inspect"
 	GIT_STATUS = "git_status"
 	FIX = "fix"
+	RECALL_PLAN = "recall_plan"
 	PRESENT = "present"
 	UNKNOWN = "unknown"
 
@@ -213,29 +222,35 @@ def task_requests_patch_application(context: str) -> bool:
 
 
 def classify_intent(context: str) -> TaskIntent:
-	"""Classify the user's goal to choose routing and fallback pipelines."""
+	"""Return fast-path intents only; everything else uses the general agent."""
 
-	if task_requests_code_change(context):
-		return TaskIntent.FIX
-	if _APPLY_PATCH_PATTERN.search(context) or _RUN_TESTS_PATTERN.search(context):
-		return TaskIntent.UNKNOWN
-	if _GIT_STATUS_PATTERN.search(context):
-		return TaskIntent.GIT_STATUS
-	if _META_PATTERN.search(context):
-		return TaskIntent.META
-	if extract_search_targets(context) or _REPOSITORY_KEYWORDS.search(context):
-		return TaskIntent.INSPECT
-	if _OVERVIEW_PATTERN.search(context):
-		return TaskIntent.OVERVIEW
 	if _CONVERSATION_PATTERN.match(context.strip()):
 		return TaskIntent.CONVERSATION
+	if _PLAN_RECALL_PATTERN.search(context):
+		return TaskIntent.RECALL_PLAN
+	if _META_PATTERN.search(context):
+		return TaskIntent.META
+	if _GIT_STATUS_PATTERN.search(context):
+		return TaskIntent.GIT_STATUS
 	return TaskIntent.UNKNOWN
+
+
+def is_fast_path_intent(intent: TaskIntent) -> bool:
+	"""Return whether the intent bypasses the general repository agent."""
+
+	return intent in {
+		TaskIntent.CONVERSATION,
+		TaskIntent.META,
+		TaskIntent.RECALL_PLAN,
+		TaskIntent.GIT_STATUS,
+	}
 
 
 def intent_supports_pipeline(intent: TaskIntent) -> bool:
 	"""Return whether a deterministic repository pipeline exists for the intent."""
 
 	return intent in {
+		TaskIntent.UNKNOWN,
 		TaskIntent.OVERVIEW,
 		TaskIntent.INSPECT,
 		TaskIntent.GIT_STATUS,
@@ -259,7 +274,18 @@ def should_defer_clarification(
 ) -> bool:
 	"""Return whether the model should act instead of asking the user."""
 
-	if intent in {TaskIntent.INSPECT, TaskIntent.OVERVIEW, TaskIntent.GIT_STATUS, TaskIntent.FIX}:
+	if task_requests_code_change(context):
+		return True
+	if intent in {
+		TaskIntent.INSPECT,
+		TaskIntent.OVERVIEW,
+		TaskIntent.GIT_STATUS,
+		TaskIntent.FIX,
+		TaskIntent.RECALL_PLAN,
+		TaskIntent.PRESENT,
+	}:
+		return True
+	if intent is TaskIntent.UNKNOWN and repository_inspected:
 		return True
 	if extract_search_targets(context):
 		return True

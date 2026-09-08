@@ -154,8 +154,11 @@ def run_repository_pipeline(
 	if intent == TaskIntent.OVERVIEW:
 		run_overview_pipeline(execute)
 		return
-	if intent == TaskIntent.INSPECT:
-		run_inspect_pipeline(context, execute, repository_path=repository_path)
+	if intent in {TaskIntent.INSPECT, TaskIntent.UNKNOWN}:
+		if extract_search_targets(context):
+			run_inspect_pipeline(context, execute, repository_path=repository_path)
+		else:
+			run_overview_pipeline(execute)
 		return
 	if intent == TaskIntent.GIT_STATUS:
 		run_git_status_pipeline(execute)

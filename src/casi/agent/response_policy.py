@@ -40,13 +40,14 @@ class ResponsePolicy:
 		retries: RetryBudget,
 		repository_inspected: bool,
 		continuing_after_clarification: bool,
+		mutation_workflow: bool = False,
 	) -> ResponseNudge | None:
 		if is_malformed_json(content) and retries.format_nudges < retries.max_format:
 			retries.format_nudges += 1
 			return nudge_for_malformed_json()
 
 		if (
-			intent is TaskIntent.FIX
+			(intent is TaskIntent.FIX or mutation_workflow)
 			and not continuing_after_clarification
 			and not repository_inspected
 			and extract_patch(content) is None
@@ -67,6 +68,7 @@ class ResponsePolicy:
 				content,
 				task_context,
 				repository_inspected=repository_inspected,
+				mutation_workflow=mutation_workflow,
 			)
 			and retries.patch_nudges < retries.max_patch
 		):
@@ -81,9 +83,11 @@ class ResponsePolicy:
 		task_context: str,
 		*,
 		repository_inspected: bool,
+		mutation_workflow: bool = False,
 	) -> bool:
 		return response_missing_required_patch(
 			content,
 			task_context,
 			repository_inspected=repository_inspected,
+			mutation_workflow=mutation_workflow,
 		)

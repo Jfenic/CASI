@@ -2,17 +2,21 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from casi.agent.policies import AGENT_TOOL_NAMES, is_mutation_tool
+from casi.agent.planner import AgentPlan
 from casi.llm.base import ToolDefinition
 from casi.tools.base import Tool
 from casi.tools.file_tools import ListFilesTool, ReadFileTool
 from casi.tools.git_tools import GitDiffTool
 from casi.tools.result import ToolResult
 from casi.tools.search_tools import SearchCodeTool
+from casi.tools.session_tools import GetSessionPlanTool
 from casi.tools.test_tools import RunTestsTool
 from casi.tools.patch_tools import ProposeFileTool, ValidatePatchTool
 from casi.tools.patch_tools import ApplyPatchTool
@@ -21,6 +25,7 @@ from casi.tools.patch_tools import ApplyPatchTool
 @dataclass
 class ToolRegistry:
     repository_path: str | Path
+    plan_provider: Callable[[], AgentPlan | None] | None = None
     _tools: dict[str, Tool] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -33,6 +38,8 @@ class ToolRegistry:
             self.register(ValidatePatchTool(self.repository_path))
             self.register(ProposeFileTool(self.repository_path))
             self.register(ApplyPatchTool(self.repository_path))
+            if self.plan_provider is not None:
+                self.register(GetSessionPlanTool(self.plan_provider))
 
     def register(self, tool: Tool) -> None:
         self._tools[tool.name] = tool

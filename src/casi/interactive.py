@@ -45,7 +45,10 @@ class InteractiveSession:
 		self.output_fn = output_fn
 		self.history: list[str] = []
 		self.messages: list[ChatMessage] = []
-		self._registry = ToolRegistry(self.repository)
+		self._registry = ToolRegistry(
+			self.repository,
+			plan_provider=lambda: self._session_plan,
+		)
 		self._session_conversation = Conversation(
 			self.messages,
 			self._registry,
@@ -55,7 +58,7 @@ class InteractiveSession:
 		)
 		self._awaiting_clarification = False
 		self._pending_orchestration: PendingOrchestration | None = None
-		self._last_plan: AgentPlan | None = None
+		self._session_plan: AgentPlan | None = None
 		self._trace_enabled = False
 		self._last_trace: list[str] = []
 		self._trace = AgentTraceRecorder(
@@ -76,6 +79,7 @@ class InteractiveSession:
 			on_step_start=self._emit_step_start,
 			on_activity=self._emit_activity,
 			trace=self._trace,
+			registry=self._registry,
 		)
 
 	def _emit_activity(self, message: str) -> None:
@@ -88,8 +92,9 @@ class InteractiveSession:
 		)
 
 	def _emit_plan(self, plan: AgentPlan) -> None:
-		self._last_plan = plan
+		self._session_plan = plan
 		self._emit("[plan]")
+		self._emit(f"[plan] Task: {plan.original_task}")
 		for line in plan.summary_lines():
 			self._emit(line)
 		self._emit(
@@ -120,11 +125,11 @@ class InteractiveSession:
 				if self._handle_command(task):
 					return 0
 				continue
-			if self._awaiting_clarification and self._is_plan_request(task):
-				self._show_plan()
-				continue
 
 			if self._awaiting_clarification:
+				if self._is_plan_request(task):
+					self._show_plan()
+					continue
 				result = self._continue_clarification(task)
 			else:
 				self.history.append(task)
@@ -189,25 +194,51 @@ class InteractiveSession:
 	@staticmethod
 	def _is_plan_request(message: str) -> bool:
 		normalized = " ".join(message.lower().strip(" ¿?¡!").split())
-		return normalized in {
+		if not normalized:
+			return False
+		exact = {
+			"plan",
+			"el plan",
+			"ver plan",
+			"mi plan",
+			"que plan",
+			"qué plan",
 			"dime el plan",
 			"muestra el plan",
 			"muéstrame el plan",
 			"ver el plan",
 			"cual es el plan",
 			"cuál es el plan",
+			"cual es el plan actual",
+			"cuál es el plan actual",
+			"que vas a hacer",
+			"qué vas a hacer",
 		}
+		if normalized in exact:
+			return True
+		return normalized.startswith(
+			(
+				"dime el plan",
+				"muestra el plan",
+				"muéstrame el plan",
+				"cual es el plan",
+				"cuál es el plan",
+			)
+		)
 
 	def _show_plan(self) -> None:
-		plan = (
-			self._pending_orchestration.plan
-			if self._pending_orchestration is not None
-			else self._last_plan
-		)
-		if plan is None:
+		if self._pending_orchestration is not None:
+			plan = self._pending_orchestration.plan
+			status = "pending — waiting for your answer"
+		elif self._session_plan is not None:
+			plan = self._session_plan
+			status = "stored — last generated plan for this session"
+		else:
 			self._emit("[plan] No plan is available for this session.")
+			self._emit("[plan] Start a task first, then use /plan or ask 'dime el plan'.")
 			return
-		self._emit("[plan] Current plan:")
+		self._emit(f"[plan] {status}")
+		self._emit(f"[plan] Task: {plan.original_task}")
 		for line in plan.summary_lines():
 			self._emit(line)
 		if self._awaiting_clarification:
@@ -453,7 +484,7 @@ class InteractiveSession:
 				"/trace [on|off]  Show or toggle live decision trace\n"
 				"/last-trace  Show trace from the last run\n"
 				"/save-trace PATH.json  Save the last trace as structured JSON\n"
-				"/plan  Show the current or last generated plan\n"
+				"/plan  Show the stored plan for the current or last task\n"
 				"/cancel  Cancel a task waiting for clarification\n"
 				"/exit  Leave interactive mode\n"
 				"\n"
@@ -504,7 +535,7 @@ class InteractiveSession:
 			self.messages.clear()
 			self._awaiting_clarification = False
 			self._pending_orchestration = None
-			self._last_plan = None
+			self._session_plan = None
 			self._emit("Session history and conversation context cleared.")
 			return False
 

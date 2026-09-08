@@ -71,15 +71,16 @@ class AgentFactory:
 		trace: AgentTraceRecorder | None = None,
 		routing_mode: str | RoutingMode | None = None,
 		response_policy: ResponsePolicy | None = None,
+		registry: ToolRegistry | None = None,
 	) -> SpecializedAgent:
 		"""Instantiate an agent for a known objective."""
 
 		profile = resolve_profile(objective)
 		profiled_client = _client_for_profile(client, profile)
-		registry = ToolRegistry(repository)
+		tool_registry = registry or ToolRegistry(repository)
 		loop = AgentLoop(
 			profiled_client,
-			registry,
+			tool_registry,
 			profile=profile,
 			max_steps=max_steps if max_steps is not None else (profile.max_steps or 8),
 			max_correction_attempts=max_correction_attempts,
@@ -110,6 +111,7 @@ class AgentFactory:
 		trace: AgentTraceRecorder | None = None,
 		routing_mode: str | RoutingMode | None = None,
 		response_policy: ResponsePolicy | None = None,
+		registry: ToolRegistry | None = None,
 	) -> SpecializedAgent:
 		"""Classify the task and return the matching specialized agent."""
 
@@ -130,4 +132,5 @@ class AgentFactory:
 			trace=trace,
 			routing_mode=routing_mode,
 			response_policy=response_policy,
+			registry=registry,
 		)

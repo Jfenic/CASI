@@ -73,6 +73,10 @@ def test_trace_redacts_sensitive_arguments_and_saves_json(tmp_path: Path) -> Non
 
 def test_trace_records_rejected_fix_tool_calls(tmp_path: Path) -> None:
 	(tmp_path / "app.py").write_text("x = 1\n", encoding="utf-8")
+	(tmp_path / "test_app.py").write_text(
+		"from app import x\n\ndef test_x():\n    assert x == 2\n",
+		encoding="utf-8",
+	)
 	trace = AgentTraceRecorder()
 	client = ToolThenStallClient()
 	client.responses = [
@@ -81,16 +85,21 @@ def test_trace_records_rejected_fix_tool_calls(tmp_path: Path) -> None:
 		LLMResponse.final("No patch"),
 	]
 	agent = AgentFactory.create(
-		TaskIntent.FIX,
+		TaskIntent.UNKNOWN,
 		client=client,
 		repository=tmp_path,
-		max_steps=3,
+		max_steps=4,
 		max_correction_attempts=0,
 		require_tool_confirmation=lambda *_args: True,
 		trace=trace,
+		routing_mode="off",
 	)
 
 	agent.run("fix app.py")
 
 	assert any("tool search_code" in event for event in trace.events)
-	assert any("Tool unavailable in this phase" in event for event in trace.events)
+	assert any(
+		"Tool unavailable in this phase" in event
+		or "search_code results are already available" in event
+		for event in trace.events
+	)

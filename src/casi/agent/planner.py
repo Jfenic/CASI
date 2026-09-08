@@ -2,29 +2,19 @@
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 
-from casi.agent.intent import (
-	TaskIntent,
-	build_task_context,
-	classify_intent,
-	task_requests_code_change,
-	task_requests_test_execution,
-)
-from casi.agent.permissions import PermissionTier, resolve_permission_tier
+from casi.agent.intent import TaskIntent, build_task_context, classify_intent, is_fast_path_intent
+from casi.agent.permissions import PermissionTier
 from casi.agent.profiles import resolve_profile
 from casi.llm.base import ChatMessage
 
-_COMPOUND_SPLIT = re.compile(
-	r"\s+(?:,\s*)?(?:y luego|después|despues|and then|then|y después|y despues)\s+",
-	re.IGNORECASE,
-)
-
-_READ_THEN_EXECUTE = re.compile(
-	r"\b(?:revisa|review|explica|explain|inspect|analiza|analyze|mira|lee|read)\b",
-	re.IGNORECASE,
-)
+_FAST_PATH_TOOLS_GOAL = {
+	TaskIntent.CONVERSATION: "direct answer",
+	TaskIntent.META: "direct answer",
+	TaskIntent.RECALL_PLAN: "get_session_plan",
+	TaskIntent.GIT_STATUS: "git_diff",
+}
 
 
 @dataclass(frozen=True)
@@ -39,18 +29,19 @@ class AgentPlanStep:
 	tools_goal: str
 
 	@classmethod
-	def from_task(cls, task: str, *, session_messages: list[ChatMessage]) -> AgentPlanStep:
-		context = build_task_context(task.strip(), session_messages)
-		intent = classify_intent(context)
+	def from_intent(
+		cls,
+		task: str,
+		intent: TaskIntent,
+	) -> AgentPlanStep:
 		profile = resolve_profile(intent)
-		tier = resolve_permission_tier(task, intent)
 		return cls(
 			objective=intent,
 			task=task.strip(),
-			tier=tier,
+			tier=PermissionTier.READ,
 			agent_name=profile.name,
 			agent_role=profile.role,
-			tools_goal=_tools_goal(intent, tier),
+			tools_goal=_FAST_PATH_TOOLS_GOAL.get(intent, "repository tools as needed"),
 		)
 
 
@@ -85,73 +76,11 @@ class AgentPlan:
 		return lines
 
 
-def _tools_goal(intent: TaskIntent, tier: PermissionTier) -> str:
-	if tier is PermissionTier.MUTATE:
-		return "run_tests, read_file, propose unified diff"
-	if tier is PermissionTier.EXECUTE:
-		return "run_tests"
-	if intent is TaskIntent.GIT_STATUS:
-		return "git_diff"
-	if intent in {TaskIntent.OVERVIEW, TaskIntent.INSPECT}:
-		return "list_files, search_code, read_file"
-	if intent in {TaskIntent.CONVERSATION, TaskIntent.META, TaskIntent.PRESENT}:
-		return "direct answer"
-	return "repository tools as needed"
-
-
-def _should_append_presenter(steps: list[AgentPlanStep]) -> bool:
-	"""Return whether a final presenter agent should polish the user-facing answer."""
-
-	if not steps:
-		return False
-	if any(step.objective is TaskIntent.PRESENT for step in steps):
-		return False
-	if any(step.tier is not PermissionTier.READ for step in steps):
-		return False
-	if len(steps) == 1 and steps[0].objective is TaskIntent.CONVERSATION:
-		return False
-	return True
-
-
-def _presenter_step(original_task: str) -> AgentPlanStep:
-	profile = resolve_profile(TaskIntent.PRESENT)
-	return AgentPlanStep(
-		objective=TaskIntent.PRESENT,
-		task=(
-			"Format and structure the final answer for this user request: "
-			f"{original_task}"
-		),
-		tier=PermissionTier.READ,
-		agent_name=profile.name,
-		agent_role=profile.role,
-		tools_goal="structure markdown answer",
-	)
-
-
 def decompose_task(task: str) -> list[str]:
-	"""Split compound requests into independent subtasks when appropriate."""
+	"""Return one task per plan; compound work is handled inside the general agent."""
 
 	stripped = task.strip()
-	if not stripped:
-		return []
-
-	if task_requests_code_change(stripped):
-		return [stripped]
-
-	parts = [part.strip() for part in _COMPOUND_SPLIT.split(stripped) if part.strip()]
-	if len(parts) > 1:
-		return parts
-
-	if task_requests_test_execution(stripped) and _READ_THEN_EXECUTE.search(stripped):
-		for separator in (" y ", " and ", ", "):
-			if separator in stripped.lower():
-				left, _, right = stripped.lower().partition(separator.strip())
-				if _READ_THEN_EXECUTE.search(left) and task_requests_test_execution(right):
-					origin_left, _, origin_right = stripped.partition(separator)
-					if origin_left.strip() and origin_right.strip():
-						return [origin_left.strip(), origin_right.strip()]
-
-	return [stripped]
+	return [stripped] if stripped else []
 
 
 def group_segments(steps: list[AgentPlanStep]) -> list[PlanSegment]:
@@ -183,14 +112,18 @@ class TaskPlanner:
 		session_messages: list[ChatMessage] | None = None,
 	) -> AgentPlan:
 		session = session_messages if session_messages is not None else []
-		subtasks = decompose_task(task)
-		steps = [
-			AgentPlanStep.from_task(subtask, session_messages=session)
-			for subtask in subtasks
-		]
-		if _should_append_presenter(steps):
-			steps.append(_presenter_step(task.strip()))
+		stripped = task.strip()
+		if not stripped:
+			return AgentPlan(original_task="", segments=())
+
+		context = build_task_context(stripped, session)
+		intent = classify_intent(context)
+		if is_fast_path_intent(intent):
+			steps = [AgentPlanStep.from_intent(stripped, intent)]
+		else:
+			steps = [AgentPlanStep.from_intent(stripped, TaskIntent.UNKNOWN)]
+
 		return AgentPlan(
-			original_task=task.strip(),
+			original_task=stripped,
 			segments=tuple(group_segments(steps)),
 		)

@@ -115,6 +115,7 @@ def test_agent_loop_retries_patch_when_sandbox_tests_fail(tmp_path: Path) -> Non
         client,
         ToolRegistry(tmp_path),
         max_correction_attempts=2,
+        routing_mode="off",
     ).run("Fix the failing test")
 
     assert result.success is True
@@ -158,6 +159,7 @@ def test_agent_loop_retries_patch_when_patch_is_invalid(tmp_path: Path) -> None:
         client,
         ToolRegistry(tmp_path),
         max_correction_attempts=2,
+        routing_mode="off",
     ).run("Fix the failing test")
 
     assert result.success is True

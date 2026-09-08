@@ -102,6 +102,20 @@ PROFILES: dict[TaskIntent, AgentProfile] = {
 		),
 		max_steps=12,
 	),
+	TaskIntent.RECALL_PLAN: AgentProfile(
+		objective=TaskIntent.RECALL_PLAN,
+		name="recall_plan",
+		role="Session Plan Assistant",
+		mission="Explain the stored CASI plan for the current session.",
+		prompt_instructions=_instructions(
+			"You are the session plan specialist.",
+			"When the user asks for the plan, next steps, or what CASI will do, call get_session_plan first.",
+			"Answer from get_session_plan output only; do not read README.md or search the repository for a plan.",
+			"If no plan is stored, say so clearly and suggest starting a task first.",
+			"Use a final JSON response after you have the tool result.",
+		),
+		max_steps=3,
+	),
 	TaskIntent.PRESENT: AgentProfile(
 		objective=TaskIntent.PRESENT,
 		name="presenter",
@@ -121,13 +135,17 @@ PROFILES: dict[TaskIntent, AgentProfile] = {
 		objective=TaskIntent.UNKNOWN,
 		name="general",
 		role="General Repository Agent",
-		mission="Inspect the repository and answer the user request with tools when needed.",
+		mission="Inspect the repository and complete the user request with tools when needed.",
 		prompt_instructions=_instructions(
 			"You are the general repository agent.",
-			"Prefer tools over assumptions.",
+			"Prefer tools over assumptions and act on reasonably clear requests.",
+			"Use list_files, search_code, and read_file to inspect before answering.",
+			"When the user asks to add or change code or tests, inspect first, then call run_tests if verification is needed.",
+			"When files must change, call propose_file with the repository-relative path and complete file content.",
+			"Do not ask the user for source code, file paths, or test output you can read with tools.",
 			"Keep answers concise and tied to repository evidence.",
 		),
-		max_steps=8,
+		max_steps=12,
 	),
 }
 

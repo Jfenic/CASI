@@ -26,7 +26,6 @@ class ClarifyingClient:
                     ["Locate the validator", "Propose a focused change"],
                 ),
                 LLMResponse.final("I will inspect the email validator."),
-                LLMResponse.final("## Plan\n\nI will inspect the email validator."),
             ]
         )
 
@@ -122,9 +121,11 @@ class RunTestsClient:
         messages: list[ChatMessage],
         tools: list[ToolDefinition],
     ) -> LLMResponse:
-        if self.calls == 0:
-            self.calls += 1
+        self.calls += 1
+        if self.calls == 1:
             return LLMResponse.tool_call("run_tests", {})
+        if self.calls == 2:
+            return LLMResponse.final("Done")
         return LLMResponse.final("Done")
 
 
@@ -144,13 +145,14 @@ def test_interactive_session_prompts_before_run_tests(tmp_path: Path) -> None:
     InteractiveSession(
         tmp_path,
         RunTestsClient(),
+        routing_mode="off",
         input_fn=input_fn,
         output_fn=output.append,
     ).run()
 
-    assert any("Approve phase>" in prompt for prompt in prompts)
-    assert not any("Run run_tests? [y/N]" in prompt for prompt in prompts)
-    assert "[agent] Done" in output
+    assert any("Run run_tests? [y/N]" in prompt for prompt in prompts)
+    assert not any("Approve phase>" in prompt for prompt in prompts)
+    assert any("[agent]" in message and "Done" in message for message in output)
 
 
 def test_interactive_session_reports_unknown_command(tmp_path: Path) -> None:
@@ -204,18 +206,22 @@ def test_interactive_session_uses_answer_prompt_during_clarification(tmp_path: P
 
 
 def test_interactive_session_skips_clarification_for_fix_requests(tmp_path: Path) -> None:
-    commands = iter(["Fix email validation", "y", "/exit"])
+    class FixClient:
+        def complete(self, messages, tools):
+            return LLMResponse.final("I will inspect the email validator.")
+
+    commands = iter(["Fix email validation", "/exit"])
     output: list[str] = []
 
     InteractiveSession(
         tmp_path,
-        ClarifyingClient(),
+        FixClient(),
         input_fn=lambda prompt: next(commands),
         output_fn=output.append,
     ).run()
 
     assert not any("Reply at Answer>" in message for message in output)
-    assert "[agent] I will inspect the email validator." in output
+    assert any("I will inspect the email validator." in message for message in output)
 
 
 def test_interactive_session_can_exit_during_clarification(tmp_path: Path) -> None:
@@ -250,8 +256,27 @@ def test_interactive_plan_request_does_not_consume_pending_answer(tmp_path: Path
     ).run()
 
     assert prompts.count("Answer (/plan, /cancel)> ") == 2
-    assert "[plan] Current plan:" in output
+    assert "[plan] pending — waiting for your answer" in output
+    assert any("Improve things please" in message for message in output)
     assert any("I will inspect the email validator." in message for message in output)
+
+
+def test_interactive_plan_request_at_prompt_uses_recall_agent(
+    tmp_path: Path,
+) -> None:
+    commands = iter(["Inspect the repository", "dime el plan", "/exit"])
+    output: list[str] = []
+    session = InteractiveSession(
+        tmp_path,
+        FakeClient(),
+        input_fn=lambda prompt: next(commands),
+        output_fn=output.append,
+    )
+
+    session.run()
+
+    assert session.history == ["Inspect the repository", "dime el plan"]
+    assert any("[recall_plan|" in message or "recall_plan" in message for message in output)
 
 
 def test_interactive_cancel_discards_pending_clarification(tmp_path: Path) -> None:
@@ -293,7 +318,7 @@ def test_interactive_session_rejects_patch_without_changes(tmp_path: Path) -> No
         "from app import value\n\ndef test_value():\n    assert value is True\n",
         encoding="utf-8",
     )
-    commands = iter(["Fix app.py", "y", "n", "/exit"])
+    commands = iter(["Fix app.py", "n", "/exit"])
     output: list[str] = []
 
     InteractiveSession(
@@ -385,7 +410,7 @@ def test_interactive_session_applies_approved_patch(tmp_path: Path) -> None:
         "from app import value\n\ndef test_value():\n    assert value is True\n",
         encoding="utf-8",
     )
-    commands = iter(["Fix app.py", "y", "y", "/exit"])
+    commands = iter(["Fix app.py", "y", "/exit"])
     output: list[str] = []
 
     InteractiveSession(

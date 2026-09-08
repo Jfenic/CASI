@@ -4,12 +4,7 @@ from __future__ import annotations
 
 from enum import Enum
 
-from casi.agent.intent import (
-	TaskIntent,
-	task_requests_code_change,
-	task_requests_patch_application,
-	task_requests_test_execution,
-)
+from casi.agent.intent import TaskIntent
 from casi.agent.policies import get_tool_permission
 
 
@@ -37,10 +32,7 @@ def tier_label(tier: PermissionTier) -> str:
 def resolve_permission_tier(task: str, intent: TaskIntent) -> PermissionTier:
 	"""Map a subtask to the approval tier required before running its agent."""
 
-	if intent is TaskIntent.FIX or task_requests_code_change(task):
-		return PermissionTier.MUTATE
-	if task_requests_test_execution(task) or task_requests_patch_application(task):
-		return PermissionTier.EXECUTE
+	_ = (task, intent)
 	return PermissionTier.READ
 
 

@@ -283,7 +283,12 @@ TOPICS: dict[str, str] = {
 		  casi benchmark [--tasks-dir PATH] [--repos-dir PATH]
 		               [--model MODELO | --models m1,m2]
 		               [--output informe] [--format text|json|markdown|both]
-		               [--list]
+		               [-v] [--quiet] [--list]
+
+		Progreso:
+		  Por defecto muestra en stderr el avance de cada tarea (id, repo,
+		  categoría, resultado, duración y pasos). Usa -v para ver también
+		  los pasos del agente; --quiet para ocultar el progreso.
 
 		Ejemplo:
 		  casi benchmark --list

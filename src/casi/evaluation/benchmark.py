@@ -112,9 +112,12 @@ def run_benchmark(
 		if verify_command is not None and task.success_command:
 			command_success = verify_command(task)
 
-		task_success = agent_result.success
-		if command_success is not None:
+		if task.category in {"inspect", "read", "search"}:
+			task_success = agent_result.success
+		elif command_success is not None:
 			task_success = agent_result.success and command_success
+		else:
+			task_success = agent_result.success
 
 		results.append(
 			BenchmarkTaskResult(

@@ -1,0 +1,14 @@
+id: task_025
+name: fix_repeat_string
+repository: repeat_app
+category: fix
+instruction: >
+  Fix repeat so it returns the input text repeated the requested number of
+  times. Use propose_file with the complete corrected repeat.py content and
+  make all tests pass.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 12

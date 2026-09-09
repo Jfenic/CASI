@@ -1,0 +1,15 @@
+id: task_023
+name: create_initials_module
+repository: initials_app
+category: create
+instruction: >
+  Create the missing initials.py module. initials(first, last) must return
+  uppercase initials separated by dots, for example "Ada" and "Lovelace" become
+  "A.L.". Ignore empty name parts. Use propose_file to create the file. All
+  tests must pass.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 12

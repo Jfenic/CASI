@@ -1,0 +1,13 @@
+id: task_024
+name: fix_clamp_in_range
+repository: clamp_app
+category: fix
+instruction: >
+  Fix clamp so values already inside the range are returned unchanged and all
+  tests pass. Use propose_file with the complete corrected clamp.py content.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 12

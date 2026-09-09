@@ -1,0 +1,14 @@
+id: task_021
+name: create_stats_module
+repository: stats_app
+category: create
+instruction: >
+  Create the missing stats.py module so mean computes the arithmetic average of
+  a list of numbers and returns 0.0 for an empty list. Use propose_file to
+  create the new file with complete content. All tests must pass.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 12

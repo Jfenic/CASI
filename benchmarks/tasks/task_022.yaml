@@ -1,0 +1,14 @@
+id: task_022
+name: create_palindrome_module
+repository: palindrome_app
+category: create
+instruction: >
+  Create the missing palindrome.py module with is_palindrome(text) returning
+  True when text reads the same forwards and backwards. Use propose_file to
+  create the new file. All tests must pass.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 12

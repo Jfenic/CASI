@@ -1,0 +1,14 @@
+id: task_026
+name: fix_strip_lines_whitespace
+repository: strip_app
+category: fix
+instruction: >
+  Fix strip_lines so it removes surrounding whitespace from each line. Read the
+  failing tests first, then use propose_file with the complete corrected
+  strip.py content. All tests must pass.
+success_command:
+  - python3
+  - -m
+  - pytest
+  - -q
+max_steps: 12

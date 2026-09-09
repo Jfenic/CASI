@@ -241,6 +241,17 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="List loaded benchmark tasks and exit.",
     )
+    benchmark_parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Show agent step progress for each benchmark task.",
+    )
+    benchmark_parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress per-task progress output.",
+    )
 
     return parser
 
@@ -434,6 +445,8 @@ def _run_benchmark(
     report_format: str,
     routing: str,
     list_only: bool,
+    verbose: bool,
+    quiet: bool,
 ) -> int:
     from casi.evaluation.benchmark import load_tasks
     from casi.evaluation.report import (
@@ -452,7 +465,12 @@ def _run_benchmark(
             print(f"{task.task_id}\t{task.category}\t{task.repository}\t{task.name}")
         return 0
 
-    options = BenchmarkRunOptions(repositories_root=repos_dir, routing=routing)
+    options = BenchmarkRunOptions(
+        repositories_root=repos_dir,
+        routing=routing,
+        verbose=verbose,
+        show_progress=not quiet,
+    )
     if models:
         model_list = [item.strip() for item in models.split(",") if item.strip()]
         if not model_list:
@@ -556,6 +574,8 @@ def main(argv: list[str] | None = None) -> int:
                 report_format=args.format,
                 routing=args.routing,
                 list_only=args.list,
+                verbose=args.verbose,
+                quiet=args.quiet,
             )
 
         parser.error(f"Unknown command: {args.command}")

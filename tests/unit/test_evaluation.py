@@ -41,7 +41,9 @@ def test_cli_test_reports_failure(tmp_path: Path, capsys) -> None:
 def test_load_benchmark_tasks() -> None:
     tasks = load_tasks(Path("benchmarks/tasks"))
 
-    assert len(tasks) >= 20
+    assert len(tasks) >= 26
+    categories = {task.category for task in tasks}
+    assert "create" in categories
     assert tasks[0].task_id
     assert tasks[0].instruction
     assert tasks[0].repository
@@ -112,7 +114,7 @@ def test_benchmark_runner_uses_isolated_repository(tmp_path: Path, monkeypatch) 
 
     monkeypatch.setattr(
         "casi.evaluation.runner.AgentOrchestrator.run",
-        lambda self, instruction: OrchestratorResult(
+        lambda self, instruction, category=None: OrchestratorResult(
             success=True,
             response=f"done: {instruction[:20]}",
         ),
@@ -135,6 +137,107 @@ def test_benchmark_runner_uses_isolated_repository(tmp_path: Path, monkeypatch) 
     assert result.task_success is True
     assert result.model == "mock-model"
     assert result.command_success is True
+
+
+def test_benchmark_progress_output(tmp_path: Path, capsys, monkeypatch) -> None:
+    from casi.agent.orchestrator import OrchestratorResult
+    from casi.evaluation.runner import BenchmarkRunOptions, run_model_benchmark
+
+    tasks = load_tasks(Path("benchmarks/tasks"))[:1]
+
+    monkeypatch.setattr(
+        "casi.evaluation.runner.AgentOrchestrator.run",
+        lambda self, instruction, category=None: OrchestratorResult(
+            success=True,
+            response="done",
+        ),
+    )
+
+    class FakeClient:
+        model = "mock-model"
+
+        def complete(self, messages, tools):
+            raise AssertionError("not used")
+
+    run_model_benchmark(
+        tasks,
+        client=FakeClient(),
+        options=BenchmarkRunOptions(
+            repositories_root=Path("benchmarks/repositories"),
+            show_progress=True,
+        ),
+    )
+    captured = capsys.readouterr()
+    assert "[benchmark] Task 1/1:" in captured.err
+    assert "task_001" in captured.err
+    assert "result: PASS" in captured.err
+
+
+def test_resolve_benchmark_max_steps_by_category() -> None:
+    from casi.evaluation.runner import resolve_benchmark_max_steps
+
+    create = BenchmarkTask(
+        task_id="t1",
+        name="create",
+        instruction="Create module",
+        repository="stats_app",
+        category="create",
+        max_steps=12,
+    )
+    fix = BenchmarkTask(
+        task_id="t2",
+        name="fix",
+        instruction="Fix module",
+        repository="stats_app",
+        category="fix",
+        max_steps=8,
+    )
+    read = BenchmarkTask(
+        task_id="t3",
+        name="read",
+        instruction="Read module",
+        repository="stats_app",
+        category="read",
+        max_steps=8,
+    )
+
+    assert resolve_benchmark_max_steps(create) >= 18
+    assert resolve_benchmark_max_steps(fix) >= 12
+    assert resolve_benchmark_max_steps(read) == 8
+
+
+def test_evaluate_task_success_ignores_pytest_for_read_only() -> None:
+    from casi.evaluation.runner import evaluate_task_success
+
+    task = BenchmarkTask(
+        task_id="t1",
+        name="read",
+        instruction="Explain",
+        repository="math_app",
+        category="read",
+    )
+    assert evaluate_task_success(task, agent_success=True, command_success=False) is True
+    assert evaluate_task_success(task, agent_success=False, command_success=True) is False
+
+    fix = BenchmarkTask(
+        task_id="t2",
+        name="fix",
+        instruction="Fix",
+        repository="email_app",
+        category="fix",
+    )
+    assert evaluate_task_success(fix, agent_success=True, command_success=False) is False
+    assert evaluate_task_success(fix, agent_success=True, command_success=True) is True
+
+    create = BenchmarkTask(
+        task_id="t3",
+        name="create",
+        instruction="Create module",
+        repository="stats_app",
+        category="create",
+    )
+    assert evaluate_task_success(create, agent_success=True, command_success=False) is False
+    assert evaluate_task_success(create, agent_success=True, command_success=True) is True
 
 
 def test_cli_benchmark_lists_tasks(capsys) -> None:

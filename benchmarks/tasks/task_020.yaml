@@ -3,11 +3,11 @@ name: fix_add_documentation
 repository: healthy_lib
 category: fix
 instruction: >
-  Add a concise docstring to the add-like helpers if missing and ensure all tests
-  still pass. Only modify documentation comments, not behavior.
+  Add concise docstrings to slugify and excerpt in lib.py if they are missing.
+  Do not change behavior; ensure all tests still pass.
 success_command:
   - python3
   - -m
   - pytest
   - -q
-max_steps: 10
+max_steps: 12

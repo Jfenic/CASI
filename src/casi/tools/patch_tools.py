@@ -107,6 +107,15 @@ class ProposeFileTool(Tool):
 			)
 		if content and not content.endswith("\n"):
 			content += "\n"
+		if relative.suffix == ".py" and content.strip():
+			try:
+				ast.parse(content)
+			except SyntaxError as exc:
+				lineno = exc.lineno or 0
+				raise ValueError(
+					f"Proposed Python content for {relative.as_posix()} has a syntax "
+					f"error at line {lineno}: {exc.msg}"
+				) from exc
 		after = content.splitlines(keepends=True)
 		if creating:
 			diff = difflib.unified_diff(

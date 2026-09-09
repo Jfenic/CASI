@@ -26,11 +26,29 @@ def test_plan_uses_general_agent_for_add_tests_requests() -> None:
     assert all(step.objective is not TaskIntent.PRESENT for step in _plan_steps(plan))
 
 
-def test_plan_uses_general_agent_for_fix_phrasing() -> None:
+def test_plan_uses_fix_agent_for_fix_phrasing() -> None:
     plan = TaskPlanner.create_plan("corrige validate_email y pasa los tests")
     assert plan.step_count() == 1
     assert plan.segments[0].tier is PermissionTier.READ
-    assert plan.segments[0].steps[0].objective is TaskIntent.UNKNOWN
+    assert plan.segments[0].steps[0].objective is TaskIntent.FIX
+    assert plan.segments[0].steps[0].agent_name == "fix"
+
+
+def test_plan_uses_create_agent_for_create_module_requests() -> None:
+    plan = TaskPlanner.create_plan(
+        "Create the missing stats.py module and make all tests pass."
+    )
+    assert plan.segments[0].steps[0].objective is TaskIntent.CREATE
+    assert plan.segments[0].steps[0].agent_name == "create"
+
+
+def test_plan_uses_create_agent_for_benchmark_category() -> None:
+    plan = TaskPlanner.create_plan(
+        "Implement the helper required by the tests.",
+        category="create",
+    )
+    assert plan.segments[0].steps[0].objective is TaskIntent.CREATE
+    assert plan.segments[0].steps[0].agent_name == "create"
 
 
 def test_plan_fast_path_for_recall_plan() -> None:

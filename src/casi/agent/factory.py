@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from casi.agent.conversation import ContextCompactNotifier, ContextCompactPrompt
-from casi.agent.intent import RoutingMode, TaskIntent, build_task_context, classify_intent
+from casi.agent.intent import RoutingMode, TaskIntent, build_task_context, resolve_task_intent
 from casi.agent.loop import ActivityNotifier, AgentLoop
 from casi.agent.trace import AgentTraceRecorder
 from casi.agent.profiles import AgentProfile, resolve_profile
@@ -117,7 +117,7 @@ class AgentFactory:
 
 		session = session_messages if session_messages is not None else []
 		context = build_task_context(task.strip(), session)
-		intent = classify_intent(context)
+		intent = resolve_task_intent(context)
 		return AgentFactory.create(
 			intent,
 			client=client,

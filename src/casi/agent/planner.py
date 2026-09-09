@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from casi.agent.intent import TaskIntent, build_task_context, classify_intent, is_fast_path_intent
+from casi.agent.intent import TaskIntent, build_task_context, is_fast_path_intent, resolve_task_intent
 from casi.agent.permissions import PermissionTier
 from casi.agent.profiles import resolve_profile
 from casi.llm.base import ChatMessage
@@ -110,6 +110,8 @@ class TaskPlanner:
 	def create_plan(
 		task: str,
 		session_messages: list[ChatMessage] | None = None,
+		*,
+		category: str | None = None,
 	) -> AgentPlan:
 		session = session_messages if session_messages is not None else []
 		stripped = task.strip()
@@ -117,11 +119,11 @@ class TaskPlanner:
 			return AgentPlan(original_task="", segments=())
 
 		context = build_task_context(stripped, session)
-		intent = classify_intent(context)
+		intent = resolve_task_intent(context, category=category)
 		if is_fast_path_intent(intent):
 			steps = [AgentPlanStep.from_intent(stripped, intent)]
 		else:
-			steps = [AgentPlanStep.from_intent(stripped, TaskIntent.UNKNOWN)]
+			steps = [AgentPlanStep.from_intent(stripped, intent)]
 
 		return AgentPlan(
 			original_task=stripped,

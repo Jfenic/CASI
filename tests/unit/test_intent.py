@@ -1,4 +1,11 @@
-from casi.agent.intent import TaskIntent, build_task_context, classify_intent, is_fast_path_intent, task_requests_code_change
+from casi.agent.intent import (
+    TaskIntent,
+    build_task_context,
+    classify_intent,
+    is_fast_path_intent,
+    resolve_task_intent,
+    task_requests_code_change,
+)
 
 
 def test_classify_overview_and_inspect_use_general_agent() -> None:
@@ -36,7 +43,22 @@ def test_is_fast_path_intent() -> None:
 
 def test_task_requests_code_change_still_detects_explicit_fix_verbs() -> None:
     assert task_requests_code_change("corrige validate_email") is True
+    assert task_requests_code_change("Create the missing stats.py module") is True
     assert task_requests_code_change("vamos a agregar más prueba unitaria") is False
+
+
+def test_resolve_task_intent_routes_code_change_to_fix() -> None:
+    assert resolve_task_intent("corrige validate_email") is TaskIntent.FIX
+    assert resolve_task_intent("Explain what foo_bar does") is TaskIntent.UNKNOWN
+    assert resolve_task_intent("hola") is TaskIntent.CONVERSATION
+
+
+def test_resolve_task_intent_routes_create_requests() -> None:
+    assert resolve_task_intent(
+        "Create the missing stats.py module and make all tests pass."
+    ) is TaskIntent.CREATE
+    assert resolve_task_intent("Implement helper", category="create") is TaskIntent.CREATE
+    assert resolve_task_intent("Fix bug", category="fix") is TaskIntent.FIX
 
 
 def test_build_task_context_includes_recent_user_messages() -> None:

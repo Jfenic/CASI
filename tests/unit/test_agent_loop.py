@@ -76,10 +76,9 @@ def test_fix_agent_hides_patch_validator_and_limits_tools_after_context(
     )
     client = FakeClient(
         [
-            LLMResponse.tool_call("run_tests", {}),
-            LLMResponse.tool_call("read_file", {"path": "module.py"}),
-            LLMResponse.final(
-                "--- a/module.py\n+++ b/module.py\n@@ -1 +1 @@\n-value = 1\n+value = 2\n"
+            LLMResponse.tool_call(
+                "propose_file",
+                {"path": "module.py", "content": "value = 2\n"},
             ),
         ]
     )
@@ -107,13 +106,13 @@ def test_fix_agent_allows_source_reread_after_inspection(tmp_path: Path) -> None
         "from module import value\n\ndef test_value():\n    assert value == 2\n",
         encoding="utf-8",
     )
-    patch = "--- a/module.py\n+++ b/module.py\n@@ -1 +1 @@\n-value = 1\n+value = 2\n"
     client = FakeClient(
         [
-            LLMResponse.tool_call("run_tests", {}),
             LLMResponse.tool_call("read_file", {"path": "module.py"}),
-            LLMResponse.final(patch),
-            LLMResponse.final(patch),
+            LLMResponse.tool_call(
+                "propose_file",
+                {"path": "module.py", "content": "value = 2\n"},
+            ),
         ]
     )
 
@@ -126,7 +125,6 @@ def test_fix_agent_allows_source_reread_after_inspection(tmp_path: Path) -> None
     ).run("corrige module.py")
 
     assert result.success is True
-    assert "tools are now disabled" not in client.calls[2][0][-1].content
     read_results = [
         message for message in result.messages
         if message.role == "tool" and message.content.startswith("tool=read_file")

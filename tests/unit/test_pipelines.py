@@ -109,3 +109,34 @@ def test_fix_pipeline_requires_propose_file_after_loading_sources() -> None:
 
     assert "MUST call propose_file" in nudge.user_message
     assert "do not write the diff yourself" in nudge.user_message
+
+
+def test_missing_local_module_paths_detects_imported_file(tmp_path: Path) -> None:
+    (tmp_path / "test_stats.py").write_text(
+        "from stats import mean\n\ndef test_mean():\n    assert mean([1, 2, 3]) == 2\n",
+        encoding="utf-8",
+    )
+
+    from casi.agent.pipelines import missing_local_module_paths
+
+    missing = missing_local_module_paths(tmp_path, ["test_stats.py"])
+
+    assert missing == ["stats.py"]
+
+
+def test_fix_pipeline_reports_missing_local_module(tmp_path: Path) -> None:
+    (tmp_path / "test_stats.py").write_text(
+        "from stats import mean\n\ndef test_mean():\n    assert mean([1, 2, 3]) == 2\n",
+        encoding="utf-8",
+    )
+
+    from casi.agent.pipelines import run_fix_pipeline
+
+    missing = run_fix_pipeline(
+        "Create stats.py and make all tests pass",
+        lambda *_args, **_kwargs: ToolResult(success=True, output=""),
+        repository_path=tmp_path,
+        test_output="ModuleNotFoundError: No module named 'stats'",
+    )
+
+    assert missing == ["stats.py"]

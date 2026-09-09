@@ -62,6 +62,9 @@ class Settings:
   fix_max_steps: int = int(
     os.getenv("LOCALCODE_AGENT_FIX_MAX_STEPS", "12")
   )
+  create_max_steps: int = int(
+    os.getenv("LOCALCODE_AGENT_CREATE_MAX_STEPS", "18")
+  )
   agent_routing_mode: str = os.getenv(
     "LOCALCODE_AGENT_ROUTING_MODE",
     "assist",

@@ -88,6 +88,17 @@ def nudge_for_missing_patch() -> ResponseNudge:
 	)
 
 
+def nudge_for_missing_local_modules(paths: list[str]) -> ResponseNudge:
+	joined = ", ".join(paths[:3])
+	return ResponseNudge(
+		user_message=(
+			f"The repository is missing local file(s): {joined}. "
+			f"Create each missing file with {_PROPOSE_FILE_INSTRUCTION} "
+			"Use the failing tests as the contract for required behavior."
+		),
+	)
+
+
 def nudge_for_read_file_instead_of_search(
 	paths: list[str],
 	*,
@@ -199,8 +210,9 @@ _FAILURE_GUIDANCE = {
 		"corrected file content."
 	),
 	FailureKind.DEPENDENCY: (
-		"The failure looks like a missing dependency or import. Verify imports "
-		"against the loaded source files before proposing changes."
+		"The failure looks like a missing import. If a local module or file is "
+		"missing, create it with propose_file. Otherwise verify imports against "
+		"the loaded source files before proposing changes."
 	),
 	FailureKind.DOCKER: (
 		"The Docker sandbox failed before tests could run. Retry only after the "

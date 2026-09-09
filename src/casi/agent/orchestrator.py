@@ -108,6 +108,7 @@ class AgentOrchestrator:
 		task: str,
 		*,
 		pending: PendingOrchestration | None = None,
+		category: str | None = None,
 	) -> OrchestratorResult:
 		if pending is not None:
 			return self._continue_pending(task, pending)
@@ -123,7 +124,11 @@ class AgentOrchestrator:
 			)
 			self.trace.mark_started()
 
-		plan = TaskPlanner.create_plan(task, self.session_messages)
+		plan = TaskPlanner.create_plan(
+			task,
+			self.session_messages,
+			category=category,
+		)
 		if plan.step_count() == 0:
 			return OrchestratorResult(success=False, error="Task must not be empty")
 		if self.on_plan is not None:

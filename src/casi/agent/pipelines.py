@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import re
 from collections.abc import Callable
 from pathlib import Path
 
@@ -13,6 +14,57 @@ from casi.repository.explorer import looks_like_filename, resolve_named_paths
 from casi.tools.result import ToolResult
 
 ToolExecutor = Callable[[str, dict[str, object]], ToolResult]
+
+
+def _local_module_candidates(module: str) -> list[str]:
+	root = module.split(".")[0]
+	base = Path(root)
+	return [base.with_suffix(".py").as_posix(), (base / "__init__.py").as_posix()]
+
+
+def missing_local_module_paths(
+	repository_path: str | Path,
+	test_paths: list[str],
+	*,
+	test_output: str | None = None,
+) -> list[str]:
+	"""Return repository-relative paths for imported local modules that do not exist."""
+
+	repository = Path(repository_path).resolve()
+	missing: list[str] = []
+
+	def record(module: str) -> None:
+		root = module.split(".")[0]
+		candidate = Path(root).with_suffix(".py").as_posix()
+		package_init = (Path(root) / "__init__.py").as_posix()
+		if (repository / candidate).is_file() or (repository / package_init).is_file():
+			return
+		if candidate not in missing:
+			missing.append(candidate)
+
+	for relative_path in test_paths:
+		if not Path(relative_path).name.startswith("test_"):
+			continue
+		try:
+			tree = ast.parse((repository / relative_path).read_text(encoding="utf-8"))
+		except (OSError, SyntaxError, UnicodeError):
+			continue
+		for node in ast.walk(tree):
+			if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+				record(node.module)
+			elif isinstance(node, ast.Import):
+				for alias in node.names:
+					record(alias.name)
+
+	if test_output:
+		for match in re.finditer(
+			r"(?:ModuleNotFoundError|ImportError).*?(?:No module named )['\"]([^'\"]+)['\"]",
+			test_output,
+			flags=re.DOTALL,
+		):
+			record(match.group(1))
+
+	return missing
 
 
 def _source_paths_imported_by_tests(
@@ -108,9 +160,10 @@ def run_fix_pipeline(
 	*,
 	repository_path: str | Path,
 	test_output: str | None = None,
-) -> None:
+) -> list[str]:
 	"""Load source and test files involved in a failing test run."""
 
+	repository = Path(repository_path).resolve()
 	read_paths: list[str] = []
 
 	if test_output:
@@ -138,8 +191,29 @@ def run_fix_pipeline(
 			if read_paths:
 				break
 
+	if not read_paths:
+		read_paths.extend(
+			path.as_posix()
+			for path in sorted(repository.glob("test_*.py"))
+		)
+
 	for path in read_paths[:4]:
-		execute("read_file", {"path": path})
+		if (repository / path).is_file():
+			execute("read_file", {"path": path})
+
+	test_paths = [
+		path
+		for path in read_paths
+		if Path(path).name.startswith("test_")
+	]
+	if not test_paths:
+		test_paths = [path.as_posix() for path in sorted(repository.glob("test_*.py"))]
+
+	return missing_local_module_paths(
+		repository_path,
+		test_paths,
+		test_output=test_output,
+	)
 
 
 def run_repository_pipeline(
@@ -163,7 +237,7 @@ def run_repository_pipeline(
 	if intent == TaskIntent.GIT_STATUS:
 		run_git_status_pipeline(execute)
 		return
-	if intent == TaskIntent.FIX:
+	if intent in {TaskIntent.FIX, TaskIntent.CREATE}:
 		run_fix_pipeline(context, execute, repository_path=repository_path)
 
 
@@ -175,6 +249,17 @@ def nudge_after_fix_pipeline() -> ResponseNudge:
 			"propose_file with the repository-relative source path and the complete "
 			"corrected file content. CASI will generate the unified diff; do not "
 			"write the diff yourself."
+		),
+	)
+
+
+def nudge_after_create_pipeline() -> ResponseNudge:
+	return ResponseNudge(
+		user_message=(
+			f"{PIPELINE_FALLBACK_PREFIX} 'create' loaded the failing tests. "
+			"The missing module does not exist yet. You MUST call propose_file with "
+			"the repository-relative path and complete new file content that satisfies "
+			"the tests. CASI will generate the unified diff; do not write the diff yourself."
 		),
 	)
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from casi.agent.intent import TaskIntent, response_defers_repository_work
+from casi.agent.intent import TaskIntent, is_mutation_intent, response_defers_repository_work
 from casi.agent.nudges import (
 	ResponseNudge,
 	nudge_for_fix_without_inspection,
@@ -47,7 +47,7 @@ class ResponsePolicy:
 			return nudge_for_malformed_json()
 
 		if (
-			(intent is TaskIntent.FIX or mutation_workflow)
+			(is_mutation_intent(intent) or mutation_workflow)
 			and not continuing_after_clarification
 			and not repository_inspected
 			and extract_patch(content) is None

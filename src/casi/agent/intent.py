@@ -87,7 +87,7 @@ _APPLY_PATCH_PATTERN = re.compile(
 _CHANGE_REQUEST_PATTERN = re.compile(
 	r"\b(?:fix|fixes|corrige(?:lo|la|los|las)?|corrígelo|corrígela|corregir|"
 	r"arregla(?:lo|la|los|las)?|arréglalo|arréglala|repara(?:lo|la)?|repáralo|"
-	r"repair|actualiza|update|modifica|cambia)\b"
+	r"repair|actualiza|update|modifica|cambia|create|crea)\b"
 	r"|\b(?:pass|pasa|pasan|pasen|make|haz)\b.{0,40}\b(?:test|tests|prueba|pruebas)\b"
 	r"|\b(?:test|tests|prueba|pruebas)\b.{0,40}\b(?:pass|pasa|pasan|pasen|fix|corrige)\b",
 	re.IGNORECASE | re.DOTALL,
@@ -97,6 +97,12 @@ _PATCH_REQUEST_PATTERN = re.compile(
 	r"\b(?:genera|generar|create|crea|provide|proporciona|envia|envía)\b"
 	r".{0,40}\b(?:parche|patch|diff)\b"
 	r"|\b(?:parche|patch|diff)\b.{0,20}\b(?:valido|válido|valid)\b",
+	re.IGNORECASE | re.DOTALL,
+)
+
+_CREATE_REQUEST_PATTERN = re.compile(
+	r"\b(?:create|crea)\b.{0,80}\b(?:missing|faltante|module|modulo|módulo|file|archivo)\b"
+	r"|\b(?:missing|faltante)\b.{0,40}\b(?:module|modulo|módulo|file|archivo)\b",
 	re.IGNORECASE | re.DOTALL,
 )
 
@@ -134,6 +140,7 @@ class TaskIntent(str, Enum):
 	INSPECT = "inspect"
 	GIT_STATUS = "git_status"
 	FIX = "fix"
+	CREATE = "create"
 	RECALL_PLAN = "recall_plan"
 	PRESENT = "present"
 	UNKNOWN = "unknown"
@@ -200,11 +207,18 @@ def derive_search_queries(task: str) -> list[str]:
 	return meaningful or [task]
 
 
+def task_requests_create(context: str) -> bool:
+	"""Return whether the user asks to create a missing local module or file."""
+
+	return _CREATE_REQUEST_PATTERN.search(context) is not None
+
+
 def task_requests_code_change(context: str) -> bool:
 	"""Return whether the user is asking CASI to modify code or pass tests."""
 
 	return (
-		_CHANGE_REQUEST_PATTERN.search(context) is not None
+		task_requests_create(context)
+		or _CHANGE_REQUEST_PATTERN.search(context) is not None
 		or _PATCH_REQUEST_PATTERN.search(context) is not None
 	)
 
@@ -235,6 +249,34 @@ def classify_intent(context: str) -> TaskIntent:
 	return TaskIntent.UNKNOWN
 
 
+def resolve_task_intent(
+	context: str,
+	*,
+	category: str | None = None,
+) -> TaskIntent:
+	"""Classify the task and route code-change work to a mutation specialist."""
+
+	if category == "create":
+		return TaskIntent.CREATE
+	if category == "fix":
+		return TaskIntent.FIX
+
+	intent = classify_intent(context)
+	if is_fast_path_intent(intent):
+		return intent
+	if task_requests_create(context):
+		return TaskIntent.CREATE
+	if task_requests_code_change(context):
+		return TaskIntent.FIX
+	return intent
+
+
+def is_mutation_intent(intent: TaskIntent) -> bool:
+	"""Return whether the intent requires tests, patches, or new file creation."""
+
+	return intent in {TaskIntent.FIX, TaskIntent.CREATE}
+
+
 def is_fast_path_intent(intent: TaskIntent) -> bool:
 	"""Return whether the intent bypasses the general repository agent."""
 
@@ -255,6 +297,7 @@ def intent_supports_pipeline(intent: TaskIntent) -> bool:
 		TaskIntent.INSPECT,
 		TaskIntent.GIT_STATUS,
 		TaskIntent.FIX,
+		TaskIntent.CREATE,
 	}
 
 
@@ -281,6 +324,7 @@ def should_defer_clarification(
 		TaskIntent.OVERVIEW,
 		TaskIntent.GIT_STATUS,
 		TaskIntent.FIX,
+		TaskIntent.CREATE,
 		TaskIntent.RECALL_PLAN,
 		TaskIntent.PRESENT,
 	}:

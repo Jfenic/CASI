@@ -47,7 +47,7 @@ Estado rapido del proyecto y de las partes ya implementadas.
 ## Current status
 
 - Release stage: advanced alpha (`0.1.0`); the CLI workflow is usable locally.
-- Verification baseline: `231 passed, 2 skipped`.
+- Verification baseline: `234 passed, 2 skipped`.
 - Python compilation passes.
 - The repair flow runs tests, loads failed tests and imported source files, asks the model for complete file content through `propose_file`, rebuilds the diff deterministically, and verifies it on an isolated copy.
 - Python dependency environments support `uv.lock`, `poetry.lock`, `requirements.txt`, `requirements-dev.txt`, and `pyproject.toml` through content-addressed Docker images.
@@ -67,7 +67,7 @@ Estado rapido del proyecto y de las partes ya implementadas.
 
 - The package supports repository inspection, bounded agent runs, patch validation, sandboxed test verification, and human-approved writes.
 - The source tree uses `src/`, so local development works best with a virtual environment or `uv`.
-- Baseline verification: `pytest` reports 231 passed and 2 skipped.
+- Baseline verification: `pytest` reports 234 passed and 2 skipped.
 - Ollama verification: server `0.32.11`; model `qwen2.5-coder:7b`, Q4_K_M, 32K context, native tools.
 - `run_tests` and `casi test` prefer a matching project dependency image, then `casi-sandbox:latest`, and require explicit approval for local fallback on untrusted repositories.
 - Next milestone: run Ollama E2E fixtures and expand Phase 10 benchmarks.

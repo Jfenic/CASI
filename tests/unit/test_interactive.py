@@ -208,6 +208,14 @@ def test_interactive_session_uses_answer_prompt_during_clarification(tmp_path: P
 def test_interactive_session_skips_clarification_for_fix_requests(tmp_path: Path) -> None:
     class FixClient:
         def complete(self, messages, tools):
+            if any(tool.name == "propose_file" for tool in tools):
+                return LLMResponse.tool_call(
+                    "propose_file",
+                    {
+                        "path": "validator.py",
+                        "content": "def validate_email(value: str) -> bool:\n    return '@' in value\n",
+                    },
+                )
             return LLMResponse.final("I will inspect the email validator.")
 
     commands = iter(["Fix email validation", "/exit"])
@@ -221,7 +229,7 @@ def test_interactive_session_skips_clarification_for_fix_requests(tmp_path: Path
     ).run()
 
     assert not any("Reply at Answer>" in message for message in output)
-    assert any("I will inspect the email validator." in message for message in output)
+    assert any("validator.py" in message for message in output)
 
 
 def test_interactive_session_can_exit_during_clarification(tmp_path: Path) -> None:

@@ -26,6 +26,7 @@ class FakeClient:
 
 def test_resolve_profile_accepts_intent_and_name() -> None:
     assert resolve_profile(TaskIntent.FIX).name == "fix"
+    assert resolve_profile(TaskIntent.CREATE).name == "create"
     assert resolve_profile("inspect").objective is TaskIntent.INSPECT
 
 
@@ -55,23 +56,19 @@ def test_factory_create_assigns_profile_and_role_instructions(tmp_path: Path) ->
     assert result.success is True
 
 
-def test_factory_for_task_uses_general_agent(tmp_path: Path) -> None:
-    client = FakeClient(
-        [
-            LLMResponse.tool_call("run_tests", {}),
-            LLMResponse.final("done"),
-        ]
-    )
+def test_factory_for_task_uses_fix_agent(tmp_path: Path) -> None:
+    client = FakeClient([LLMResponse.final("done")])
 
     agent = AgentFactory.for_task(
         "corrige los tests",
         client=client,
         repository=tmp_path,
         require_tool_confirmation=lambda *_args: True,
+        routing_mode="off",
     )
 
-    assert agent.profile.objective is TaskIntent.UNKNOWN
-    assert agent.profile.name == "general"
+    assert agent.profile.objective is TaskIntent.FIX
+    assert agent.profile.name == "fix"
     assert agent.loop.max_steps == 12
 
 

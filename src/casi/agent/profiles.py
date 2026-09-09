@@ -102,6 +102,21 @@ PROFILES: dict[TaskIntent, AgentProfile] = {
 		),
 		max_steps=12,
 	),
+	TaskIntent.CREATE: AgentProfile(
+		objective=TaskIntent.CREATE,
+		name="create",
+		role="Module Creation Specialist",
+		mission="Create missing local modules that satisfy the repository tests.",
+		prompt_instructions=_instructions(
+			"You are the module creation specialist.",
+			"The tests define the required API; read them first and treat them as the specification.",
+			"The target module or file does not exist yet, so do not search for it.",
+			"Create the missing file with propose_file using the repository-relative path and complete file content.",
+			"Implement only the behavior required by the tests; keep the solution minimal.",
+			"Do not hand-write a diff when propose_file is available and never call apply_patch.",
+		),
+		max_steps=18,
+	),
 	TaskIntent.RECALL_PLAN: AgentProfile(
 		objective=TaskIntent.RECALL_PLAN,
 		name="recall_plan",

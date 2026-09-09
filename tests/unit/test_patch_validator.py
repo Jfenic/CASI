@@ -253,6 +253,18 @@ def test_propose_file_creates_new_file(tmp_path: Path) -> None:
     assert validation.files == ["new_module.py"]
 
 
+def test_propose_file_rejects_invalid_python_syntax(tmp_path: Path) -> None:
+    repository = _repository(tmp_path)
+
+    result = ToolRegistry(repository).execute(
+        "propose_file",
+        {"path": "broken.py", "content": "def broken(:\n    return 1\n"},
+    )
+
+    assert result.success is False
+    assert "syntax error" in (result.error or "").lower()
+
+
 def test_propose_file_rejects_missing_parent_directory(tmp_path: Path) -> None:
     repository = _repository(tmp_path)
 

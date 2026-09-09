@@ -11,9 +11,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from casi.agent.orchestrator import AgentOrchestrator
+from casi.config import settings
 from casi.agent.run_outcome import resolve_agent_run_outcome
 from casi.agent.trace import AgentTraceRecorder
 from casi.evaluation.benchmark import BenchmarkModelRun, BenchmarkTask, BenchmarkTaskResult
+from casi.evaluation.progress import emit_model_header, emit_task_finish, emit_task_start
 from casi.llm.base import LLMClient
 from casi.llm.ollama_client import OllamaClient
 from casi.observability.metrics import summarize_trace
@@ -26,6 +28,8 @@ class BenchmarkRunOptions:
 	repositories_root: Path
 	auto_apply_patches: bool = True
 	routing: str = "assist"
+	verbose: bool = False
+	show_progress: bool = True
 
 
 def prepare_repository(repository: Path) -> None:
@@ -85,6 +89,32 @@ def run_success_command(task: BenchmarkTask, repository: Path) -> bool:
 	return result.returncode == 0
 
 
+def resolve_benchmark_max_steps(task: BenchmarkTask) -> int:
+	"""Apply category-aware step limits while honoring explicit task overrides."""
+
+	if task.category == "create":
+		return max(task.max_steps, settings.create_max_steps)
+	if task.category == "fix":
+		return max(task.max_steps, settings.fix_max_steps)
+	return task.max_steps
+
+
+def evaluate_task_success(
+	task: BenchmarkTask,
+	*,
+	agent_success: bool,
+	command_success: bool | None,
+) -> bool:
+	"""Score a task using category-appropriate success criteria."""
+
+	if task.category in {"inspect", "read", "search"}:
+		# Read-only tasks may run on repos with intentionally failing tests.
+		return agent_success
+	if command_success is not None:
+		return agent_success and command_success
+	return agent_success
+
+
 def run_task(
 	task: BenchmarkTask,
 	*,
@@ -112,16 +142,29 @@ def run_task(
 
 		trace = AgentTraceRecorder()
 		started = time.perf_counter()
+
+		def on_activity(message: str) -> None:
+			if opts.verbose and opts.show_progress:
+				emit_task_activity(message)
+
+		def on_step_start(step, number, total) -> None:
+			if opts.verbose and opts.show_progress:
+				emit_task_activity(
+					f"Step {number}/{total}: {step.agent_name} ({step.agent_role})"
+				)
+
 		orchestrator = AgentOrchestrator(
 			client,
 			repository,
-			max_steps=task.max_steps,
+			max_steps=resolve_benchmark_max_steps(task),
 			routing_mode=opts.routing,
 			require_tool_confirmation=lambda _tool, _args: True,
 			approve_segment=lambda _segment: True,
+			on_activity=on_activity if opts.verbose else None,
+			on_step_start=on_step_start if opts.verbose else None,
 			trace=trace,
 		)
-		result = orchestrator.run(task.instruction)
+		result = orchestrator.run(task.instruction, category=task.category)
 		duration_seconds = time.perf_counter() - started
 
 		outcome = resolve_agent_run_outcome(repository, result)
@@ -148,9 +191,11 @@ def run_task(
 		command_success = (
 			run_success_command(task, repository) if task.success_command else None
 		)
-		task_success = agent_success
-		if command_success is not None:
-			task_success = agent_success and command_success
+		task_success = evaluate_task_success(
+			task,
+			agent_success=agent_success,
+			command_success=command_success,
+		)
 
 		correction_attempts = 0
 		if result.patch_verification is not None:
@@ -179,6 +224,12 @@ def run_task(
 		)
 
 
+def emit_task_activity(message: str) -> None:
+	from casi.evaluation.progress import emit_benchmark_line
+
+	emit_benchmark_line(f"[benchmark]     {message}")
+
+
 def run_model_benchmark(
 	tasks: list[BenchmarkTask],
 	*,
@@ -191,10 +242,23 @@ def run_model_benchmark(
 	if not isinstance(model, str):
 		model = "unknown"
 
-	results = [
-		run_task(task, repositories_root=options.repositories_root, client=client, options=options)
-		for task in tasks
-	]
+	if options.show_progress:
+		emit_model_header(model, task_count=len(tasks))
+
+	results: list[BenchmarkTaskResult] = []
+	total = len(tasks)
+	for index, task in enumerate(tasks, start=1):
+		if options.show_progress:
+			emit_task_start(task, index=index, total=total, model=model)
+		result = run_task(
+			task,
+			repositories_root=options.repositories_root,
+			client=client,
+			options=options,
+		)
+		results.append(result)
+		if options.show_progress:
+			emit_task_finish(result)
 	return BenchmarkModelRun(model=model, results=results)
 
 

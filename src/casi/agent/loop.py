@@ -15,11 +15,13 @@ from casi.agent.intent import (
 	classify_intent,
 	extract_search_targets,
 	intent_supports_pipeline,
+	is_mutation_intent,
 	parse_routing_mode,
 	should_defer_clarification,
 	task_requests_code_change,
 )
 from casi.agent.nudges import (
+	nudge_for_missing_local_modules,
 	nudge_for_premature_clarification,
 	nudge_for_propose_file_failure,
 	nudge_for_read_file_instead_of_search,
@@ -27,6 +29,7 @@ from casi.agent.nudges import (
 )
 from casi.agent.patch_verify import verify_patch_response
 from casi.agent.pipelines import (
+	nudge_after_create_pipeline,
 	nudge_after_fix_pipeline,
 	nudge_after_pipeline_fallback,
 	run_fix_pipeline,
@@ -179,7 +182,7 @@ class AgentLoop:
 
 	def _step_limit_error(self, step_limit: int, active: _ActiveTask) -> str:
 		message = f"Agent reached the maximum of {step_limit} steps"
-		if active.intent is TaskIntent.FIX:
+		if is_mutation_intent(active.intent):
 			message += " without a valid patch"
 		if self.trace is not None and self.trace.events:
 			last = self.trace.events[-1]
@@ -189,7 +192,9 @@ class AgentLoop:
 	def _in_mutation_workflow(self, active: _ActiveTask) -> bool:
 		"""Return whether the task has moved into test or code-change work."""
 
-		if active.intent is TaskIntent.FIX:
+		if is_mutation_intent(active.intent):
+			return True
+		if task_requests_code_change(active.task_context):
 			return True
 		last_tests = self.conversation.last_tool_result("run_tests")
 		if last_tests is not None and self._should_run_fix_pipeline(last_tests.output):
@@ -213,7 +218,7 @@ class AgentLoop:
 	) -> list[ToolDefinition]:
 		"""Stop tool loops once a fix has enough repository context."""
 
-		if mutation_workflow or intent is TaskIntent.FIX:
+		if mutation_workflow or is_mutation_intent(intent):
 			if (
 				self.conversation.tool_was_used("run_tests")
 				and self.conversation.read_file_paths()
@@ -271,7 +276,9 @@ class AgentLoop:
 		)
 		self.conversation.append("user", task)
 
-		if self._should_prefetch_repository(intent, task_context, False):
+		if task_requests_code_change(task_context):
+			self._bootstrap_code_change_workflow(task_context, active.retries)
+		elif self._should_prefetch_repository(intent, task_context, False):
 			self._notify_activity("Inspecting repository before first model call...")
 			self._run_pipeline(intent, task_context, active.retries)
 
@@ -562,7 +569,11 @@ class AgentLoop:
 		active: _ActiveTask | None = None,
 	) -> int:
 		if active is not None and self._in_mutation_workflow(active):
+			if active.intent is TaskIntent.CREATE:
+				return max(self.max_steps, settings.create_max_steps)
 			return max(self.max_steps, settings.fix_max_steps)
+		if intent is TaskIntent.CREATE:
+			return max(self.max_steps, settings.create_max_steps)
 		if intent is TaskIntent.FIX:
 			return max(self.max_steps, settings.fix_max_steps)
 		return self.max_steps
@@ -577,7 +588,7 @@ class AgentLoop:
 			return False
 		if continuing_after_clarification:
 			return False
-		if intent is TaskIntent.FIX or intent is TaskIntent.PRESENT or intent is TaskIntent.RECALL_PLAN:
+		if is_mutation_intent(intent) or intent is TaskIntent.PRESENT or intent is TaskIntent.RECALL_PLAN:
 			return False
 		if intent is TaskIntent.CONVERSATION or intent is TaskIntent.META:
 			return False
@@ -602,7 +613,7 @@ class AgentLoop:
 		if not intent_supports_pipeline(intent):
 			return False
 		mutation_workflow = self._in_mutation_workflow(active)
-		if intent is TaskIntent.FIX or mutation_workflow:
+		if is_mutation_intent(intent) or mutation_workflow:
 			if not self.conversation.tool_was_used("run_tests"):
 				return False
 			if self.conversation.read_file_paths():
@@ -631,17 +642,22 @@ class AgentLoop:
 	) -> None:
 		self._notify_activity("Running repository pipeline...")
 		execute = self._execute_pipeline_tool
-		if intent is TaskIntent.FIX or use_fix_pipeline:
+		if is_mutation_intent(intent) or use_fix_pipeline:
 			if test_output is None:
 				last_tests = self.conversation.last_tool_result("run_tests")
 				test_output = last_tests.output if last_tests is not None else None
-			run_fix_pipeline(
+			missing_modules = run_fix_pipeline(
 				task_context,
 				execute,
 				repository_path=self.registry.repository_path,
 				test_output=test_output,
 			)
-			nudge = nudge_after_fix_pipeline()
+			if missing_modules:
+				nudge = nudge_for_missing_local_modules(missing_modules)
+			elif intent is TaskIntent.CREATE:
+				nudge = nudge_after_create_pipeline()
+			else:
+				nudge = nudge_after_fix_pipeline()
 		else:
 			run_repository_pipeline(
 				intent,
@@ -650,6 +666,49 @@ class AgentLoop:
 				repository_path=self.registry.repository_path,
 			)
 			nudge = nudge_after_pipeline_fallback(intent)
+		retries.pipeline_fallbacks += 1
+		self.conversation.append("user", nudge.user_message)
+
+	def _bootstrap_code_change_workflow(
+		self,
+		task_context: str,
+		retries: RetryBudget,
+	) -> None:
+		"""Run tests and load repair context before the first model decision."""
+
+		if self.conversation.tool_was_used("run_tests"):
+			return
+
+		self._notify_activity("Running tests before code-change work...")
+		result = self.conversation.execute_tool(
+			"run_tests",
+			{},
+			require_confirmation=False,
+		)
+		if self.trace is not None:
+			self.trace.record_tool_result(
+				"run_tests",
+				success=result.success,
+				output=result.output or result.error or "",
+				metadata=result.metadata,
+			)
+
+		test_output = result.output or result.error or ""
+		if not test_output.strip():
+			return
+
+		missing_modules = run_fix_pipeline(
+			task_context,
+			self._execute_pipeline_tool,
+			repository_path=self.registry.repository_path,
+			test_output=test_output,
+		)
+		if missing_modules:
+			nudge = nudge_for_missing_local_modules(missing_modules)
+		elif active.intent is TaskIntent.CREATE if (active := self._active_task) else False:
+			nudge = nudge_after_create_pipeline()
+		else:
+			nudge = nudge_after_fix_pipeline()
 		retries.pipeline_fallbacks += 1
 		self.conversation.append("user", nudge.user_message)
 
@@ -701,13 +760,19 @@ class AgentLoop:
 		return "failed" in lowered or "errors" in lowered
 
 	def _run_fix_pipeline(self, task_context: str, *, test_output: str | None) -> None:
-		run_fix_pipeline(
+		missing_modules = run_fix_pipeline(
 			task_context,
 			self._execute_pipeline_tool,
 			repository_path=self.registry.repository_path,
 			test_output=test_output,
 		)
-		self.conversation.append("user", nudge_after_fix_pipeline().user_message)
+		if missing_modules:
+			nudge = nudge_for_missing_local_modules(missing_modules)
+		elif self._active_task is not None and self._active_task.intent is TaskIntent.CREATE:
+			nudge = nudge_after_create_pipeline()
+		else:
+			nudge = nudge_after_fix_pipeline()
+		self.conversation.append("user", nudge.user_message)
 
 	def _execute_pipeline_tool(
 		self,

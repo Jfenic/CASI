@@ -266,14 +266,22 @@ class Conversation:
 		self.append("assistant", assistant_content)
 		self.append("user", user_message)
 
-	def execute_tool(self, tool_name: str, arguments: dict[str, object]) -> ToolResult:
+	def execute_tool(
+		self,
+		tool_name: str,
+		arguments: dict[str, object],
+		*,
+		require_confirmation: bool = True,
+	) -> ToolResult:
 		"""Run a repository tool and append the exchange to the conversation."""
 
 		response = LLMResponse.tool_call(tool_name, arguments)
 		result = execute_tool(
 			self.registry,
 			response,
-			require_tool_confirmation=self.require_tool_confirmation,
+			require_tool_confirmation=(
+				self.require_tool_confirmation if require_confirmation else None
+			),
 		)
 		self.append("assistant", self.format_tool_call(response.tool_name, response.arguments))
 		self.append("tool", self.format_tool_result(response.tool_name, result))

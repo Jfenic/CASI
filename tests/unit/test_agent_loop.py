@@ -36,7 +36,9 @@ def test_agent_loop_executes_tool_then_returns_final_response(tmp_path: Path) ->
         ]
     )
 
-    result = AgentLoop(client, ToolRegistry(tmp_path), routing_mode="off").run("Inspect README.md")
+    result = AgentLoop(client, ToolRegistry(tmp_path), routing_mode="off").run(
+        "Inspect README.md"
+    )
 
     assert result.success is True
     assert result.response == "The file contains hello."
@@ -48,7 +50,9 @@ def test_agent_loop_executes_tool_then_returns_final_response(tmp_path: Path) ->
 def test_agent_loop_stops_at_step_limit(tmp_path: Path) -> None:
     client = FakeClient([LLMResponse.tool_call("list_files", {})] * 2)
 
-    result = AgentLoop(client, ToolRegistry(tmp_path), max_steps=2, routing_mode="off").run("Inspect")
+    result = AgentLoop(
+        client, ToolRegistry(tmp_path), max_steps=2, routing_mode="off"
+    ).run("Inspect")
 
     assert result.success is False
     assert result.steps == 2
@@ -93,10 +97,7 @@ def test_fix_agent_hides_patch_validator_and_limits_tools_after_context(
 
     assert result.success is True
     assert "validate_patch" not in {tool.name for tool in client.calls[0][1]}
-    limited_tool_sets = [
-        {tool.name for tool in tools}
-        for _, tools in client.calls
-    ]
+    limited_tool_sets = [{tool.name for tool in tools} for _, tools in client.calls]
     assert {"read_file", "propose_file"} in limited_tool_sets
 
 
@@ -126,7 +127,8 @@ def test_fix_agent_allows_source_reread_after_inspection(tmp_path: Path) -> None
 
     assert result.success is True
     read_results = [
-        message for message in result.messages
+        message
+        for message in result.messages
         if message.role == "tool" and message.content.startswith("tool=read_file")
     ]
     assert len(read_results) >= 2
@@ -143,7 +145,9 @@ def test_agent_loop_blocks_apply_patch_tool_call(tmp_path: Path) -> None:
         ]
     )
 
-    result = AgentLoop(client, ToolRegistry(tmp_path), routing_mode="off").run("Apply patch")
+    result = AgentLoop(client, ToolRegistry(tmp_path), routing_mode="off").run(
+        "Apply patch"
+    )
 
     assert result.success is True
     tool_message = client.calls[1][0][-1].content
@@ -180,7 +184,9 @@ def test_agent_loop_requires_confirmation_for_run_tests(tmp_path: Path) -> None:
     assert "Tool execution denied by user" in client.calls[1][0][-1].content
 
 
-def test_agent_loop_bootstraps_repository_before_first_model_call(tmp_path: Path) -> None:
+def test_agent_loop_bootstraps_repository_before_first_model_call(
+    tmp_path: Path,
+) -> None:
     (tmp_path / "validators.py").write_text(
         "def validate_email():\n    return True\n",
         encoding="utf-8",
@@ -220,7 +226,9 @@ def test_agent_loop_runs_search_code_after_clarification(tmp_path: Path) -> None
     clarification = loop.run("Improve things please")
     assert clarification.clarification == "Which behavior should change?"
 
-    client.responses = iter([LLMResponse.final("Found validate_email in validators.py.")])
+    client.responses = iter(
+        [LLMResponse.final("Found validate_email in validators.py.")]
+    )
     result = loop.run("Tighten validate_email to reject bad addresses")
 
     assert result.success is True
@@ -233,7 +241,9 @@ def test_agent_loop_runs_search_code_after_clarification(tmp_path: Path) -> None
 def test_agent_loop_defers_clarification_for_actionable_repository_task(
     tmp_path: Path,
 ) -> None:
-    (tmp_path / "module.py").write_text("def foo_bar():\n    return 1\n", encoding="utf-8")
+    (tmp_path / "module.py").write_text(
+        "def foo_bar():\n    return 1\n", encoding="utf-8"
+    )
     client = FakeClient(
         [
             LLMResponse.clarification("Which file should I inspect?"),
@@ -241,12 +251,16 @@ def test_agent_loop_defers_clarification_for_actionable_repository_task(
         ]
     )
 
-    result = AgentLoop(client, ToolRegistry(tmp_path), routing_mode="off").run("Explain what foo_bar does")
+    result = AgentLoop(client, ToolRegistry(tmp_path), routing_mode="off").run(
+        "Explain what foo_bar does"
+    )
 
     assert result.success is True
     assert result.clarification is None
     assert result.response == "foo_bar is defined in module.py."
-    assert client.calls[1][0][-1].content.startswith("Do not ask the user for more details yet")
+    assert client.calls[1][0][-1].content.startswith(
+        "Do not ask the user for more details yet"
+    )
 
 
 def test_agent_loop_does_not_bootstrap_for_casual_greeting(tmp_path: Path) -> None:
@@ -326,25 +340,34 @@ def test_agent_loop_retries_malformed_json_final_response(tmp_path: Path) -> Non
         ]
     )
 
-    result = AgentLoop(client, ToolRegistry(tmp_path), routing_mode="off").run("dime que trata este proyecto")
+    result = AgentLoop(client, ToolRegistry(tmp_path), routing_mode="off").run(
+        "dime que trata este proyecto"
+    )
 
     assert result.success is True
     assert "CASI es un agente local." in result.response
 
 
 def test_derive_search_queries_from_clarified_task() -> None:
-    assert extract_search_targets(
-        "Explica foo_bar y test_baz_failure"
-    ) == ["foo_bar", "test_baz_failure"]
-    assert derive_search_queries(
-        "corrige la validación de email y agrega tests"
-    ) == ["corrige", "validación", "email", "agrega", "tests"]
-    assert derive_search_queries(
-        "Tighten foo_bar to reject bad addresses"
-    ) == ["foo_bar"]
+    assert extract_search_targets("Explica foo_bar y test_baz_failure") == [
+        "foo_bar",
+        "test_baz_failure",
+    ]
+    assert derive_search_queries("corrige la validación de email y agrega tests") == [
+        "corrige",
+        "validación",
+        "email",
+        "agrega",
+        "tests",
+    ]
+    assert derive_search_queries("Tighten foo_bar to reject bad addresses") == [
+        "foo_bar"
+    ]
 
 
-def test_agent_loop_nudges_for_patch_when_fix_request_has_no_diff(tmp_path: Path) -> None:
+def test_agent_loop_nudges_for_patch_when_fix_request_has_no_diff(
+    tmp_path: Path,
+) -> None:
     (tmp_path / "validators.py").write_text(
         "def validate_email(email: str) -> bool:\n    return True\n",
         encoding="utf-8",
@@ -404,7 +427,9 @@ def test_agent_loop_rejects_final_response_that_defers_repository_work(
         ]
     )
 
-    result = AgentLoop(client, ToolRegistry(tmp_path), routing_mode="off").run("Explain foo_bar")
+    result = AgentLoop(client, ToolRegistry(tmp_path), routing_mode="off").run(
+        "Explain foo_bar"
+    )
 
     assert result.success is True
     assert result.response == "foo_bar is defined in module.py."
@@ -555,7 +580,56 @@ def test_agent_loop_nudges_when_propose_file_fails(tmp_path: Path) -> None:
     assert "does not change the file" in client.calls[3][0][-1].content
 
 
-def test_agent_loop_reuses_execute_permission_after_first_confirmation(tmp_path: Path) -> None:
+def test_agent_loop_nudges_when_partial_fix_leaves_other_tests_failing(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "validator.py").write_text(
+        "def is_valid_email(email: str) -> bool:\n"
+        "    if not email:\n"
+        "        return False\n"
+        "    return '.' in email\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "test_validator.py").write_text(
+        "from validator import is_valid_email\n\n"
+        "def test_rejects_missing_at_symbol() -> None:\n"
+        "    assert is_valid_email('user.example.com') is False\n\n"
+        "def test_accepts_simple_address() -> None:\n"
+        "    assert is_valid_email('user@example.com') is True\n",
+        encoding="utf-8",
+    )
+    client = FakeClient(
+        [
+            LLMResponse.tool_call("run_tests", {}),
+            LLMResponse.tool_call("read_file", {"path": "validator.py"}),
+            LLMResponse.final("Empty email strings are already rejected."),
+            LLMResponse.final("Empty email strings are already rejected."),
+            LLMResponse.final("Empty email strings are already rejected."),
+        ]
+    )
+
+    result = AgentLoop(
+        client,
+        ToolRegistry(tmp_path),
+        max_correction_attempts=0,
+        require_tool_confirmation=lambda *_args: True,
+        routing_mode="off",
+    ).run("Ensure empty email strings are rejected and keep tests passing")
+
+    assert result.success is False
+    assert "without a valid patch" in (result.error or "")
+    nudges = [
+        message.content
+        for message in result.messages
+        if message.role == "user" and "Tests are still failing" in message.content
+    ]
+    assert nudges
+    assert "test_rejects_missing_at_symbol" in nudges[0]
+
+
+def test_agent_loop_reuses_execute_permission_after_first_confirmation(
+    tmp_path: Path,
+) -> None:
     (tmp_path / "test_ok.py").write_text(
         "def test_ok():\n    assert True\n",
         encoding="utf-8",

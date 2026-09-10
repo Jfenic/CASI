@@ -42,17 +42,9 @@ def test_resolve_test_runner_prefers_prepared_project_image(
 def test_run_patched_tests_applies_patch_on_temporary_copy(tmp_path: Path) -> None:
     target = tmp_path / "sample.py"
     target.write_text("value = 1\n", encoding="utf-8")
-    patch = (
-        "--- a/sample.py\n"
-        "+++ b/sample.py\n"
-        "@@ -1 +1 @@\n"
-        "-value = 1\n"
-        "+value = 2\n"
-    )
+    patch = "--- a/sample.py\n+++ b/sample.py\n@@ -1 +1 @@\n-value = 1\n+value = 2\n"
     (tmp_path / "test_sample.py").write_text(
-        "from sample import value\n\n"
-        "def test_value():\n"
-        "    assert value == 2\n",
+        "from sample import value\n\ndef test_value():\n    assert value == 2\n",
         encoding="utf-8",
     )
 
@@ -85,24 +77,14 @@ class CorrectionClient:
 def test_agent_loop_retries_patch_when_sandbox_tests_fail(tmp_path: Path) -> None:
     (tmp_path / "sample.py").write_text("value = 1\n", encoding="utf-8")
     (tmp_path / "test_sample.py").write_text(
-        "from sample import value\n\n"
-        "def test_value():\n"
-        "    assert value == 2\n",
+        "from sample import value\n\ndef test_value():\n    assert value == 2\n",
         encoding="utf-8",
     )
     bad_patch = (
-        "--- a/sample.py\n"
-        "+++ b/sample.py\n"
-        "@@ -1 +1 @@\n"
-        "-value = 1\n"
-        "+value = 1\n"
+        "--- a/sample.py\n+++ b/sample.py\n@@ -1 +1 @@\n-value = 1\n+value = 1\n"
     )
     good_patch = (
-        "--- a/sample.py\n"
-        "+++ b/sample.py\n"
-        "@@ -1 +1 @@\n"
-        "-value = 1\n"
-        "+value = 2\n"
+        "--- a/sample.py\n+++ b/sample.py\n@@ -1 +1 @@\n-value = 1\n+value = 2\n"
     )
     client = CorrectionClient(
         [
@@ -129,24 +111,14 @@ def test_agent_loop_retries_patch_when_sandbox_tests_fail(tmp_path: Path) -> Non
 def test_agent_loop_retries_patch_when_patch_is_invalid(tmp_path: Path) -> None:
     (tmp_path / "sample.py").write_text("value = 1\n", encoding="utf-8")
     (tmp_path / "test_sample.py").write_text(
-        "from sample import value\n\n"
-        "def test_value():\n"
-        "    assert value == 2\n",
+        "from sample import value\n\ndef test_value():\n    assert value == 2\n",
         encoding="utf-8",
     )
     invalid_patch = (
-        "--- a/missing.py\n"
-        "+++ b/missing.py\n"
-        "@@ -1 +1 @@\n"
-        "-value = 1\n"
-        "+value = 2\n"
+        "--- a/missing.py\n+++ b/missing.py\n@@ -1 +1 @@\n-value = 1\n+value = 2\n"
     )
     good_patch = (
-        "--- a/sample.py\n"
-        "+++ b/sample.py\n"
-        "@@ -1 +1 @@\n"
-        "-value = 1\n"
-        "+value = 2\n"
+        "--- a/sample.py\n+++ b/sample.py\n@@ -1 +1 @@\n-value = 1\n+value = 2\n"
     )
     client = CorrectionClient(
         [
@@ -167,3 +139,49 @@ def test_agent_loop_retries_patch_when_patch_is_invalid(tmp_path: Path) -> None:
     assert result.patch_verification is not None
     assert result.patch_verification.passed is True
     assert result.patch_verification.correction_attempts == 1
+
+
+def test_agent_loop_preserves_correction_attempts_when_retries_exhausted(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "initials.py").write_text(
+        "def initials(first: str, last: str) -> str:\n"
+        "    parts = [part[0].upper() for part in (first, last) if part]\n"
+        "    return '.'.join(parts)\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "test_initials.py").write_text(
+        "from initials import initials\n\n"
+        "def test_builds_initials_from_names() -> None:\n"
+        "    assert initials('Ada', 'Lovelace') == 'A.L.'\n",
+        encoding="utf-8",
+    )
+    bad_patch = (
+        "--- a/initials.py\n"
+        "+++ b/initials.py\n"
+        "@@ -1,3 +1,3 @@\n"
+        " def initials(first: str, last: str) -> str:\n"
+        "     parts = [part[0].upper() for part in (first, last) if part]\n"
+        "-    return '.'.join(parts)\n"
+        "+    return '.'.join(parts)\n"
+    )
+    client = CorrectionClient(
+        [
+            LLMResponse.final(f"Broken initials\n{bad_patch}"),
+            LLMResponse.final(f"Still broken\n{bad_patch}"),
+            LLMResponse.final(f"Still broken\n{bad_patch}"),
+        ]
+    )
+
+    result = AgentLoop(
+        client,
+        ToolRegistry(tmp_path),
+        max_correction_attempts=2,
+        routing_mode="off",
+    ).run("Create initials that satisfy the tests")
+
+    assert result.success is False
+    assert result.patch_verification is not None
+    assert result.patch_verification.passed is False
+    assert result.patch_verification.correction_attempts == 2
+    assert "A.L." in result.patch_verification.output

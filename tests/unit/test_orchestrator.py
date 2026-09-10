@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from casi.agent.orchestrator import AgentOrchestrator
 from casi.agent.intent import TaskIntent
+from casi.agent.orchestrator import AgentOrchestrator
 from casi.agent.permissions import PermissionTier
 from casi.llm.base import ChatMessage, LLMResponse, ToolDefinition
 
@@ -22,7 +22,9 @@ class FakeClient:
         return next(self.responses)
 
 
-def test_orchestrator_runs_general_agent_without_segment_approval(tmp_path: Path) -> None:
+def test_orchestrator_runs_general_agent_without_segment_approval(
+    tmp_path: Path,
+) -> None:
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
     approvals: list[PermissionTier] = []
     client = FakeClient([LLMResponse.final("Overview ready.")])
@@ -110,7 +112,9 @@ def test_orchestrator_reuses_tool_confirmation_after_first_run_tests_approval(
 
 
 def test_orchestrator_resumes_same_agent_after_clarification(tmp_path: Path) -> None:
-    (tmp_path / "validators.py").write_text("def validate_email():\n    pass\n", encoding="utf-8")
+    (tmp_path / "validators.py").write_text(
+        "def validate_email():\n    pass\n", encoding="utf-8"
+    )
     client = FakeClient(
         [
             LLMResponse.clarification("Which behavior should change?"),
@@ -156,3 +160,35 @@ def test_orchestrator_single_general_step_for_compound_task(tmp_path: Path) -> N
     assert len(result.step_results) == 1
     assert result.step_results[0].step.agent_name == "general"
     assert result.step_results[0].step.objective is TaskIntent.UNKNOWN
+
+
+def test_orchestrator_propagates_patch_verification_on_failure(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "sample.py").write_text("value = 1\n", encoding="utf-8")
+    (tmp_path / "test_sample.py").write_text(
+        "from sample import value\n\ndef test_value():\n    assert value == 2\n",
+        encoding="utf-8",
+    )
+    bad_patch = (
+        "--- a/sample.py\n+++ b/sample.py\n@@ -1 +1 @@\n-value = 1\n+value = 1\n"
+    )
+    client = FakeClient(
+        [
+            LLMResponse.final(f"Broken patch\n{bad_patch}"),
+            LLMResponse.final(f"Broken patch\n{bad_patch}"),
+            LLMResponse.final(f"Broken patch\n{bad_patch}"),
+        ]
+    )
+
+    result = AgentOrchestrator(
+        client,
+        tmp_path,
+        max_correction_attempts=2,
+        routing_mode="off",
+    ).run("fix the failing test", category="fix")
+
+    assert result.success is False
+    assert result.patch_verification is not None
+    assert result.patch_verification.passed is False
+    assert result.patch_verification.correction_attempts == 2

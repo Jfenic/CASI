@@ -1,0 +1,16 @@
+--- a/config.py
++++ b/config.py
+@@ -1,4 +1,12 @@
+ def parse_bool(value, default=False):
+     if value is None:
+         return default
+-    return bool(value)
++    if isinstance(value, str):
++        value = value.strip().lower()
++        if value in ('true', '1', 'yes', 'on'):
++            return True
++        elif value in ('false', '0', 'no', 'off'):
++            return False
++    if isinstance(value, bool):
++        return value
++    raise TypeError(f'Invalid value type: {type(value).__name__}')

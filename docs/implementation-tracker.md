@@ -42,21 +42,27 @@ Estado rapido del proyecto y de las partes ya implementadas.
 - [x] CLI patch workflow: `--save-patch`, confirmation before apply, `--yes`, verbose mode, and exit codes 0/1/2.
 - [x] FastAPI task lifecycle with patch approval endpoints and `casi serve`.
 - [x] Structured execution logs, step timings, aggregate metrics, and trace export schema v2.
-- [x] Benchmark suite with 20 reproducible tasks, isolated runner, and JSON/Markdown reports.
+- [x] Initial benchmark suite with 26 reproducible tasks, isolated runner, and JSON/Markdown reports.
+- [x] Separate 10-task development suite with withheld acceptance checks, allowed-file policies, reference validation, mutation testing, capability reports, and per-task artifacts.
 
 ## Current status
 
 - Release stage: advanced alpha (`0.1.0`); the CLI workflow is usable locally.
-- Verification baseline: `234 passed, 2 skipped`.
-- Python compilation passes.
+- Latest verification baseline: `272 passed, 2 skipped` on Python 3.12.3 after P2 repair reliability work.
+- Python compilation, Ruff lint, and Ruff format checks pass.
+- Development dependencies are synchronized with `uv sync --locked --group dev`; CI uses the same lockfile and builds the Docker sandbox before tests.
+- The full suite passes on Python 3.11.15 and 3.12.3; the real Ollama repair fixture passes separately (`1 passed`, 33.08 seconds).
 - The repair flow runs tests, loads failed tests and imported source files, asks the model for complete file content through `propose_file`, rebuilds the diff deterministically, and verifies it on an isolated copy.
 - Python dependency environments support `uv.lock`, `poetry.lock`, `requirements.txt`, `requirements-dev.txt`, and `pyproject.toml` through content-addressed Docker images.
 - Interactive diagnostics support `/trace on`, `/last-trace`, and structured JSON export with `/save-trace`.
+- Benchmark baseline (2026-09-09): 24/26 tasks passed (92.31%); fix 11/12, create 2/3. See [stabilization report](reports/2026-09-09-stabilization.md) for failures and reproduction.
 - The local branch is ahead of `origin/main`; publication is pending.
 
 ## In progress
 
-- [ ] Validate repair reliability with real Ollama runs (`OLLAMA_E2E=1`).
+- [x] Run the real Ollama repair fixture (`OLLAMA_E2E=1`) and require a patch with passing isolated test verification.
+- [x] Improve repair reliability using the failures measured in the 26-task benchmark.
+- [ ] Re-run the 26-task benchmark after P2 fixes to confirm `task_007` and `task_023`.
 
 ## Later
 
@@ -67,7 +73,8 @@ Estado rapido del proyecto y de las partes ya implementadas.
 
 - The package supports repository inspection, bounded agent runs, patch validation, sandboxed test verification, and human-approved writes.
 - The source tree uses `src/`, so local development works best with a virtual environment or `uv`.
-- Baseline verification: `pytest` reports 234 passed and 2 skipped.
+- Latest verification: `pytest` reports 261 passed and 2 skipped; Ruff also checks the development fixtures.
 - Ollama verification: server `0.32.11`; model `qwen2.5-coder:7b`, Q4_K_M, 32K context, native tools.
 - `run_tests` and `casi test` prefer a matching project dependency image, then `casi-sandbox:latest`, and require explicit approval for local fallback on untrusted repositories.
-- Next milestone: run Ollama E2E fixtures and expand Phase 10 benchmarks.
+- P2 recovery work: assertion-aware patch nudges, remaining-failure guidance for partial fixes, orchestrator patch-verification propagation, permission/plan trace correlation, and deterministic regressions for `task_007`/`task_023` scenarios.
+- Next milestone: re-run the 26-task benchmark and publish the accumulated local commits.

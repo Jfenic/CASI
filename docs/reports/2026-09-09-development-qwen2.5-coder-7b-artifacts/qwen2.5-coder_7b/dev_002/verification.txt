@@ -1,0 +1,94 @@
+...........FFF.....                                                      [100%]
+=================================== FAILURES ===================================
+______________________________ test_bad_string[] _______________________________
+
+value = ''
+
+    @pytest.mark.parametrize("value", ["", "enabled", "2"])
+    def test_bad_string(value):
+        with pytest.raises(ValueError):
+>           parse_bool(value)
+
+_benchmark_checks/test_acceptance.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+value = '', default = False
+
+    def parse_bool(value, default=False):
+        if value is None:
+            return default
+        if isinstance(value, str):
+            value = value.strip().lower()
+            if value in ('true', '1', 'yes', 'on'):
+                return True
+            elif value in ('false', '0', 'no', 'off'):
+                return False
+        if isinstance(value, bool):
+            return value
+>       raise TypeError(f'Invalid value type: {type(value).__name__}')
+E       TypeError: Invalid value type: str
+
+config.py:12: TypeError
+___________________________ test_bad_string[enabled] ___________________________
+
+value = 'enabled'
+
+    @pytest.mark.parametrize("value", ["", "enabled", "2"])
+    def test_bad_string(value):
+        with pytest.raises(ValueError):
+>           parse_bool(value)
+
+_benchmark_checks/test_acceptance.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+value = 'enabled', default = False
+
+    def parse_bool(value, default=False):
+        if value is None:
+            return default
+        if isinstance(value, str):
+            value = value.strip().lower()
+            if value in ('true', '1', 'yes', 'on'):
+                return True
+            elif value in ('false', '0', 'no', 'off'):
+                return False
+        if isinstance(value, bool):
+            return value
+>       raise TypeError(f'Invalid value type: {type(value).__name__}')
+E       TypeError: Invalid value type: str
+
+config.py:12: TypeError
+______________________________ test_bad_string[2] ______________________________
+
+value = '2'
+
+    @pytest.mark.parametrize("value", ["", "enabled", "2"])
+    def test_bad_string(value):
+        with pytest.raises(ValueError):
+>           parse_bool(value)
+
+_benchmark_checks/test_acceptance.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+value = '2', default = False
+
+    def parse_bool(value, default=False):
+        if value is None:
+            return default
+        if isinstance(value, str):
+            value = value.strip().lower()
+            if value in ('true', '1', 'yes', 'on'):
+                return True
+            elif value in ('false', '0', 'no', 'off'):
+                return False
+        if isinstance(value, bool):
+            return value
+>       raise TypeError(f'Invalid value type: {type(value).__name__}')
+E       TypeError: Invalid value type: str
+
+config.py:12: TypeError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_bad_string[] - TypeError: I...
+FAILED _benchmark_checks/test_acceptance.py::test_bad_string[enabled] - TypeE...
+FAILED _benchmark_checks/test_acceptance.py::test_bad_string[2] - TypeError: ...
+3 failed, 16 passed in 0.04s

@@ -19,6 +19,18 @@ Lista priorizada de próximos pasos del proyecto.
 - [x] Preparar imágenes Docker cacheadas para dependencias Python y ejecutar tests posteriores sin red.
 - [x] Añadir trazas de depuración exportables con errores de herramientas y validación de parches.
 
+## Estabilización priorizada (2026-09-09)
+
+- [x] **P0:** sincronizar dependencias y lockfile; instalar desarrollo en CI y construir la imagen Docker antes de las pruebas.
+- [x] **P0:** verificar la suite completa en Python 3.11 y 3.12, incluida la API.
+- [x] **P1:** resolver avisos funcionales y de formato; Ruff sin incidencias.
+- [x] **P1:** ejecutar Docker y la reparación real con Ollama, exigiendo un parche que pase los tests.
+- [x] **P1:** medir las 26 tareas: 24/26 correctas; [informe y reproducción](docs/reports/2026-09-09-stabilization.md).
+- [x] **P2:** corregir `task_023` (punto final en iniciales), `task_007` (finalización sin parche) y pérdida de métricas de reintento, con regresiones deterministas.
+- [x] **P2:** completar trazas de estrategia y permisos entre planificador, especialistas y presentador.
+- [ ] **P3:** revisar y publicar los cambios tras cerrar la estabilización.
+- [ ] **P4:** ampliar ecosistemas y diseñar la interfaz visual.
+
 ## Prioridad inmediata
 
 - [x] Sustituir el enrutamiento rígido por selección adaptativa de herramientas dirigida por el modelo.
@@ -26,14 +38,22 @@ Lista priorizada de próximos pasos del proyecto.
 - [x] Permitir que el modelo solicite elevar una tarea de `READ` a `EXECUTE` o `MUTATE` cuando descubra que lo necesita.
 - [x] Implementar autorización acumulada por tarea (`READ < EXECUTE < MUTATE`) para no repetir confirmaciones ya cubiertas.
 - [x] Mantener `apply_patch` fuera del alcance directo del modelo y exigir validación, tests y aprobación humana.
-- [ ] Registrar en la traza cada cambio de estrategia, herramienta solicitada, permiso concedido o rechazado y motivo de escalada.
-- [ ] Añadir pruebas donde una petición inicialmente ambigua termina necesitando tests o una modificación.
+- [x] Registrar en la traza cada cambio de estrategia, herramienta solicitada, permiso concedido o rechazado y motivo de escalada.
+- [x] Añadir pruebas donde una petición inicialmente ambigua termina necesitando tests o una modificación.
 - [x] Crear fixtures end-to-end reproducibles para correcciones reales con Ollama.
 - [ ] Cubrir recuperación ante JSON inválido, herramientas rechazadas, diffs mal formados y parches que no pasan tests.
 - [x] Clasificar por separado fallos del código, dependencias, Docker, timeout y formato del modelo.
 - [x] Evitar el fallback local silencioso para repositorios no confiables; exigir una decisión explícita.
 - [x] Endurecer `sandbox.Dockerfile` con usuario no root y límites adicionales de procesos.
 - [x] Detectar el comando de test del proyecto manteniendo Pytest como primera implementación.
+
+## Evaluación de desarrollo y verificación
+
+- [x] Crear una suite separada de 10 tareas con contratos de comportamiento explícitos.
+- [x] Añadir pruebas independientes fuera del contexto del agente y limitar archivos editables.
+- [x] Evaluar tests generados contra implementaciones correctas y cinco mutaciones por tarea.
+- [x] Verificar que cada estado inicial falla y cada solución de referencia pasa.
+- [x] Conservar trazas, parches, salida de verificación y resultados por capacidad.
 
 ## Calidad y seguridad
 
@@ -56,7 +76,7 @@ Lista priorizada de próximos pasos del proyecto.
 - [x] Registrar herramientas rechazadas, pipeline automático y errores exactos de parches.
 - [x] Logs estructurados por ejecución (`-v` en CLI, respuesta API con `metrics`).
 - [x] Métricas agregadas de pasos, herramientas, tokens y duración.
-- [ ] Correlacionar una misma traza entre planificador, especialistas y presentador.
+- [x] Correlacionar una misma traza entre planificador, especialistas y presentador.
 
 ## Después de estabilizar el núcleo
 
@@ -66,7 +86,7 @@ Lista priorizada de próximos pasos del proyecto.
 
 ## Cierre de cada hito
 
-- [x] Ejecutar la suite completa de pruebas (211 passed, 2 skipped).
+- [x] Ejecutar la suite completa de pruebas (272 passed, 2 skipped).
 - [x] Ejecutar `python3 -m compileall -q src tests`.
 - [x] Ejecutar `git diff --check`.
 - [x] Actualizar `README.md`, `planning.md` y `docs/implementation-tracker.md`.

@@ -1,0 +1,17 @@
+--- /dev/null
++++ b/reader.py
+@@ -0,0 +1,14 @@
++import json
++
++
++def read_records(text):
++    records = []
++    lines = text.splitlines()
++    for line_number, line in enumerate(lines, start=1):
++        if line.strip():
++            try:
++                record = json.loads(line)
++                records.append(record)
++            except json.JSONDecodeError as e:
++                raise ValueError(f"line {line_number}: {e}")
++    return records

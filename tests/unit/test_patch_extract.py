@@ -2,13 +2,7 @@ from __future__ import annotations
 
 from casi.patching.extract import extract_patch
 
-VALID_PATCH = (
-    "--- a/app.py\n"
-    "+++ b/app.py\n"
-    "@@ -1 +1 @@\n"
-    "-return False\n"
-    "+return True"
-)
+VALID_PATCH = "--- a/app.py\n+++ b/app.py\n@@ -1 +1 @@\n-return False\n+return True"
 
 
 def test_extract_patch_reads_fenced_diff() -> None:
@@ -52,13 +46,10 @@ def test_extract_patch_returns_none_without_headers() -> None:
 
 def test_extract_patch_finds_diff_embedded_in_json_text() -> None:
     response = (
-        '{"type":"final","content":"Applied fix",'
-        '"patch":"--- a/app.py\\n+++ b/app.py\\n@@ -1 +1 @@\\n-return False\\n+return True"}'
+        '{"type":"final","content":"Applied fix","patch":"--- '
+        "a/app.py\\n+++ b/app.py\\n@@ -1 +1 @@\\n-return "
+        'False\\n+return True"}'
     )
     assert extract_patch(response) == (
-        "--- a/app.py\n"
-        "+++ b/app.py\n"
-        "@@ -1 +1 @@\n"
-        "-return False\n"
-        "+return True\n"
+        "--- a/app.py\n+++ b/app.py\n@@ -1 +1 @@\n-return False\n+return True\n"
     )

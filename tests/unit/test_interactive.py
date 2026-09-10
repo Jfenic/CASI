@@ -187,7 +187,9 @@ def test_interactive_session_resolves_clarification_before_final_response(
     assert any("I will inspect the email validator." in message for message in output)
 
 
-def test_interactive_session_uses_answer_prompt_during_clarification(tmp_path: Path) -> None:
+def test_interactive_session_uses_answer_prompt_during_clarification(
+    tmp_path: Path,
+) -> None:
     prompts: list[str] = []
     commands = iter(["Improve things please", "Focus on readability", "/exit"])
     output: list[str] = []
@@ -205,7 +207,9 @@ def test_interactive_session_uses_answer_prompt_during_clarification(tmp_path: P
     assert any("[pending] Reply to continue" in message for message in output)
 
 
-def test_interactive_session_skips_clarification_for_fix_requests(tmp_path: Path) -> None:
+def test_interactive_session_skips_clarification_for_fix_requests(
+    tmp_path: Path,
+) -> None:
     class FixClient:
         def complete(self, messages, tools):
             if any(tool.name == "propose_file" for tool in tools):
@@ -213,7 +217,10 @@ def test_interactive_session_skips_clarification_for_fix_requests(tmp_path: Path
                     "propose_file",
                     {
                         "path": "validator.py",
-                        "content": "def validate_email(value: str) -> bool:\n    return '@' in value\n",
+                        ("content"): (
+                            "def validate_email(value: str) -> bool:\n"
+                            "    return '@' in value\n"
+                        ),
                     },
                 )
             return LLMResponse.final("I will inspect the email validator.")
@@ -246,14 +253,18 @@ def test_interactive_session_can_exit_during_clarification(tmp_path: Path) -> No
     assert "Session ended." in output
 
 
-def test_interactive_plan_request_does_not_consume_pending_answer(tmp_path: Path) -> None:
+def test_interactive_plan_request_does_not_consume_pending_answer(
+    tmp_path: Path,
+) -> None:
     prompts: list[str] = []
-    commands = iter([
-        "Improve things please",
-        "dime el plan",
-        "Focus on readability",
-        "/exit",
-    ])
+    commands = iter(
+        [
+            "Improve things please",
+            "dime el plan",
+            "Focus on readability",
+            "/exit",
+        ]
+    )
     output: list[str] = []
 
     InteractiveSession(
@@ -284,7 +295,9 @@ def test_interactive_plan_request_at_prompt_uses_recall_agent(
     session.run()
 
     assert session.history == ["Inspect the repository", "dime el plan"]
-    assert any("[recall_plan|" in message or "recall_plan" in message for message in output)
+    assert any(
+        "[recall_plan|" in message or "recall_plan" in message for message in output
+    )
 
 
 def test_interactive_cancel_discards_pending_clarification(tmp_path: Path) -> None:
@@ -341,73 +354,73 @@ def test_interactive_session_rejects_patch_without_changes(tmp_path: Path) -> No
 
 
 def test_interactive_session_shows_context_command(tmp_path: Path) -> None:
-	commands = iter(["First task", "/context", "/exit"])
-	output: list[str] = []
+    commands = iter(["First task", "/context", "/exit"])
+    output: list[str] = []
 
-	InteractiveSession(
-		tmp_path,
-		FakeClient(),
-		input_fn=lambda prompt: next(commands),
-		output_fn=output.append,
-	).run()
+    InteractiveSession(
+        tmp_path,
+        FakeClient(),
+        input_fn=lambda prompt: next(commands),
+        output_fn=output.append,
+    ).run()
 
-	assert any("Hilo activo:" in message for message in output)
-	assert any("[user] First task" in message for message in output)
+    assert any("Hilo activo:" in message for message in output)
+    assert any("[user] First task" in message for message in output)
 
 
 def test_interactive_session_runs_manual_compact(tmp_path: Path) -> None:
-	class SummarizeClient:
-		def __init__(self) -> None:
-			self.calls = 0
+    class SummarizeClient:
+        def __init__(self) -> None:
+            self.calls = 0
 
-		def complete(self, messages, tools):
-			self.calls += 1
-			if self.calls == 1:
-				return LLMResponse.final("Task completed")
-			return LLMResponse.final("Resumen manual.")
+        def complete(self, messages, tools):
+            self.calls += 1
+            if self.calls == 1:
+                return LLMResponse.final("Task completed")
+            return LLMResponse.final("Resumen manual.")
 
-	commands = iter(["First task", "/compact Conserva errores de tests", "/exit"])
-	output: list[str] = []
+    commands = iter(["First task", "/compact Conserva errores de tests", "/exit"])
+    output: list[str] = []
 
-	InteractiveSession(
-		tmp_path,
-		SummarizeClient(),
-		input_fn=lambda prompt: next(commands),
-		output_fn=output.append,
-	).run()
+    InteractiveSession(
+        tmp_path,
+        SummarizeClient(),
+        input_fn=lambda prompt: next(commands),
+        output_fn=output.append,
+    ).run()
 
-	assert any("Resumen aplicado" in message for message in output)
-	assert any("[resumen]" in message for message in output)
+    assert any("Resumen aplicado" in message for message in output)
+    assert any("[resumen]" in message for message in output)
 
 
 def test_interactive_session_warns_when_context_is_large(tmp_path: Path) -> None:
-	class ManyTurnClient:
-		def __init__(self) -> None:
-			self.turn = 0
+    class ManyTurnClient:
+        def __init__(self) -> None:
+            self.turn = 0
 
-		def complete(self, messages, tools):
-			self.turn += 1
-			return LLMResponse.final(f"done-{self.turn}")
+        def complete(self, messages, tools):
+            self.turn += 1
+            return LLMResponse.final(f"done-{self.turn}")
 
-	commands = iter(["Task one", "Task two", "/exit"])
-	output: list[str] = []
+    commands = iter(["Task one", "Task two", "/exit"])
+    output: list[str] = []
 
-	original_limit = settings.max_context_messages
-	original_ratio = settings.context_compact_warn_ratio
-	try:
-		object.__setattr__(settings, "max_context_messages", 100)
-		object.__setattr__(settings, "context_compact_warn_ratio", 0.02)
-		InteractiveSession(
-			tmp_path,
-			ManyTurnClient(),
-			input_fn=lambda prompt: next(commands),
-			output_fn=output.append,
-		).run()
-	finally:
-		object.__setattr__(settings, "max_context_messages", original_limit)
-		object.__setattr__(settings, "context_compact_warn_ratio", original_ratio)
+    original_limit = settings.max_context_messages
+    original_ratio = settings.context_compact_warn_ratio
+    try:
+        object.__setattr__(settings, "max_context_messages", 100)
+        object.__setattr__(settings, "context_compact_warn_ratio", 0.02)
+        InteractiveSession(
+            tmp_path,
+            ManyTurnClient(),
+            input_fn=lambda prompt: next(commands),
+            output_fn=output.append,
+        ).run()
+    finally:
+        object.__setattr__(settings, "max_context_messages", original_limit)
+        object.__setattr__(settings, "context_compact_warn_ratio", original_ratio)
 
-	assert any("/context para revisarlo" in message for message in output)
+    assert any("/context para revisarlo" in message for message in output)
 
 
 def test_interactive_session_applies_approved_patch(tmp_path: Path) -> None:

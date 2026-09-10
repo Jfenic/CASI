@@ -3,8 +3,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from casi.patching.validator import validate_patch
 from casi.patching.applier import PatchApplicationError, apply_patch
+from casi.patching.validator import validate_patch
 from casi.tools.registry import ToolRegistry
 
 
@@ -176,7 +176,9 @@ def test_apply_patch_creates_file_after_approval(tmp_path: Path) -> None:
     files = apply_patch(repository, CREATE_FILE_PATCH, approved=True, dry_run=False)
 
     assert files == ["new_module.py"]
-    assert (repository / "new_module.py").read_text(encoding="utf-8") == "def created():\n    return True\n"
+    assert (repository / "new_module.py").read_text(
+        encoding="utf-8"
+    ) == "def created():\n    return True\n"
 
 
 def test_apply_patch_deletes_file_after_approval(tmp_path: Path) -> None:
@@ -220,10 +222,7 @@ def test_propose_file_strips_numbered_reader_output(tmp_path: Path) -> None:
 def test_propose_file_rejects_tests_copied_into_source_module(tmp_path: Path) -> None:
     repository = _repository(tmp_path)
     contaminated = (
-        "1: return True\n"
-        "2: \n"
-        "3: def test_return_value():\n"
-        "4:     assert True\n"
+        "1: return True\n2: \n3: def test_return_value():\n4:     assert True\n"
     )
 
     result = ToolRegistry(repository).execute(

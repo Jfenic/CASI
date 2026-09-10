@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from casi.agent.failure_classification import is_docker_infrastructure_failure
 from casi.sandbox.base import TestResult as SandboxTestResult
 

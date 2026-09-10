@@ -12,8 +12,7 @@ def test_parse_final_response() -> None:
 
 def test_parse_tool_call() -> None:
     response = parse_response(
-        '{"type": "tool_call", "name": "read_file", '
-        '"arguments": {"path": "README.md"}}'
+        '{"type": "tool_call", "name": "read_file", "arguments": {"path": "README.md"}}'
     )
 
     assert response.kind == "tool_call"

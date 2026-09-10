@@ -7,10 +7,14 @@ import pytest
 
 from casi.agent.state import AgentResult
 from casi.cli import main
-from casi.evaluation.benchmark import BenchmarkTask, BenchmarkTaskResult, load_tasks, run_benchmark
+from casi.evaluation.benchmark import (
+    BenchmarkTask,
+    BenchmarkTaskResult,
+    load_tasks,
+    run_benchmark,
+)
 from casi.evaluation.metrics import summarize_results
 from casi.evaluation.report import render_report
-from casi.llm.base import LLMResponse
 from casi.sandbox.docker_runner import DockerRunner
 
 
@@ -216,8 +220,12 @@ def test_evaluate_task_success_ignores_pytest_for_read_only() -> None:
         repository="math_app",
         category="read",
     )
-    assert evaluate_task_success(task, agent_success=True, command_success=False) is True
-    assert evaluate_task_success(task, agent_success=False, command_success=True) is False
+    assert (
+        evaluate_task_success(task, agent_success=True, command_success=False) is True
+    )
+    assert (
+        evaluate_task_success(task, agent_success=False, command_success=True) is False
+    )
 
     fix = BenchmarkTask(
         task_id="t2",
@@ -226,7 +234,9 @@ def test_evaluate_task_success_ignores_pytest_for_read_only() -> None:
         repository="email_app",
         category="fix",
     )
-    assert evaluate_task_success(fix, agent_success=True, command_success=False) is False
+    assert (
+        evaluate_task_success(fix, agent_success=True, command_success=False) is False
+    )
     assert evaluate_task_success(fix, agent_success=True, command_success=True) is True
 
     create = BenchmarkTask(
@@ -236,8 +246,13 @@ def test_evaluate_task_success_ignores_pytest_for_read_only() -> None:
         repository="stats_app",
         category="create",
     )
-    assert evaluate_task_success(create, agent_success=True, command_success=False) is False
-    assert evaluate_task_success(create, agent_success=True, command_success=True) is True
+    assert (
+        evaluate_task_success(create, agent_success=True, command_success=False)
+        is False
+    )
+    assert (
+        evaluate_task_success(create, agent_success=True, command_success=True) is True
+    )
 
 
 def test_cli_benchmark_lists_tasks(capsys) -> None:

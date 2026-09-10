@@ -17,258 +17,260 @@ ToolExecutor = Callable[[str, dict[str, object]], ToolResult]
 
 
 def _local_module_candidates(module: str) -> list[str]:
-	root = module.split(".")[0]
-	base = Path(root)
-	return [base.with_suffix(".py").as_posix(), (base / "__init__.py").as_posix()]
+    root = module.split(".")[0]
+    base = Path(root)
+    return [base.with_suffix(".py").as_posix(), (base / "__init__.py").as_posix()]
 
 
 def missing_local_module_paths(
-	repository_path: str | Path,
-	test_paths: list[str],
-	*,
-	test_output: str | None = None,
+    repository_path: str | Path,
+    test_paths: list[str],
+    *,
+    test_output: str | None = None,
 ) -> list[str]:
-	"""Return repository-relative paths for imported local modules that do not exist."""
+    """Return repository-relative paths for imported local modules that do not exist."""
 
-	repository = Path(repository_path).resolve()
-	missing: list[str] = []
+    repository = Path(repository_path).resolve()
+    missing: list[str] = []
 
-	def record(module: str) -> None:
-		root = module.split(".")[0]
-		candidate = Path(root).with_suffix(".py").as_posix()
-		package_init = (Path(root) / "__init__.py").as_posix()
-		if (repository / candidate).is_file() or (repository / package_init).is_file():
-			return
-		if candidate not in missing:
-			missing.append(candidate)
+    def record(module: str) -> None:
+        root = module.split(".")[0]
+        candidate = Path(root).with_suffix(".py").as_posix()
+        package_init = (Path(root) / "__init__.py").as_posix()
+        if (repository / candidate).is_file() or (repository / package_init).is_file():
+            return
+        if candidate not in missing:
+            missing.append(candidate)
 
-	for relative_path in test_paths:
-		if not Path(relative_path).name.startswith("test_"):
-			continue
-		try:
-			tree = ast.parse((repository / relative_path).read_text(encoding="utf-8"))
-		except (OSError, SyntaxError, UnicodeError):
-			continue
-		for node in ast.walk(tree):
-			if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
-				record(node.module)
-			elif isinstance(node, ast.Import):
-				for alias in node.names:
-					record(alias.name)
+    for relative_path in test_paths:
+        if not Path(relative_path).name.startswith("test_"):
+            continue
+        try:
+            tree = ast.parse((repository / relative_path).read_text(encoding="utf-8"))
+        except (OSError, SyntaxError, UnicodeError):
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                record(node.module)
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    record(alias.name)
 
-	if test_output:
-		for match in re.finditer(
-			r"(?:ModuleNotFoundError|ImportError).*?(?:No module named )['\"]([^'\"]+)['\"]",
-			test_output,
-			flags=re.DOTALL,
-		):
-			record(match.group(1))
+    if test_output:
+        for match in re.finditer(
+            (
+                "(?:ModuleNotFoundError|ImportError).*?(?:No module "
+                "named )['\\\"]([^'\\\"]+)['\\\"]"
+            ),
+            test_output,
+            flags=re.DOTALL,
+        ):
+            record(match.group(1))
 
-	return missing
+    return missing
 
 
 def _source_paths_imported_by_tests(
-	repository_path: str | Path,
-	test_paths: list[str],
+    repository_path: str | Path,
+    test_paths: list[str],
 ) -> list[str]:
-	"""Resolve simple local imports from failed Python test files."""
+    """Resolve simple local imports from failed Python test files."""
 
-	repository = Path(repository_path).resolve()
-	paths: list[str] = []
-	for relative_path in test_paths:
-		if not Path(relative_path).name.startswith("test_"):
-			continue
-		try:
-			tree = ast.parse((repository / relative_path).read_text(encoding="utf-8"))
-		except (OSError, SyntaxError, UnicodeError):
-			continue
-		modules: list[str] = []
-		for node in ast.walk(tree):
-			if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
-				modules.append(node.module)
-			elif isinstance(node, ast.Import):
-				modules.extend(alias.name for alias in node.names)
-		for module in modules:
-			module_path = Path(*module.split("."))
-			for candidate in (module_path.with_suffix(".py"), module_path / "__init__.py"):
-				if (repository / candidate).is_file():
-					path = candidate.as_posix()
-					if path not in paths:
-						paths.append(path)
-					break
-	return paths
+    repository = Path(repository_path).resolve()
+    paths: list[str] = []
+    for relative_path in test_paths:
+        if not Path(relative_path).name.startswith("test_"):
+            continue
+        try:
+            tree = ast.parse((repository / relative_path).read_text(encoding="utf-8"))
+        except (OSError, SyntaxError, UnicodeError):
+            continue
+        modules: list[str] = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                modules.append(node.module)
+            elif isinstance(node, ast.Import):
+                modules.extend(alias.name for alias in node.names)
+        for module in modules:
+            module_path = Path(*module.split("."))
+            for candidate in (
+                module_path.with_suffix(".py"),
+                module_path / "__init__.py",
+            ):
+                if (repository / candidate).is_file():
+                    path = candidate.as_posix()
+                    if path not in paths:
+                        paths.append(path)
+                    break
+    return paths
 
 
 def paths_from_search_output(output: str) -> list[str]:
-	"""Extract unique file paths from search_code output lines."""
+    """Extract unique file paths from search_code output lines."""
 
-	paths: list[str] = []
-	for line in output.splitlines():
-		if ":" not in line:
-			continue
-		path = line.split(":", 1)[0].strip()
-		if path and path not in paths:
-			paths.append(path)
-	return paths
+    paths: list[str] = []
+    for line in output.splitlines():
+        if ":" not in line:
+            continue
+        path = line.split(":", 1)[0].strip()
+        if path and path not in paths:
+            paths.append(path)
+    return paths
 
 
 def run_inspect_pipeline(
-	context: str,
-	execute: ToolExecutor,
-	*,
-	repository_path: str | Path,
+    context: str,
+    execute: ToolExecutor,
+    *,
+    repository_path: str | Path,
 ) -> None:
-	"""Search the repository and read the most relevant files."""
+    """Search the repository and read the most relevant files."""
 
-	read_paths = resolve_named_paths(repository_path, extract_search_targets(context))
+    read_paths = resolve_named_paths(repository_path, extract_search_targets(context))
 
-	for query in derive_search_queries(context):
-		if looks_like_filename(query):
-			continue
-		result = execute("search_code", {"query": query})
-		if not result.output.strip():
-			continue
-		for path in paths_from_search_output(result.output):
-			if path not in read_paths:
-				read_paths.append(path)
-		if read_paths:
-			break
+    for query in derive_search_queries(context):
+        if looks_like_filename(query):
+            continue
+        result = execute("search_code", {"query": query})
+        if not result.output.strip():
+            continue
+        for path in paths_from_search_output(result.output):
+            if path not in read_paths:
+                read_paths.append(path)
+        if read_paths:
+            break
 
-	for path in read_paths[:3]:
-		execute("read_file", {"path": path})
+    for path in read_paths[:3]:
+        execute("read_file", {"path": path})
 
-	if not read_paths:
-		execute("list_files", {})
+    if not read_paths:
+        execute("list_files", {})
 
 
 def run_overview_pipeline(execute: ToolExecutor) -> None:
-	"""Collect a repository overview from structure and documentation."""
+    """Collect a repository overview from structure and documentation."""
 
-	execute("list_files", {})
-	execute("read_file", {"path": "README.md"})
+    execute("list_files", {})
+    execute("read_file", {"path": "README.md"})
 
 
 def run_git_status_pipeline(execute: ToolExecutor) -> None:
-	"""Collect current repository changes."""
+    """Collect current repository changes."""
 
-	execute("git_diff", {})
+    execute("git_diff", {})
 
 
 def run_fix_pipeline(
-	context: str,
-	execute: ToolExecutor,
-	*,
-	repository_path: str | Path,
-	test_output: str | None = None,
+    context: str,
+    execute: ToolExecutor,
+    *,
+    repository_path: str | Path,
+    test_output: str | None = None,
 ) -> list[str]:
-	"""Load source and test files involved in a failing test run."""
+    """Load source and test files involved in a failing test run."""
 
-	repository = Path(repository_path).resolve()
-	read_paths: list[str] = []
+    repository = Path(repository_path).resolve()
+    read_paths: list[str] = []
 
-	if test_output:
-		for path in extract_failure_paths(test_output):
-			if path not in read_paths:
-				read_paths.append(path)
-		for path in _source_paths_imported_by_tests(repository_path, read_paths):
-			if path not in read_paths:
-				read_paths.append(path)
+    if test_output:
+        for path in extract_failure_paths(test_output):
+            if path not in read_paths:
+                read_paths.append(path)
+        for path in _source_paths_imported_by_tests(repository_path, read_paths):
+            if path not in read_paths:
+                read_paths.append(path)
 
-	for path in resolve_named_paths(repository_path, extract_search_targets(context)):
-		if path not in read_paths:
-			read_paths.append(path)
+    for path in resolve_named_paths(repository_path, extract_search_targets(context)):
+        if path not in read_paths:
+            read_paths.append(path)
 
-	if not read_paths:
-		for query in derive_search_queries(context):
-			if looks_like_filename(query):
-				continue
-			result = execute("search_code", {"query": query})
-			if not result.output.strip():
-				continue
-			for path in paths_from_search_output(result.output):
-				if path not in read_paths:
-					read_paths.append(path)
-			if read_paths:
-				break
+    if not read_paths:
+        for query in derive_search_queries(context):
+            if looks_like_filename(query):
+                continue
+            result = execute("search_code", {"query": query})
+            if not result.output.strip():
+                continue
+            for path in paths_from_search_output(result.output):
+                if path not in read_paths:
+                    read_paths.append(path)
+            if read_paths:
+                break
 
-	if not read_paths:
-		read_paths.extend(
-			path.as_posix()
-			for path in sorted(repository.glob("test_*.py"))
-		)
+    if not read_paths:
+        read_paths.extend(
+            path.as_posix() for path in sorted(repository.glob("test_*.py"))
+        )
 
-	for path in read_paths[:4]:
-		if (repository / path).is_file():
-			execute("read_file", {"path": path})
+    for path in read_paths[:4]:
+        if (repository / path).is_file():
+            execute("read_file", {"path": path})
 
-	test_paths = [
-		path
-		for path in read_paths
-		if Path(path).name.startswith("test_")
-	]
-	if not test_paths:
-		test_paths = [path.as_posix() for path in sorted(repository.glob("test_*.py"))]
+    test_paths = [path for path in read_paths if Path(path).name.startswith("test_")]
+    if not test_paths:
+        test_paths = [path.as_posix() for path in sorted(repository.glob("test_*.py"))]
 
-	return missing_local_module_paths(
-		repository_path,
-		test_paths,
-		test_output=test_output,
-	)
+    return missing_local_module_paths(
+        repository_path,
+        test_paths,
+        test_output=test_output,
+    )
 
 
 def run_repository_pipeline(
-	intent: TaskIntent,
-	context: str,
-	execute: ToolExecutor,
-	*,
-	repository_path: str | Path,
+    intent: TaskIntent,
+    context: str,
+    execute: ToolExecutor,
+    *,
+    repository_path: str | Path,
 ) -> None:
-	"""Run the deterministic pipeline associated with a task intent."""
+    """Run the deterministic pipeline associated with a task intent."""
 
-	if intent == TaskIntent.OVERVIEW:
-		run_overview_pipeline(execute)
-		return
-	if intent in {TaskIntent.INSPECT, TaskIntent.UNKNOWN}:
-		if extract_search_targets(context):
-			run_inspect_pipeline(context, execute, repository_path=repository_path)
-		else:
-			run_overview_pipeline(execute)
-		return
-	if intent == TaskIntent.GIT_STATUS:
-		run_git_status_pipeline(execute)
-		return
-	if intent in {TaskIntent.FIX, TaskIntent.CREATE}:
-		run_fix_pipeline(context, execute, repository_path=repository_path)
+    if intent == TaskIntent.OVERVIEW:
+        run_overview_pipeline(execute)
+        return
+    if intent in {TaskIntent.INSPECT, TaskIntent.UNKNOWN}:
+        if extract_search_targets(context):
+            run_inspect_pipeline(context, execute, repository_path=repository_path)
+        else:
+            run_overview_pipeline(execute)
+        return
+    if intent == TaskIntent.GIT_STATUS:
+        run_git_status_pipeline(execute)
+        return
+    if intent in {TaskIntent.FIX, TaskIntent.CREATE}:
+        run_fix_pipeline(context, execute, repository_path=repository_path)
 
 
 def nudge_after_fix_pipeline() -> ResponseNudge:
-	return ResponseNudge(
-		user_message=(
-			f"{PIPELINE_FALLBACK_PREFIX} 'fix' loaded failing test and source files. "
-			"Use the read_file results already in the conversation. You MUST call "
-			"propose_file with the repository-relative source path and the complete "
-			"corrected file content. CASI will generate the unified diff; do not "
-			"write the diff yourself."
-		),
-	)
+    return ResponseNudge(
+        user_message=(
+            f"{PIPELINE_FALLBACK_PREFIX} 'fix' loaded failing test and source files. "
+            "Use the read_file results already in the conversation. You MUST call "
+            "propose_file with the repository-relative source path and the complete "
+            "corrected file content. CASI will generate the unified diff; do not "
+            "write the diff yourself."
+        ),
+    )
 
 
 def nudge_after_create_pipeline() -> ResponseNudge:
-	return ResponseNudge(
-		user_message=(
-			f"{PIPELINE_FALLBACK_PREFIX} 'create' loaded the failing tests. "
-			"The missing module does not exist yet. You MUST call propose_file with "
-			"the repository-relative path and complete new file content that satisfies "
-			"the tests. CASI will generate the unified diff; do not write the diff yourself."
-		),
-	)
+    return ResponseNudge(
+        user_message=(
+            f"{PIPELINE_FALLBACK_PREFIX} 'create' loaded the failing tests. "
+            "The missing module does not exist yet. You MUST call propose_file with "
+            "the repository-relative path and complete new file content that satisfies "
+            "the tests. CASI will generate the unified diff; "
+            "do not write the diff yourself."
+        ),
+    )
 
 
 def nudge_after_pipeline_fallback(intent: TaskIntent) -> ResponseNudge:
-	return ResponseNudge(
-		user_message=(
-			f"{PIPELINE_FALLBACK_PREFIX} '{intent.value}' is now available "
-			"from tool results. Answer the user's request from those results "
-			'using {"type":"final","content":"your answer"}.'
-		),
-	)
+    return ResponseNudge(
+        user_message=(
+            f"{PIPELINE_FALLBACK_PREFIX} '{intent.value}' is now available "
+            "from tool results. Answer the user's request from those results "
+            'using {"type":"final","content":"your answer"}.'
+        ),
+    )

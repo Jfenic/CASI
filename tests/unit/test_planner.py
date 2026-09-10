@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from casi.agent.intent import TaskIntent
 from casi.agent.permissions import PermissionTier, resolve_permission_tier
-from casi.agent.planner import AgentPlanStep, TaskPlanner, decompose_task, group_segments
+from casi.agent.planner import (
+    AgentPlanStep,
+    TaskPlanner,
+    decompose_task,
+    group_segments,
+)
 
 
 def test_decompose_task_keeps_compound_requests_together() -> None:
@@ -70,8 +75,13 @@ def test_plan_fast_path_for_git_status() -> None:
 
 
 def test_resolve_permission_tier_is_always_read() -> None:
-    assert resolve_permission_tier("ejecuta los tests", TaskIntent.UNKNOWN) is PermissionTier.READ
-    assert resolve_permission_tier("corrige el bug", TaskIntent.FIX) is PermissionTier.READ
+    assert (
+        resolve_permission_tier("ejecuta los tests", TaskIntent.UNKNOWN)
+        is PermissionTier.READ
+    )
+    assert (
+        resolve_permission_tier("corrige el bug", TaskIntent.FIX) is PermissionTier.READ
+    )
 
 
 def test_group_segments_merges_same_tier_steps() -> None:

@@ -3,23 +3,21 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from casi.agent.policies import AGENT_TOOL_NAMES, is_mutation_tool
 from casi.agent.planner import AgentPlan
+from casi.agent.policies import AGENT_TOOL_NAMES, is_mutation_tool
 from casi.llm.base import ToolDefinition
 from casi.tools.base import Tool
 from casi.tools.file_tools import ListFilesTool, ReadFileTool
 from casi.tools.git_tools import GitDiffTool
+from casi.tools.patch_tools import ApplyPatchTool, ProposeFileTool, ValidatePatchTool
 from casi.tools.result import ToolResult
 from casi.tools.search_tools import SearchCodeTool
 from casi.tools.session_tools import GetSessionPlanTool
 from casi.tools.test_tools import RunTestsTool
-from casi.tools.patch_tools import ProposeFileTool, ValidatePatchTool
-from casi.tools.patch_tools import ApplyPatchTool
 
 
 @dataclass

@@ -32,7 +32,9 @@ def read_file(
         raise IsADirectoryError(f"La ruta no es un archivo: {file_path}")
 
     if target.stat().st_size > settings.max_file_size_bytes:
-        raise FileTooLargeError(f"El archivo supera {settings.max_file_size_bytes} bytes.")
+        raise FileTooLargeError(
+            f"El archivo supera {settings.max_file_size_bytes} bytes."
+        )
 
     if is_probably_binary(target):
         raise BinaryFileError(f"El archivo parece ser binario: {file_path}")

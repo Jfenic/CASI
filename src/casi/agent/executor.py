@@ -11,24 +11,24 @@ from casi.tools.result import ToolResult
 
 
 def execute_tool(
-	registry: ToolRegistry,
-	response: LLMResponse,
-	*,
-	require_tool_confirmation: Callable[[str, dict[str, object]], bool] | None = None,
+    registry: ToolRegistry,
+    response: LLMResponse,
+    *,
+    require_tool_confirmation: Callable[[str, dict[str, object]], bool] | None = None,
 ) -> ToolResult:
-	if response.kind != "tool_call" or response.tool_name is None:
-		raise ValueError("Expected a tool-call response")
+    if response.kind != "tool_call" or response.tool_name is None:
+        raise ValueError("Expected a tool-call response")
 
-	tool_name = response.tool_name
-	arguments = response.arguments
+    tool_name = response.tool_name
+    arguments = response.arguments
 
-	if require_tool_confirmation and requires_confirmation(tool_name):
-		if not require_tool_confirmation(tool_name, arguments):
-			return ToolResult(
-				success=False,
-				output="",
-				error=f"Tool execution denied by user: {tool_name}",
-				metadata={"tool_name": tool_name, "denied": True},
-			)
+    if require_tool_confirmation and requires_confirmation(tool_name):
+        if not require_tool_confirmation(tool_name, arguments):
+            return ToolResult(
+                success=False,
+                output="",
+                error=f"Tool execution denied by user: {tool_name}",
+                metadata={"tool_name": tool_name, "denied": True},
+            )
 
-	return registry.execute(tool_name, arguments)
+    return registry.execute(tool_name, arguments)

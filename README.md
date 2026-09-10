@@ -107,6 +107,16 @@ casi benchmark --model qwen2.5-coder:7b --output /tmp/benchmark.json --format bo
 casi benchmark --models qwen2.5-coder:7b,llama3.2 --format text
 ```
 
+For typical development and test-writing tasks, use the separate
+[development suite](benchmarks/development/README.md). Its ten tasks use
+independent acceptance checks and mutation testing:
+
+```bash
+casi benchmark --tasks-dir benchmarks/development/tasks \
+  --repos-dir benchmarks/development/repositories \
+  --model qwen2.5-coder:7b --output /tmp/development.json --format both
+```
+
 Start the HTTP API (requires `pip install -e '.[api]'`):
 
 ```bash
@@ -151,11 +161,27 @@ the prompt leaves the repository unchanged.
 
 ## Development
 
-Run the test suite:
+Prepare the development environment from the committed lockfile and run checks:
 
 ```bash
-pytest
-python3 -m compileall -q src tests
+uv sync --locked --group dev
+uv run --no-sync ruff check src tests benchmarks/development
+uv run --no-sync ruff format --check src tests benchmarks/development
+uv run --no-sync pytest -ra
+uv run --no-sync python -m compileall -q src tests
 ```
+
+CI runs the same checks on Python 3.11 and builds the Docker sandbox image
+before running the suite. Locally, the Docker integration test is skipped when
+the daemon is unavailable. Real Ollama repair testing is opt-in:
+
+```bash
+OLLAMA_E2E=1 uv run --no-sync pytest tests/integration/test_ollama_repair.py -ra
+```
+
+This requires a running Ollama server with `qwen2.5-coder:7b` (or the configured
+model). The test requires a proposed patch whose isolated test verification passes.
+
+Latest validation: [P0/P1 stabilization report](docs/reports/2026-09-09-stabilization.md).
 
 See also `planning.md`, `TODO.md`, and `docs/implementation-tracker.md`.

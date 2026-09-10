@@ -19,7 +19,9 @@ def test_list_files_tool_returns_structured_result(tmp_path: Path) -> None:
     assert result.metadata["count"] == 1
 
 
-def test_read_file_tool_validates_arguments_and_returns_numbered_lines(tmp_path: Path) -> None:
+def test_read_file_tool_validates_arguments_and_returns_numbered_lines(
+    tmp_path: Path,
+) -> None:
     repository = tmp_path / "repo"
     repository.mkdir()
     (repository / "README.md").write_text("alpha\nbeta\n", encoding="utf-8")

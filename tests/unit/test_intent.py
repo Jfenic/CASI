@@ -54,10 +54,15 @@ def test_resolve_task_intent_routes_code_change_to_fix() -> None:
 
 
 def test_resolve_task_intent_routes_create_requests() -> None:
-    assert resolve_task_intent(
-        "Create the missing stats.py module and make all tests pass."
-    ) is TaskIntent.CREATE
-    assert resolve_task_intent("Implement helper", category="create") is TaskIntent.CREATE
+    assert (
+        resolve_task_intent(
+            "Create the missing stats.py module and make all tests pass."
+        )
+        is TaskIntent.CREATE
+    )
+    assert (
+        resolve_task_intent("Implement helper", category="create") is TaskIntent.CREATE
+    )
     assert resolve_task_intent("Fix bug", category="fix") is TaskIntent.FIX
 
 

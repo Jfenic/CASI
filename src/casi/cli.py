@@ -11,11 +11,11 @@ from casi.agent.planner import PlanSegment
 from casi.agent.trace import AgentTraceRecorder
 from casi.cli_agent import finalize_agent_run
 from casi.cli_help import format_help
-from casi.observability.logging import emit_execution_log
 from casi.config import settings
 from casi.exceptions import CasiError
 from casi.interactive import InteractiveSession
 from casi.llm.ollama_client import OllamaClient
+from casi.observability.logging import emit_execution_log
 from casi.repository.explorer import list_files
 from casi.repository.reader import read_file
 from casi.repository.search import search_code
@@ -24,7 +24,6 @@ from casi.sandbox.project_environment import (
     prepare_project_environment,
 )
 from casi.sandbox.test_execution import run_repository_pytest
-from casi.tools.registry import ToolRegistry
 
 
 def _add_agent_task_parser(
@@ -40,7 +39,9 @@ def _add_agent_task_parser(
         "--max-steps",
         type=int,
         default=None,
-        help="Maximum model decisions per agent. Defaults to each agent's profile limit.",
+        help=(
+            "Maximum model decisions per agent. Defaults to each agent's profile limit."
+        ),
     )
     parser.add_argument(
         "--routing",
@@ -90,9 +91,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Read a file from the repository.",
     )
     read_parser.add_argument("--repo", required=True, help="Repository path.")
-    read_parser.add_argument("--file", required=True, help="File path within the repository.")
-    read_parser.add_argument("--start-line", type=int, default=1, help="First line to read.")
-    read_parser.add_argument("--end-line", type=int, default=300, help="Last line to read.")
+    read_parser.add_argument(
+        "--file", required=True, help="File path within the repository."
+    )
+    read_parser.add_argument(
+        "--start-line", type=int, default=1, help="First line to read."
+    )
+    read_parser.add_argument(
+        "--end-line", type=int, default=300, help="Last line to read."
+    )
 
     search_parser = subparsers.add_parser(
         "search",
@@ -132,7 +139,9 @@ def build_parser() -> argparse.ArgumentParser:
         "--max-steps",
         type=int,
         default=None,
-        help="Maximum model decisions per agent. Defaults to each agent's profile limit.",
+        help=(
+            "Maximum model decisions per agent. Defaults to each agent's profile limit."
+        ),
     )
     interactive_parser.add_argument(
         "--routing",
@@ -177,7 +186,10 @@ def build_parser() -> argparse.ArgumentParser:
     help_parser.add_argument(
         "topic",
         nargs="?",
-        help="Command to explain (inspect, read, search, run, ask, fix, interactive, test, serve, env).",
+        help=(
+            "Command to explain (inspect, read, search, run, ask, "
+            "fix, interactive, test, serve, env)."
+        ),
     )
 
     serve_parser = subparsers.add_parser(
@@ -267,7 +279,9 @@ def _run_inspect(repository: str | Path) -> int:
     return 0
 
 
-def _run_read(repository: str | Path, file_path: str, start_line: int, end_line: int) -> int:
+def _run_read(
+    repository: str | Path, file_path: str, start_line: int, end_line: int
+) -> int:
     print(read_file(repository, file_path, start_line=start_line, end_line=end_line))
     return 0
 
@@ -327,7 +341,9 @@ def _run_agent(
         routing_mode=routing,
         require_tool_confirmation=lambda tool, args: _confirm_tool(tool, args, yes=yes),
         approve_segment=lambda segment: _approve_plan_segment(segment, yes=yes),
-        on_context_compact=lambda message: print(f"[context] {message}", file=sys.stderr),
+        on_context_compact=lambda message: print(
+            f"[context] {message}", file=sys.stderr
+        ),
         on_plan=lambda plan: _emit_run_progress(plan, verbose=verbose),
         on_step_start=lambda step, number, total: print(
             f"[working] Step {number}/{total}: {step.agent_name} ({step.agent_role})",
@@ -354,7 +370,9 @@ def _run_agent(
     )
 
 
-def _run_interactive(repository: str | Path, max_steps: int | None, routing: str) -> int:
+def _run_interactive(
+    repository: str | Path, max_steps: int | None, routing: str
+) -> int:
     session = InteractiveSession(
         repository,
         OllamaClient(),
@@ -457,7 +475,11 @@ def _run_benchmark(
         render_report,
         write_report_files,
     )
-    from casi.evaluation.runner import BenchmarkRunOptions, compare_models, run_model_benchmark
+    from casi.evaluation.runner import (
+        BenchmarkRunOptions,
+        compare_models,
+        run_model_benchmark,
+    )
 
     tasks = load_tasks(tasks_dir)
     if list_only:
@@ -470,6 +492,7 @@ def _run_benchmark(
         routing=routing,
         verbose=verbose,
         show_progress=not quiet,
+        artifacts_dir=(output.parent / f"{output.stem}-artifacts") if output else None,
     )
     if models:
         model_list = [item.strip() for item in models.split(",") if item.strip()]

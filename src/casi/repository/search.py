@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from casi.config import settings
-from casi.repository.reader import is_probably_binary
 from casi.repository.explorer import list_files
+from casi.repository.reader import is_probably_binary
 from casi.repository.security import resolve_repository, safe_path
 
 

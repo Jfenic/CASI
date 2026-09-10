@@ -33,7 +33,9 @@ def test_inspect_pipeline_reads_named_file_instead_of_doc_match(tmp_path: Path) 
         repository_path=tmp_path,
     )
 
-    read_calls = [arguments for tool_name, arguments in calls if tool_name == "read_file"]
+    read_calls = [
+        arguments for tool_name, arguments in calls if tool_name == "read_file"
+    ]
     assert read_calls == [{"path": "src/agent/loop.py"}]
     assert not any(tool_name == "search_code" for tool_name, _arguments in calls)
 
@@ -65,10 +67,14 @@ def test_fix_pipeline_reads_files_from_failed_test_output(tmp_path: Path) -> Non
         "corrige los tests",
         execute,
         repository_path=tmp_path,
-        test_output="tests/test_sorter.py:6: AssertionError\nsorter.py:10: in bubble_sort",
+        test_output=(
+            "tests/test_sorter.py:6: AssertionError\nsorter.py:10: in bubble_sort"
+        ),
     )
 
-    read_calls = [arguments["path"] for tool_name, arguments in calls if tool_name == "read_file"]
+    read_calls = [
+        arguments["path"] for tool_name, arguments in calls if tool_name == "read_file"
+    ]
     assert "tests/test_sorter.py" in read_calls
     assert "sorter.py" in read_calls
 
@@ -98,7 +104,9 @@ def test_fix_pipeline_resolves_source_imported_by_failed_test(tmp_path: Path) ->
         test_output="FAILED test_validators.py::test_invalid - assert not True",
     )
 
-    read_calls = [arguments["path"] for tool_name, arguments in calls if tool_name == "read_file"]
+    read_calls = [
+        arguments["path"] for tool_name, arguments in calls if tool_name == "read_file"
+    ]
     assert read_calls == ["test_validators.py", "validators.py"]
 
 

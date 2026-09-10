@@ -12,5 +12,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install -e .
-      - run: pytest -q
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.4"
+      - run: uv sync --locked --group dev
+      - run: uv run --no-sync ruff check src tests benchmarks/development
+      - run: uv run --no-sync ruff format --check src tests benchmarks/development
+      - run: docker build -t casi-sandbox:latest -f docker/sandbox.Dockerfile .
+      - run: uv run --no-sync pytest -ra
+      - run: uv run --no-sync python -m compileall -q src tests

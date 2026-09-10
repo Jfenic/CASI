@@ -14,22 +14,22 @@ RunnerKind = Literal["docker", "local"]
 
 
 def resolve_test_runner(
-	*,
-	repository: str | Path | None = None,
-	prefer_docker: bool | None = None,
+    *,
+    repository: str | Path | None = None,
+    prefer_docker: bool | None = None,
 ) -> tuple[LocalRunner | DockerRunner, RunnerKind]:
-	"""Return a sandbox runner, preferring Docker when configured and available."""
+    """Return a sandbox runner, preferring Docker when configured and available."""
 
-	use_docker = settings.use_docker_sandbox if prefer_docker is None else prefer_docker
-	if use_docker:
-		project_image = (
-			project_image_if_available(repository) if repository is not None else None
-		)
-		docker_runner = DockerRunner(
-			image=project_image or settings.docker_image,
-			max_output_chars=settings.max_command_output_chars,
-		)
-		if docker_runner.is_available() and docker_runner.image_exists():
-			return docker_runner, "docker"
+    use_docker = settings.use_docker_sandbox if prefer_docker is None else prefer_docker
+    if use_docker:
+        project_image = (
+            project_image_if_available(repository) if repository is not None else None
+        )
+        docker_runner = DockerRunner(
+            image=project_image or settings.docker_image,
+            max_output_chars=settings.max_command_output_chars,
+        )
+        if docker_runner.is_available() and docker_runner.image_exists():
+            return docker_runner, "docker"
 
-	return LocalRunner(max_output_chars=settings.max_command_output_chars), "local"
+    return LocalRunner(max_output_chars=settings.max_command_output_chars), "local"

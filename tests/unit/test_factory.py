@@ -73,7 +73,9 @@ def test_factory_for_task_uses_fix_agent(tmp_path: Path) -> None:
 
 
 def test_factory_uses_profile_max_steps_when_unspecified(tmp_path: Path) -> None:
-    agent = AgentFactory.create(TaskIntent.INSPECT, client=FakeClient([]), repository=tmp_path)
+    agent = AgentFactory.create(
+        TaskIntent.INSPECT, client=FakeClient([]), repository=tmp_path
+    )
     assert agent.loop.max_steps == 8
 
 

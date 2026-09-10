@@ -116,8 +116,12 @@ def test_cli_fix_save_patch_writes_file(tmp_path: Path, capsys, monkeypatch) -> 
         check=True,
         capture_output=True,
     )
-    subprocess.run(["git", "add", "module.py"], cwd=repo, check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "init"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "add", "module.py"], cwd=repo, check=True, capture_output=True
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "init"], cwd=repo, check=True, capture_output=True
+    )
 
     patch_response = (
         "```diff\n"

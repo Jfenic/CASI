@@ -35,8 +35,10 @@ from casi.agent.nudges import (
 from casi.agent.patch_verify import verify_patch_response
 from casi.agent.pipelines import (
     nudge_after_create_pipeline,
+    nudge_after_diagnose_pipeline,
     nudge_after_fix_pipeline,
     nudge_after_pipeline_fallback,
+    run_diagnose_pipeline,
     run_fix_pipeline,
     run_repository_pipeline,
 )
@@ -206,6 +208,8 @@ class AgentLoop:
     def _in_mutation_workflow(self, active: _ActiveTask) -> bool:
         """Return whether the task has moved into test or code-change work."""
 
+        if active.intent is TaskIntent.DIAGNOSE:
+            return False
         if is_mutation_intent(active.intent):
             return True
         if task_requests_code_change(active.task_context):
@@ -235,6 +239,17 @@ class AgentLoop:
     ) -> list[ToolDefinition]:
         """Stop tool loops once a fix has enough repository context."""
 
+        if intent is TaskIntent.DIAGNOSE:
+            if (
+                self.conversation.tool_was_used("run_tests")
+                and self.conversation.read_file_paths()
+            ):
+                return [tool for tool in tools if tool.name == "read_file"]
+            return [
+                tool
+                for tool in tools
+                if tool.name not in {"validate_patch", "propose_file", "apply_patch"}
+            ]
         if mutation_workflow or is_mutation_intent(intent):
             if (
                 self.conversation.tool_was_used("run_tests")
@@ -293,7 +308,9 @@ class AgentLoop:
         )
         self.conversation.append("user", task)
 
-        if task_requests_code_change(task_context):
+        if active.intent is TaskIntent.DIAGNOSE:
+            self._bootstrap_diagnose_workflow(task_context, active.retries)
+        elif task_requests_code_change(task_context):
             self._bootstrap_code_change_workflow(task_context, active.retries)
         elif self._should_prefetch_repository(intent, task_context, False):
             self._notify_activity("Inspecting repository before first model call...")
@@ -608,7 +625,7 @@ class AgentLoop:
             return max(self.max_steps, settings.fix_max_steps)
         if intent is TaskIntent.CREATE:
             return max(self.max_steps, settings.create_max_steps)
-        if intent is TaskIntent.FIX:
+        if intent in {TaskIntent.FIX, TaskIntent.ML}:
             return max(self.max_steps, settings.fix_max_steps)
         return self.max_steps
 
@@ -621,6 +638,8 @@ class AgentLoop:
         if self.routing_mode is RoutingMode.OFF:
             return False
         if continuing_after_clarification:
+            return False
+        if intent is TaskIntent.DIAGNOSE:
             return False
         if (
             is_mutation_intent(intent)
@@ -703,9 +722,49 @@ class AgentLoop:
                 execute,
                 repository_path=self.registry.repository_path,
             )
-            nudge = nudge_after_pipeline_fallback(intent)
+            if intent is TaskIntent.DIAGNOSE:
+                nudge = nudge_after_diagnose_pipeline()
+            else:
+                nudge = nudge_after_pipeline_fallback(intent)
         retries.pipeline_fallbacks += 1
         self.conversation.append("user", nudge.user_message)
+
+    def _bootstrap_diagnose_workflow(
+        self,
+        task_context: str,
+        retries: RetryBudget,
+    ) -> None:
+        """Run tests and load failure context before diagnosis."""
+
+        if self.conversation.tool_was_used("run_tests"):
+            return
+
+        self._notify_activity("Running tests before diagnosis...")
+        result = self.conversation.execute_tool(
+            "run_tests",
+            {},
+            require_confirmation=False,
+        )
+        if self.trace is not None:
+            self.trace.record_tool_result(
+                "run_tests",
+                success=result.success,
+                output=result.output or result.error or "",
+                metadata=result.metadata,
+            )
+
+        test_output = result.output or result.error or ""
+        if not test_output.strip():
+            return
+
+        run_diagnose_pipeline(
+            task_context,
+            self._execute_pipeline_tool,
+            repository_path=self.registry.repository_path,
+            test_output=test_output,
+        )
+        retries.pipeline_fallbacks += 1
+        self.conversation.append("user", nudge_after_diagnose_pipeline().user_message)
 
     def _bootstrap_code_change_workflow(
         self,
@@ -836,6 +895,8 @@ class AgentLoop:
         *,
         mutation_workflow: bool,
     ) -> bool:
+        if active.intent is TaskIntent.DIAGNOSE:
+            return False
         if extract_patch(content) is not None:
             return False
         if not self._tests_still_failing():

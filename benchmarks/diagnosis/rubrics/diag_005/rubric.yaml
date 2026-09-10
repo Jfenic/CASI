@@ -1,0 +1,18 @@
+file: validator.py
+line:
+  min: 6
+  max: 8
+cause:
+  any: ["@", "at sign", "dot only", "only checks", "missing at", "incomplete"]
+evidence:
+  any: ['"." in email', "in email", "dot", "is_valid_email"]
+max_words: 40
+forbidden:
+  - "```diff"
+  - "propose_file"
+  - "apply_patch"
+required_fields:
+  - file
+  - line
+  - cause
+  - evidence

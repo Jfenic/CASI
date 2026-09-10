@@ -1,0 +1,20 @@
+id: ml_002
+name: train_test_split
+repository: train_test_split
+category: ml
+capability: data_splitting
+difficulty: basic
+instruction: Fix train_test_split in split.py. Shuffle a copy of the input with the
+  given seed before splitting. test_fraction is the fraction held out for test
+  (between 0 and 1). Return (train, test) lists that partition the shuffled items
+  without overlap. Never mutate the original input list. Keep existing tests passing.
+  Modify only split.py.
+allowed_files:
+- split.py
+grader: ../graders/train_test_split
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

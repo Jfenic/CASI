@@ -1,0 +1,18 @@
+file: counter.py
+line:
+  min: 8
+  max: 10
+cause:
+  any: ["0", "zero", "+= 0", "does not increment", "never changes", "not increment"]
+evidence:
+  any: ["increment", "_value", "+= 0", "+ 0"]
+max_words: 40
+forbidden:
+  - "```diff"
+  - "propose_file"
+  - "apply_patch"
+required_fields:
+  - file
+  - line
+  - cause
+  - evidence

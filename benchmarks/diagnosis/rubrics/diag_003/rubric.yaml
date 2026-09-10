@@ -1,0 +1,18 @@
+file: sorter.py
+line:
+  min: 4
+  max: 6
+cause:
+  any: ["reverse", "descending", "desc", "wrong order", "backwards"]
+evidence:
+  any: ["reverse", "sort_asc", "sorted"]
+max_words: 40
+forbidden:
+  - "```diff"
+  - "propose_file"
+  - "apply_patch"
+required_fields:
+  - file
+  - line
+  - cause
+  - evidence

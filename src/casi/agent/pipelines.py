@@ -236,6 +236,27 @@ def run_fix_pipeline(
     )
 
 
+def run_diagnose_pipeline(
+    context: str,
+    execute: ToolExecutor,
+    *,
+    repository_path: str | Path,
+    test_output: str | None = None,
+) -> list[str]:
+    """Run tests and load failing source files for bounded diagnosis tasks."""
+
+    if test_output is None:
+        result = execute("run_tests", {})
+        if not result.success:
+            test_output = result.output or result.error or ""
+    return run_fix_pipeline(
+        context,
+        execute,
+        repository_path=repository_path,
+        test_output=test_output,
+    )
+
+
 def run_repository_pipeline(
     intent: TaskIntent,
     context: str,
@@ -248,6 +269,9 @@ def run_repository_pipeline(
     if intent == TaskIntent.OVERVIEW:
         run_overview_pipeline(execute)
         return
+    if intent == TaskIntent.DIAGNOSE:
+        run_diagnose_pipeline(context, execute, repository_path=repository_path)
+        return
     if intent in {TaskIntent.INSPECT, TaskIntent.UNKNOWN}:
         if extract_search_targets(context):
             run_inspect_pipeline(context, execute, repository_path=repository_path)
@@ -257,7 +281,7 @@ def run_repository_pipeline(
     if intent == TaskIntent.GIT_STATUS:
         run_git_status_pipeline(execute)
         return
-    if intent in {TaskIntent.FIX, TaskIntent.CREATE}:
+    if intent in {TaskIntent.FIX, TaskIntent.ML, TaskIntent.CREATE}:
         run_fix_pipeline(context, execute, repository_path=repository_path)
 
 
@@ -269,6 +293,18 @@ def nudge_after_fix_pipeline() -> ResponseNudge:
             "propose_file with the repository-relative source path and the complete "
             "corrected file content. CASI will generate the unified diff; do not "
             "write the diff yourself."
+        ),
+    )
+
+
+def nudge_after_diagnose_pipeline() -> ResponseNudge:
+    return ResponseNudge(
+        user_message=(
+            f"{PIPELINE_FALLBACK_PREFIX} 'diagnose' loaded failing tests and source "
+            "files. Use the tool results already in the conversation. Reply with one "
+            "final JSON response only. The content must be a JSON object with keys "
+            "file, line, cause, and evidence. Do not call propose_file, apply_patch, "
+            "or include diffs."
         ),
     )
 

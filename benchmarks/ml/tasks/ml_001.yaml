@@ -1,0 +1,19 @@
+id: ml_001
+name: classification_metrics
+repository: classification_metrics
+category: ml
+capability: evaluation_metrics
+difficulty: basic
+instruction: Fix accuracy, precision, recall, and f1_score in metrics.py. Labels are
+  binary (0 or 1). Use the usual definitions from TP/FP/FN/TN. When precision and
+  recall are both zero, f1_score must return 0.0. Do not mutate the input lists.
+  Keep existing tests passing. Modify only metrics.py.
+allowed_files:
+- metrics.py
+grader: ../graders/classification_metrics
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

@@ -1,0 +1,20 @@
+id: ml_003
+name: standardize
+repository: standardize
+category: ml
+capability: preprocessing
+difficulty: intermediate
+instruction: Fix standardize in normalize.py. Each row is a feature vector of equal
+  length. Per feature, subtract the mean and divide by the sample standard deviation
+  (ddof=1). Constant features (zero variance) must become all zeros. Return a new
+  list of rows; do not mutate the input. Keep existing tests passing. Modify only
+  normalize.py.
+allowed_files:
+- normalize.py
+grader: ../graders/standardize
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

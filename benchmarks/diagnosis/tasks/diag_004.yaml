@@ -1,0 +1,14 @@
+id: diag_004
+name: stats_mean
+repository: stats_mean
+category: diagnose
+capability: failure_analysis
+difficulty: intermediate
+instruction: >
+  Tests are failing in this repository. Use tools to inspect the failure.
+  Do NOT modify files, call propose_file, apply_patch, or include diffs.
+  Reply with one final JSON response only. Put a JSON object in content with keys
+  file, line, cause, and evidence. Keep cause and evidence short and grounded in
+  code you read.
+response_grader: ../rubrics/diag_004
+max_steps: 10

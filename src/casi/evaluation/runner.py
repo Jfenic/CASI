@@ -21,6 +21,7 @@ from casi.evaluation.benchmark import (
     BenchmarkTask,
     BenchmarkTaskResult,
 )
+from casi.evaluation.diagnosis import grade_diagnosis_task
 from casi.evaluation.grading import grade_task
 from casi.evaluation.progress import (
     emit_model_header,
@@ -115,8 +116,10 @@ def resolve_benchmark_max_steps(task: BenchmarkTask) -> int:
 
     if task.category == "create":
         return max(task.max_steps, settings.create_max_steps)
-    if task.category == "fix":
+    if task.category in {"fix", "ml"}:
         return max(task.max_steps, settings.fix_max_steps)
+    if task.category == "diagnose":
+        return max(task.max_steps, 10)
     return task.max_steps
 
 
@@ -130,7 +133,9 @@ def evaluate_task_success(
 
     if task.grader_directory is not None:
         return agent_success and command_success is True
-    if task.category in {"inspect", "read", "search"}:
+    if task.response_grader_directory is not None:
+        return agent_success and command_success is True
+    if task.category in {"inspect", "read", "search", "diagnose"}:
         # Read-only tasks may run on repos with intentionally failing tests.
         return agent_success
     if command_success is not None:
@@ -199,6 +204,10 @@ def run_task(
         agent_success = result.success
         agent_error = result.error
 
+        if task.category == "diagnose" and outcome.patch is not None:
+            agent_success = False
+            agent_error = "Diagnosis tasks must not include patches or file proposals."
+
         out_of_scope = set(outcome.patch_files) - set(task.allowed_files)
         scope_rejected = bool(task.allowed_files and out_of_scope)
         if scope_rejected:
@@ -247,6 +256,25 @@ def run_task(
                 verification_runner = "unavailable"
             if not command_success and not agent_error:
                 agent_error = "Independent verification failed: " + verification_output
+        elif task.response_grader_directory is not None:
+            try:
+                grade = grade_diagnosis_task(
+                    result.response,
+                    grader_directory=task.response_grader_directory,
+                )
+                verification_runner = "rubric"
+                if grade.passed:
+                    command_success = True
+                    verification_output = "diagnosis rubric passed"
+                else:
+                    command_success = False
+                    verification_output = "; ".join(grade.reasons)
+            except (RuntimeError, ValueError, OSError) as exc:
+                command_success = False
+                verification_output = str(exc)
+                verification_runner = "unavailable"
+            if not command_success and not agent_error:
+                agent_error = "Diagnosis grading failed: " + verification_output
         else:
             command_success = (
                 run_success_command(task, repository) if task.success_command else None

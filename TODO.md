@@ -42,7 +42,7 @@ Lista priorizada de próximos pasos del proyecto.
 - [x] Registrar en la traza cada cambio de estrategia, herramienta solicitada, permiso concedido o rechazado y motivo de escalada.
 - [x] Añadir pruebas donde una petición inicialmente ambigua termina necesitando tests o una modificación.
 - [x] Crear fixtures end-to-end reproducibles para correcciones reales con Ollama.
-- [ ] Cubrir recuperación ante JSON inválido, herramientas rechazadas, diffs mal formados y parches que no pasan tests.
+- [x] Cubrir recuperación ante JSON inválido, herramientas rechazadas, diffs mal formados y parches que no pasan tests.
 - [x] Clasificar por separado fallos del código, dependencias, Docker, timeout y formato del modelo.
 - [x] Evitar el fallback local silencioso para repositorios no confiables; exigir una decisión explícita.
 - [x] Endurecer `sandbox.Dockerfile` con usuario no root y límites adicionales de procesos.
@@ -58,7 +58,7 @@ Lista priorizada de próximos pasos del proyecto.
 
 ## Calidad y seguridad
 
-- [ ] Añadir detección de repeticiones y límites de archivos leídos en el agente.
+- [x] Añadir detección de repeticiones y límites de archivos leídos en el agente.
 - [x] Ampliar benchmarks a 20+ tareas reproducibles con repositorios de prueba.
 - [x] Corregir `git_diff` para rechazar directorios no-Git situados dentro de otro repositorio.
 
@@ -87,7 +87,7 @@ Lista priorizada de próximos pasos del proyecto.
 
 ## Cierre de cada hito
 
-- [x] Ejecutar la suite completa de pruebas (272 passed, 2 skipped).
+- [x] Ejecutar la suite completa de pruebas (291 passed, 2 skipped).
 - [x] Ejecutar `python3 -m compileall -q src tests`.
 - [x] Ejecutar `git diff --check`.
 - [x] Actualizar `README.md`, `planning.md` y `docs/implementation-tracker.md`.

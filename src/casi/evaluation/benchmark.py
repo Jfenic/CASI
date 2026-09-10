@@ -26,6 +26,7 @@ class BenchmarkTask:
     difficulty: str = "unspecified"
     allowed_files: tuple[str, ...] = ()
     grader_directory: Path | None = None
+    response_grader_directory: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -109,6 +110,17 @@ def load_tasks(tasks_dir: str | Path) -> list[BenchmarkTask]:
                     f"grader requires an existing directory and allowed_files: {path}"
                 )
 
+        response_grader_directory = None
+        if data.get("response_grader"):
+            response_grader_directory = (
+                path.parent / str(data["response_grader"])
+            ).resolve()
+            rubric_path = response_grader_directory / "rubric.yaml"
+            if not response_grader_directory.is_dir() or not rubric_path.is_file():
+                raise ValueError(
+                    f"response_grader requires rubric.yaml: {path}"
+                )
+
         tasks.append(
             BenchmarkTask(
                 task_id=task_id,
@@ -121,6 +133,7 @@ def load_tasks(tasks_dir: str | Path) -> list[BenchmarkTask]:
                 difficulty=str(data.get("difficulty", "unspecified")),
                 allowed_files=tuple(allowed_files),
                 grader_directory=grader_directory,
+                response_grader_directory=response_grader_directory,
                 success_command=[str(part) for part in success_command],
             )
         )

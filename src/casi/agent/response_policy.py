@@ -94,7 +94,8 @@ class ResponsePolicy:
             return nudge_for_repository_deferral()
 
         if (
-            response_missing_required_patch(
+            intent is not TaskIntent.DIAGNOSE
+            and response_missing_required_patch(
                 content,
                 task_context,
                 repository_inspected=repository_inspected,

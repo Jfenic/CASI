@@ -66,6 +66,19 @@ def test_resolve_task_intent_routes_create_requests() -> None:
     assert resolve_task_intent("Fix bug", category="fix") is TaskIntent.FIX
 
 
+def test_resolve_task_intent_routes_diagnose_category() -> None:
+    assert resolve_task_intent("Find the bug", category="diagnose") is TaskIntent.DIAGNOSE
+
+
+def test_resolve_task_intent_routes_ml_category_and_keywords() -> None:
+    assert resolve_task_intent("Fix metrics", category="ml") is TaskIntent.ML
+    assert (
+        resolve_task_intent("Fix precision and recall in metrics.py")
+        is TaskIntent.ML
+    )
+    assert resolve_task_intent("Fix pagination bug") is TaskIntent.FIX
+
+
 def test_build_task_context_includes_recent_user_messages() -> None:
     from casi.llm.base import ChatMessage
 

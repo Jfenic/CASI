@@ -113,6 +113,14 @@ _CREATE_REQUEST_PATTERN = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 
+_ML_PATTERN = re.compile(
+    r"\b(?:machine learning|ml|modelo|model|entrenamiento|training|"
+    r"precision|recall|f1|accuracy|confusion|one[- ]hot|onehot|"
+    r"standardiz|normaliz|minibatch|mini-batch|train[_ ]test|"
+    r"split|dataset|features?|labels?|métrica|metrica|métricas|metricas)\b",
+    re.IGNORECASE,
+)
+
 _PLAN_RECALL_PATTERN = re.compile(
     r"\b(?:dime|muestra|muéstrame|muestrame|ver|recuerda|recuerdame|recuérdame|"
     r"cual|cuál|que|qué|what)\b.{0,40}\b(?:plan|planes|pasos|estrategia|"
@@ -153,8 +161,10 @@ class TaskIntent(StrEnum):
     META = "meta"
     OVERVIEW = "overview"
     INSPECT = "inspect"
+    DIAGNOSE = "diagnose"
     GIT_STATUS = "git_status"
     FIX = "fix"
+    ML = "ml"
     CREATE = "create"
     RECALL_PLAN = "recall_plan"
     PRESENT = "present"
@@ -273,6 +283,10 @@ def resolve_task_intent(
 
     if category == "create":
         return TaskIntent.CREATE
+    if category == "ml":
+        return TaskIntent.ML
+    if category == "diagnose":
+        return TaskIntent.DIAGNOSE
     if category == "fix":
         return TaskIntent.FIX
 
@@ -281,6 +295,8 @@ def resolve_task_intent(
         return intent
     if task_requests_create(context):
         return TaskIntent.CREATE
+    if _ML_PATTERN.search(context) and task_requests_code_change(context):
+        return TaskIntent.ML
     if task_requests_code_change(context):
         return TaskIntent.FIX
     return intent
@@ -289,7 +305,7 @@ def resolve_task_intent(
 def is_mutation_intent(intent: TaskIntent) -> bool:
     """Return whether the intent requires tests, patches, or new file creation."""
 
-    return intent in {TaskIntent.FIX, TaskIntent.CREATE}
+    return intent in {TaskIntent.FIX, TaskIntent.ML, TaskIntent.CREATE}
 
 
 def is_fast_path_intent(intent: TaskIntent) -> bool:
@@ -310,8 +326,10 @@ def intent_supports_pipeline(intent: TaskIntent) -> bool:
         TaskIntent.UNKNOWN,
         TaskIntent.OVERVIEW,
         TaskIntent.INSPECT,
+        TaskIntent.DIAGNOSE,
         TaskIntent.GIT_STATUS,
         TaskIntent.FIX,
+        TaskIntent.ML,
         TaskIntent.CREATE,
     }
 
@@ -336,9 +354,11 @@ def should_defer_clarification(
         return True
     if intent in {
         TaskIntent.INSPECT,
+        TaskIntent.DIAGNOSE,
         TaskIntent.OVERVIEW,
         TaskIntent.GIT_STATUS,
         TaskIntent.FIX,
+        TaskIntent.ML,
         TaskIntent.CREATE,
         TaskIntent.RECALL_PLAN,
         TaskIntent.PRESENT,

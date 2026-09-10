@@ -80,6 +80,32 @@ PROFILES: dict[TaskIntent, AgentProfile] = {
         ),
         max_steps=8,
     ),
+    TaskIntent.DIAGNOSE: AgentProfile(
+        objective=TaskIntent.DIAGNOSE,
+        name="diagnose",
+        role="Failure Diagnosis Specialist",
+        mission=(
+            "Find the root cause of failing tests and report it in bounded JSON "
+            "without modifying the repository."
+        ),
+        prompt_instructions=_instructions(
+            "You are the failure diagnosis specialist.",
+            "Call run_tests first, then read_file on failing source and test files.",
+            (
+                "Do not call propose_file or apply_patch; diagnosis tasks are "
+                "read-only."
+            ),
+            (
+                "Reply with one final JSON response. Put a JSON object in content "
+                "with keys file, line, cause, and evidence."
+            ),
+            (
+                "Keep cause and evidence short and grounded in code you inspected "
+                "(symbol, expression, or operator)."
+            ),
+        ),
+        max_steps=10,
+    ),
     TaskIntent.GIT_STATUS: AgentProfile(
         objective=TaskIntent.GIT_STATUS,
         name="git_status",
@@ -110,6 +136,35 @@ PROFILES: dict[TaskIntent, AgentProfile] = {
             ),
         ),
         max_steps=12,
+    ),
+    TaskIntent.ML: AgentProfile(
+        objective=TaskIntent.ML,
+        name="ml",
+        role="Machine Learning Fix Specialist",
+        mission=(
+            "Repair ML utilities (metrics, splits, preprocessing, batching, "
+            "encoding) so tests pass with correct numerical behavior."
+        ),
+        prompt_instructions=_instructions(
+            "You are the machine learning fix specialist.",
+            "Call run_tests first and read failing source and test files.",
+            (
+                "Check metric formulas (precision/recall denominators, empty "
+                "classes), data leakage in splits, seed reproducibility, "
+                "sample vs population std (ddof=1), zero-variance features, "
+                "batch remainder handling, and one-hot column counts."
+            ),
+            "Never mutate input lists or datasets; return new structures.",
+            (
+                "After inspection, you MUST call propose_file with the "
+                "repository-relative path and complete corrected file content."
+            ),
+            (
+                "Do not hand-write a diff when propose_file is available "
+                "and never call apply_patch."
+            ),
+        ),
+        max_steps=18,
     ),
     TaskIntent.CREATE: AgentProfile(
         objective=TaskIntent.CREATE,

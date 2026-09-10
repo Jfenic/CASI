@@ -1,0 +1,20 @@
+id: ml_005
+name: one_hot
+repository: one_hot
+category: ml
+capability: encoding
+difficulty: basic
+instruction: Fix one_hot_encode in encode.py. Given integer class labels, return a
+  list of rows where each row has a 1 in the column for that label and 0 elsewhere.
+  Columns are ordered 0..num_classes-1 where num_classes is one plus the maximum
+  label value. Empty input returns []. Do not mutate the input. Keep existing tests
+  passing. Modify only encode.py.
+allowed_files:
+- encode.py
+grader: ../graders/one_hot
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

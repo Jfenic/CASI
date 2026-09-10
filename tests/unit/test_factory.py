@@ -26,6 +26,8 @@ class FakeClient:
 
 def test_resolve_profile_accepts_intent_and_name() -> None:
     assert resolve_profile(TaskIntent.FIX).name == "fix"
+    assert resolve_profile(TaskIntent.ML).name == "ml"
+    assert resolve_profile(TaskIntent.DIAGNOSE).name == "diagnose"
     assert resolve_profile(TaskIntent.CREATE).name == "create"
     assert resolve_profile("inspect").objective is TaskIntent.INSPECT
 

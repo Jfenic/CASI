@@ -1,0 +1,19 @@
+id: ml_004
+name: minibatch
+repository: minibatch
+category: ml
+capability: batching
+difficulty: basic
+instruction: Fix iterate_minibatches in batches.py. Yield consecutive slices of the
+  input list with the given batch_size. The final batch may be smaller. When
+  batch_size is invalid, raise ValueError. Never mutate the input list. Keep existing
+  tests passing. Modify only batches.py.
+allowed_files:
+- batches.py
+grader: ../graders/minibatch
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

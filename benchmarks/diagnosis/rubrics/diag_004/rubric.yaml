@@ -1,0 +1,18 @@
+file: stats.py
+line:
+  min: 6
+  max: 8
+cause:
+  any: ["- 1", "minus 1", "subtract", "subtracts", "off by one", "too low"]
+evidence:
+  any: ["- 1.0", "- 1", "mean", "sum"]
+max_words: 40
+forbidden:
+  - "```diff"
+  - "propose_file"
+  - "apply_patch"
+required_fields:
+  - file
+  - line
+  - cause
+  - evidence

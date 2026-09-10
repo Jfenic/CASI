@@ -64,7 +64,8 @@ Estado rapido del proyecto y de las partes ya implementadas.
 - [x] Run the real Ollama repair fixture (`OLLAMA_E2E=1`) and require a patch with passing isolated test verification.
 - [x] Improve repair reliability using the failures measured in the 26-task benchmark.
 - [x] Re-run the 26-task benchmark after P2 fixes; `task_007` passes, `task_023` and new `task_017` failure documented.
-- [ ] Turn documented benchmark failures into targeted regressions and improve CREATE/fix reliability.
+- [x] Turn documented benchmark failures into targeted regressions and improve CREATE/fix reliability.
+- [ ] Re-run benchmarks to measure impact on `task_017`, `task_023`, and the development suite.
 
 ## Later
 

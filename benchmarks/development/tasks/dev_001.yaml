@@ -1,0 +1,19 @@
+id: dev_001
+name: pagination
+repository: pagination
+category: fix
+capability: boundary_conditions
+difficulty: basic
+instruction: Fix paginate(items, page, page_size) in pagination.py. Pages are one-based;
+  return a new list for the requested page, or [] beyond the end. Nonpositive page
+  or page_size must raise ValueError, even for empty input. Never change the input
+  list. Keep existing tests passing. Modify only pagination.py.
+allowed_files:
+- pagination.py
+grader: ../graders/pagination
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

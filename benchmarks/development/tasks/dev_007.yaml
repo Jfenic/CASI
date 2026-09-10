@@ -1,0 +1,21 @@
+id: dev_007
+name: jsonl_reader
+repository: jsonl_reader
+category: create
+capability: module_creation
+difficulty: intermediate
+instruction: Create reader.py with read_records(text). Parse JSON Lines into a list
+  of dictionaries; ignore whitespace-only lines. Each nonblank line must be a JSON
+  object. Malformed JSON and non-object JSON values raise ValueError whose message
+  contains "line N", with physical line numbers starting at 1 (blank lines count).
+  Do not stop after the first valid record. Use only the standard library. Create
+  only reader.py.
+allowed_files:
+- reader.py
+grader: ../graders/jsonl_reader
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

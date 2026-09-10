@@ -1,0 +1,19 @@
+id: dev_002
+name: boolean_config
+repository: boolean_config
+category: fix
+capability: input_validation
+difficulty: basic
+instruction: 'Fix parse_bool(value, default=False) in config.py. None returns default.
+  Booleans remain unchanged. Strings are stripped and case-insensitive: true/1/yes/on
+  mean True; false/0/no/off mean False. Other strings raise ValueError. Non-string
+  non-bool values raise TypeError. Modify only config.py.'
+allowed_files:
+- config.py
+grader: ../graders/boolean_config
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

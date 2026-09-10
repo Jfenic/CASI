@@ -1,0 +1,20 @@
+id: dev_005
+name: ttl_cache
+repository: ttl_cache
+category: fix
+capability: state_and_time
+difficulty: intermediate
+instruction: Fix Cache in cache.py. Cache(clock) uses an injected seconds clock. set(key,value,ttl)
+  expires at clock()+ttl; get(key,default=None) returns default when absent or now
+  >= expiry. Zero TTL expires immediately, negative TTL raises ValueError without
+  overwriting an existing entry. Overwriting resets expiry; keys are independent.
+  Modify only cache.py.
+allowed_files:
+- cache.py
+grader: ../graders/ttl_cache
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

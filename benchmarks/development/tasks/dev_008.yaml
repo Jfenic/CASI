@@ -1,0 +1,21 @@
+id: dev_008
+name: dependency_order
+repository: dependency_order
+category: create
+capability: algorithm_and_validation
+difficulty: advanced
+instruction: Create dependencies.py with build_order(graph). graph maps string task
+  names to lists of prerequisites. Return each task exactly once after all its prerequisites,
+  including names that appear only as prerequisites. At EVERY step select the lexicographically
+  smallest currently available name. Duplicate prerequisites count once. Empty input
+  gives []. Any cycle, including a self-cycle, raises ValueError. Do not modify graph.
+  Use only the standard library. Create only dependencies.py.
+allowed_files:
+- dependencies.py
+grader: ../graders/dependency_order
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

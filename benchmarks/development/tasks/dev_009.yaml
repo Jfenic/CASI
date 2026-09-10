@@ -1,0 +1,22 @@
+id: dev_009
+name: retry_tests
+repository: retry_tests
+category: create
+capability: test_design
+difficulty: intermediate
+instruction: 'Create test_retry.py containing pytest tests for retry(operation, attempts=3)
+  in retrying.py. Do not change implementation. Contract: return the first successful
+  result without extra calls; retry ONLY RuntimeError; attempts counts total calls;
+  propagate the final RuntimeError after exhaustion; attempts < 1 raises ValueError
+  before calling operation; other exceptions propagate immediately. Use deterministic
+  fake operations, no sleep or network. Include boundary and failure tests that catch
+  broken implementations, not just happy paths. Create only test_retry.py.'
+allowed_files:
+- test_retry.py
+grader: ../graders/retry_tests
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

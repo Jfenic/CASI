@@ -1,0 +1,20 @@
+id: dev_003
+name: csv_totals
+repository: csv_totals
+category: fix
+capability: data_processing
+difficulty: intermediate
+instruction: Fix totals(text) in sales.py. Input is CSV with headers product,quantity
+  and standard CSV quoting. Sum integer quantities per product, including negative
+  adjustments; preserve product names exactly. Ignore completely blank rows. Header-only
+  input returns {}. Invalid integer quantities raise ValueError. Support quoted commas,
+  quoted multiline product names and CRLF. Modify only sales.py.
+allowed_files:
+- sales.py
+grader: ../graders/csv_totals
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

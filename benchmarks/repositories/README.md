@@ -13,3 +13,7 @@ create the missing file with complete content.
 
 Focused fix tasks (`clamp_app`, `repeat_app`, `strip_app`) mirror common repair
 failures: one-line logic bugs and whitespace handling.
+
+The separate [development suite](../development/README.md) adds ten richer tasks
+with independent acceptance checks, reference solutions and mutation scoring for
+test-writing tasks. Run it with its own `--tasks-dir` and `--repos-dir`.

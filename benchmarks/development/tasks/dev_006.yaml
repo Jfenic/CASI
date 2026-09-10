@@ -1,0 +1,19 @@
+id: dev_006
+name: settings_merge
+repository: settings_merge
+category: fix
+capability: regression_and_mutability
+difficulty: intermediate
+instruction: 'Fix merge_settings(defaults, overrides) in settings.py. Recursively
+  merge dictionaries; other override values replace defaults, including None and lists.
+  Return an independent deep copy: mutating nested objects in the result must not
+  change either input. Neither input may be changed while merging. Modify only settings.py.'
+allowed_files:
+- settings.py
+grader: ../graders/settings_merge
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

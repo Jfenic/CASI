@@ -1,0 +1,20 @@
+id: dev_004
+name: invoice_rounding
+repository: invoice_rounding
+category: fix
+capability: business_rules
+difficulty: intermediate
+instruction: Fix invoice_total(lines) in billing.py. Each line is (unit_price_string,
+  nonnegative_integer_quantity). Use Decimal arithmetic. Round EACH line amount to
+  two decimals with ROUND_HALF_UP, then sum. Return a string with exactly two decimals;
+  empty input gives "0.00". Negative quantities raise ValueError. Do not modify lines.
+  Modify only billing.py.
+allowed_files:
+- billing.py
+grader: ../graders/invoice_rounding
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

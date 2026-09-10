@@ -393,6 +393,11 @@ class Conversation:
                 paths.add(match.group(1))
         return paths
 
+    def propose_file_used(self) -> bool:
+        """Return whether propose_file was invoked during this conversation."""
+
+        return self.tool_was_used("propose_file")
+
     def missing_named_file_reads(self, context: str) -> list[str]:
         """Return named files from context that have not been read yet."""
 

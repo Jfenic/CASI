@@ -148,3 +148,22 @@ def test_fix_pipeline_reports_missing_local_module(tmp_path: Path) -> None:
     )
 
     assert missing == ["stats.py"]
+
+
+def test_repair_context_paths_includes_source_from_failed_test(tmp_path: Path) -> None:
+    from casi.agent.pipelines import repair_context_paths
+
+    (tmp_path / "sorter.py").write_text("value = 1\n", encoding="utf-8")
+    (tmp_path / "test_sorter.py").write_text(
+        "from sorter import value\n\ndef test_value():\n    assert value == 2\n",
+        encoding="utf-8",
+    )
+    output = (
+        "FAILED test_sorter.py::test_value - AssertionError\n"
+        "test_sorter.py:4: AssertionError\n"
+    )
+
+    paths = repair_context_paths(output, tmp_path)
+
+    assert "test_sorter.py" in paths
+    assert "sorter.py" in paths

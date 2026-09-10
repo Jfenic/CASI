@@ -48,7 +48,7 @@ Estado rapido del proyecto y de las partes ya implementadas.
 ## Current status
 
 - Release stage: advanced alpha (`0.1.0`); the CLI workflow is usable locally.
-- Latest verification baseline: `272 passed, 2 skipped` on Python 3.12.3 after P2 repair reliability work.
+- Latest verification baseline: `291 passed, 2 skipped` on Python 3.12.3 after guardrails and benchmark regressions.
 - Python compilation, Ruff lint, and Ruff format checks pass.
 - Development dependencies are synchronized with `uv sync --locked --group dev`; CI uses the same lockfile and builds the Docker sandbox before tests.
 - The full suite passes on Python 3.11.15 and 3.12.3; the real Ollama repair fixture passes separately (`1 passed`, 33.08 seconds).

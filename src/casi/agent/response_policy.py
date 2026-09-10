@@ -15,8 +15,11 @@ from casi.agent.nudges import (
     nudge_for_malformed_json,
     nudge_for_missing_patch,
     nudge_for_repository_deferral,
+    nudge_for_unread_failure_sources,
 )
+from casi.agent.pipelines import repair_context_paths
 from casi.agent.responses import is_malformed_json, response_missing_required_patch
+from casi.agent.test_failures import output_reports_failures
 from casi.patching.extract import extract_patch
 
 
@@ -28,7 +31,7 @@ class RetryBudget:
     pipeline_fallbacks: int = 0
     max_format: int = 2
     max_deferral: int = 2
-    max_patch: int = 2
+    max_patch: int = 3
     max_pipeline: int = 1
 
 
@@ -46,6 +49,8 @@ class ResponsePolicy:
         continuing_after_clarification: bool,
         mutation_workflow: bool = False,
         remaining_test_output: str | None = None,
+        read_file_paths: set[str] | None = None,
+        repository_path: str | None = None,
     ) -> ResponseNudge | None:
         if is_malformed_json(content) and retries.format_nudges < retries.max_format:
             retries.format_nudges += 1
@@ -60,6 +65,26 @@ class ResponsePolicy:
         ):
             retries.deferral_nudges += 1
             return nudge_for_fix_without_inspection()
+
+        if (
+            mutation_workflow
+            and extract_patch(content) is None
+            and remaining_test_output
+            and output_reports_failures(remaining_test_output)
+            and read_file_paths is not None
+            and retries.deferral_nudges < retries.max_deferral
+        ):
+            unread = [
+                path
+                for path in repair_context_paths(
+                    remaining_test_output,
+                    repository_path or ".",
+                )
+                if path not in read_file_paths
+            ]
+            if unread:
+                retries.deferral_nudges += 1
+                return nudge_for_unread_failure_sources(unread)
 
         if (
             response_defers_repository_work(content, intent)

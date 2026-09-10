@@ -598,15 +598,8 @@ def test_agent_loop_nudges_when_partial_fix_leaves_other_tests_failing(
         "    assert is_valid_email('user@example.com') is True\n",
         encoding="utf-8",
     )
-    client = FakeClient(
-        [
-            LLMResponse.tool_call("run_tests", {}),
-            LLMResponse.tool_call("read_file", {"path": "validator.py"}),
-            LLMResponse.final("Empty email strings are already rejected."),
-            LLMResponse.final("Empty email strings are already rejected."),
-            LLMResponse.final("Empty email strings are already rejected."),
-        ]
-    )
+    stall = LLMResponse.final("Empty email strings are already rejected.")
+    client = FakeClient([stall] * 12)
 
     result = AgentLoop(
         client,
@@ -614,7 +607,7 @@ def test_agent_loop_nudges_when_partial_fix_leaves_other_tests_failing(
         max_correction_attempts=0,
         require_tool_confirmation=lambda *_args: True,
         routing_mode="off",
-    ).run("Ensure empty email strings are rejected and keep tests passing")
+    ).run("Fix validator so empty email strings are rejected and keep all tests passing")
 
     assert result.success is False
     assert "without a valid patch" in (result.error or "")

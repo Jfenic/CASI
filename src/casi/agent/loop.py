@@ -11,6 +11,7 @@ from casi.agent.conversation import (
     ContextCompactPrompt,
     Conversation,
 )
+from casi.agent.guardrails import read_file_usage, should_block_read_file
 from casi.agent.intent import (
     RoutingMode,
     TaskIntent,
@@ -29,6 +30,7 @@ from casi.agent.nudges import (
     nudge_for_propose_file_failure,
     nudge_for_read_file_instead_of_search,
     nudge_for_repeated_clarification,
+    nudge_for_repeated_read_file,
 )
 from casi.agent.patch_verify import verify_patch_response
 from casi.agent.pipelines import (
@@ -485,6 +487,8 @@ class AgentLoop:
                 continuing_after_clarification=active.continuing_after_clarification,
                 mutation_workflow=mutation_workflow,
                 remaining_test_output=self._last_test_output(),
+                read_file_paths=self.conversation.read_file_paths(),
+                repository_path=str(self.registry.repository_path),
             )
             if nudge is not None:
                 if self.trace is not None:
@@ -779,6 +783,25 @@ class AgentLoop:
                 nudge.user_message,
             )
             return
+
+        if tool_name == "read_file":
+            path = str(response.arguments.get("path", ""))
+            usage = read_file_usage(self.conversation.messages)
+            block_reason = should_block_read_file(
+                path,
+                usage,
+                max_reads_per_file=settings.max_reads_per_file,
+                max_total_reads=settings.max_agent_file_reads,
+            )
+            if block_reason is not None:
+                nudge = nudge_for_repeated_read_file(path, reason=block_reason)
+                if self.trace is not None:
+                    self.trace.record_nudge(f"blocked repeated read_file on {path}")
+                self.conversation.append_nudge(
+                    Conversation.format_tool_call(tool_name, response.arguments),
+                    nudge.user_message,
+                )
+                return
 
         result = self.conversation.execute_tool(tool_name, response.arguments)
         if self.trace is not None:

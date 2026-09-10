@@ -102,6 +102,27 @@ def nudge_for_missing_patch(
     )
 
 
+def nudge_for_unread_failure_sources(paths: list[str]) -> ResponseNudge:
+    joined = ", ".join(paths[:4])
+    return ResponseNudge(
+        user_message=(
+            f"{_PREFIX_FIX_WITHOUT_INSPECTION}. Tests already ran, but the failing "
+            f"source file(s) are not loaded yet: {joined}. "
+            f"Call read_file on each path, then {_PROPOSE_FILE_INSTRUCTION}"
+        ),
+    )
+
+
+def nudge_for_repeated_read_file(path: str, *, reason: str) -> ResponseNudge:
+    return ResponseNudge(
+        user_message=(
+            f"read_file on {path} is not needed again because {reason}. "
+            f"The source is already in the conversation; "
+            f"{_PROPOSE_FILE_INSTRUCTION}"
+        ),
+    )
+
+
 def nudge_for_missing_local_modules(paths: list[str]) -> ResponseNudge:
     joined = ", ".join(paths[:3])
     return ResponseNudge(

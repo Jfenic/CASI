@@ -160,6 +160,25 @@ def run_git_status_pipeline(execute: ToolExecutor) -> None:
     execute("git_diff", {})
 
 
+def repair_context_paths(
+    test_output: str | None,
+    repository_path: str | Path,
+) -> list[str]:
+    """Return test and source paths that repair work should load."""
+
+    if not test_output:
+        return []
+    paths: list[str] = []
+    for path in extract_failure_paths(test_output):
+        if path not in paths:
+            paths.append(path)
+    test_paths = [path for path in paths if Path(path).name.startswith("test_")]
+    for path in _source_paths_imported_by_tests(repository_path, test_paths):
+        if path not in paths:
+            paths.append(path)
+    return paths
+
+
 def run_fix_pipeline(
     context: str,
     execute: ToolExecutor,

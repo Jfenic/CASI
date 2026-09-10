@@ -28,7 +28,8 @@ Lista priorizada de próximos pasos del proyecto.
 - [x] **P1:** medir las 26 tareas: 24/26 correctas; [informe y reproducción](docs/reports/2026-09-09-stabilization.md).
 - [x] **P2:** corregir `task_023` (punto final en iniciales), `task_007` (finalización sin parche) y pérdida de métricas de reintento, con regresiones deterministas.
 - [x] **P2:** completar trazas de estrategia y permisos entre planificador, especialistas y presentador.
-- [ ] **P3:** revisar y publicar los cambios tras cerrar la estabilización.
+- [x] **P3:** revisar y publicar los cambios tras cerrar la estabilización.
+- [ ] **P3:** convertir fallos documentados en regresiones y mejorar fiabilidad CREATE/fix (`task_017`, `task_023`, suite de desarrollo).
 - [ ] **P4:** ampliar ecosistemas y diseñar la interfaz visual.
 
 ## Prioridad inmediata

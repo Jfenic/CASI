@@ -55,14 +55,16 @@ Estado rapido del proyecto y de las partes ya implementadas.
 - The repair flow runs tests, loads failed tests and imported source files, asks the model for complete file content through `propose_file`, rebuilds the diff deterministically, and verifies it on an isolated copy.
 - Python dependency environments support `uv.lock`, `poetry.lock`, `requirements.txt`, `requirements-dev.txt`, and `pyproject.toml` through content-addressed Docker images.
 - Interactive diagnostics support `/trace on`, `/last-trace`, and structured JSON export with `/save-trace`.
-- Benchmark baseline (2026-09-09): 24/26 tasks passed (92.31%); fix 11/12, create 2/3. See [stabilization report](reports/2026-09-09-stabilization.md) for failures and reproduction.
-- The local branch is ahead of `origin/main`; publication is pending.
+- Benchmark baseline (2026-09-09): 24/26 tasks passed (92.31%); fix 11/12, create 2/3. See [stabilization report](reports/2026-09-09-stabilization.md).
+- Post-P2 benchmark (2026-09-10): 24/26 still; `task_007` fixed, `task_017` regressed, `task_023` still fails without patch. Development suite: 1/10. See [failure report](reports/2026-09-10-benchmark-failures.md).
+- `main` is published on `origin/main`.
 
 ## In progress
 
 - [x] Run the real Ollama repair fixture (`OLLAMA_E2E=1`) and require a patch with passing isolated test verification.
 - [x] Improve repair reliability using the failures measured in the 26-task benchmark.
-- [ ] Re-run the 26-task benchmark after P2 fixes to confirm `task_007` and `task_023`.
+- [x] Re-run the 26-task benchmark after P2 fixes; `task_007` passes, `task_023` and new `task_017` failure documented.
+- [ ] Turn documented benchmark failures into targeted regressions and improve CREATE/fix reliability.
 
 ## Later
 

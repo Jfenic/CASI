@@ -1,0 +1,19 @@
+id: ml_006
+name: mse_loss
+repository: mse_loss
+category: ml
+capability: loss_computation
+difficulty: basic
+instruction: Fix mse(y_true, y_pred) in loss.py. Return the mean squared error
+  (average of squared differences). Do not return the root mean squared error.
+  Raise ValueError when the input lengths differ. Empty inputs must return 0.0.
+  Keep existing tests passing. Modify only loss.py.
+allowed_files:
+- loss.py
+grader: ../graders/mse_loss
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

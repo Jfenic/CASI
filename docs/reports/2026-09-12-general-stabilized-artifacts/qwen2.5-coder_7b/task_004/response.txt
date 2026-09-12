@@ -1,0 +1,1 @@
+Los tests en test_lib.py verifican dos behaviors: la función `slugify` y la función `excerpt`. La función `slugify` verifica que 'Hello World' se convierte en 'hello-world'. La función `excerpt` verifica que 'short' se devuelve tal cual y que cualquier texto con más de 50 caracteres se trunca con '...'.

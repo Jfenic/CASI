@@ -1,0 +1,19 @@
+--- a/clamp.py
++++ b/clamp.py
+@@ -2,10 +2,10 @@
+ 
+ 
+ def clamp(value: int, low: int, high: int) -> int:
+-	"""Return value limited to the inclusive range [low, high]."""
++    """Return value limited to the inclusive range [low, high]."""
+ 
+-	if value < low:
+-		return low
+-	if value > high:
+-		return high
+-	return value + 1
++    if value < low:
++        return low
++    if value > high:
++        return high
++    return value

@@ -47,37 +47,28 @@ Estado rapido del proyecto y de las partes ya implementadas.
 
 ## Current status
 
-- Release stage: advanced alpha (`0.1.0`); the CLI workflow is usable locally.
-- Latest verification baseline: `291 passed, 2 skipped` on Python 3.12.3 after guardrails and benchmark regressions.
-- Python compilation, Ruff lint, and Ruff format checks pass.
-- Development dependencies are synchronized with `uv sync --locked --group dev`; CI uses the same lockfile and builds the Docker sandbox before tests.
-- The full suite passes on Python 3.11.15 and 3.12.3; the real Ollama repair fixture passes separately (`1 passed`, 33.08 seconds).
-- The repair flow runs tests, loads failed tests and imported source files, asks the model for complete file content through `propose_file`, rebuilds the diff deterministically, and verifies it on an isolated copy.
-- Python dependency environments support `uv.lock`, `poetry.lock`, `requirements.txt`, `requirements-dev.txt`, and `pyproject.toml` through content-addressed Docker images.
-- Interactive diagnostics support `/trace on`, `/last-trace`, and structured JSON export with `/save-trace`.
-- Benchmark baseline (2026-09-09): 24/26 tasks passed (92.31%); fix 11/12, create 2/3. See [stabilization report](reports/2026-09-09-stabilization.md).
-- Post-P2 benchmark (2026-09-10): 24/26 still; `task_007` fixed, `task_017` regressed, `task_023` still fails without patch. Development suite: 1/10. See [failure report](reports/2026-09-10-benchmark-failures.md).
-- `main` is published on `origin/main`.
+- Release stage: advanced alpha (`0.1.0`); usable for supervised local work.
+- Verification on 2026-09-12: `319 passed, 2 skipped` on Python 3.12.3, including Docker and API tests. Ruff lint, format, compilation, and `git diff --check` pass.
+- The skipped tests are the opt-in Ollama repair fixture and the Docker-unavailable branch when Docker is present. Two third-party API test deprecation warnings remain.
+- Diagnosis JSON objects now survive parsing, runtime validation, and grading. Invalid prose receives bounded format retries and cannot be reported as a successful diagnosis.
+- Repair nudges use the latest patch-test failure; external traceback paths and installed/standard-library modules no longer produce misleading local-file guidance.
+- Python proposals normalize terminal blank lines. Creation and repair instructions retain the complete user contract, including requirements absent from visible tests.
+- Real-model evaluation on 2026-09-12: diagnosis `4/5`, compared with `0/5` on September 11. General, development, and ML results are recorded in the [stabilization report](reports/2026-09-12-stabilization.md).
+- The September 11 baseline was general `20/26`, development `2/10`, ML `2/5`, diagnosis `0/5`; older `24/26` figures are historical, not the latest baseline.
+- Local fixes and evaluation artifacts still need review and a commit; this document does not assert they have been published.
 
-## In progress
+## Remaining work
 
-- [x] Run the real Ollama repair fixture (`OLLAMA_E2E=1`) and require a patch with passing isolated test verification.
-- [x] Improve repair reliability using the failures measured in the 26-task benchmark.
-- [x] Re-run the 26-task benchmark after P2 fixes; `task_007` passes, `task_023` and new `task_017` failure documented.
-- [x] Turn documented benchmark failures into targeted regressions and improve CREATE/fix reliability.
-- [ ] Re-run benchmarks to measure impact on `task_017`, `task_023`, and the development suite.
-
-## Later
-
+- [ ] Improve model reliability against the independent acceptance checks and remaining diagnosis citation failures.
+- [ ] Investigate the third-party Starlette/httpx/AnyIO deprecation warnings before the next dependency update.
 - [ ] Node.js and additional project ecosystems.
-- [ ] Visual interface after the API contract is stable.
+- [ ] Visual interface; the current API stores tasks in memory.
 
-## Notes
+## Validation notes
 
-- The package supports repository inspection, bounded agent runs, patch validation, sandboxed test verification, and human-approved writes.
-- The source tree uses `src/`, so local development works best with a virtual environment or `uv`.
-- Latest verification: `pytest` reports 261 passed and 2 skipped; Ruff also checks the development fixtures.
-- Ollama verification: server `0.32.11`; model `qwen2.5-coder:7b`, Q4_K_M, 32K context, native tools.
-- `run_tests` and `casi test` prefer a matching project dependency image, then `casi-sandbox:latest`, and require explicit approval for local fallback on untrusted repositories.
-- P2 recovery work: assertion-aware patch nudges, remaining-failure guidance for partial fixes, orchestrator patch-verification propagation, permission/plan trace correlation, and deterministic regressions for `task_007`/`task_023` scenarios.
-- Next milestone: re-run the 26-task benchmark and publish the accumulated local commits.
+The first restricted test run did not finish. An unrestricted run completed with
+one Docker startup timeout. A direct Docker probe and the subsequent complete
+runs passed; the timeout was not reproduced. Local Docker/Ollama verification
+requires access to those services from the execution environment.
+
+See the dated report for commands, benchmark artifacts, and remaining failures.

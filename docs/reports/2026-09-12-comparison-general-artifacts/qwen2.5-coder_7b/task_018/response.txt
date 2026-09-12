@@ -1,0 +1,1 @@
+Search the repository for email validation logic and summarize the current rules.

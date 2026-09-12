@@ -1,0 +1,14 @@
+id: diag_006
+name: nested_stats
+repository: nested_stats
+category: diagnose
+capability: call_stack_diagnosis
+difficulty: intermediate
+instruction: >
+  Tests are failing in this repository. Use tools to inspect the failure.
+  Do NOT modify files, call propose_file, apply_patch, or include diffs.
+  Reply with one final JSON response only. Put a JSON object in content with keys
+  file, line, cause, and evidence. Ground the diagnosis in the implementation
+  that produces the wrong value, not only the failing assertion.
+response_grader: ../rubrics/diag_006
+max_steps: 10

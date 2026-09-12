@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import ast
 import re
+import sys
 from collections.abc import Callable
+from importlib.metadata import packages_distributions
 from pathlib import Path
 
 from casi.agent.intent import TaskIntent, derive_search_queries, extract_search_targets
@@ -32,9 +34,12 @@ def missing_local_module_paths(
 
     repository = Path(repository_path).resolve()
     missing: list[str] = []
+    external_modules = sys.stdlib_module_names | packages_distributions().keys()
 
     def record(module: str) -> None:
         root = module.split(".")[0]
+        if root in external_modules:
+            return
         candidate = Path(root).with_suffix(".py").as_posix()
         package_init = (Path(root) / "__init__.py").as_posix()
         if (repository / candidate).is_file() or (repository / package_init).is_file():
@@ -70,6 +75,47 @@ def missing_local_module_paths(
     return missing
 
 
+def _external_module_roots() -> set[str]:
+    return set(sys.stdlib_module_names) | set(packages_distributions().keys())
+
+
+def _local_module_paths_from_file(
+    repository: Path,
+    relative_path: str,
+) -> list[str]:
+    """Resolve repository-relative paths imported by one Python file."""
+
+    paths: list[str] = []
+    external_modules = _external_module_roots()
+    try:
+        tree = ast.parse((repository / relative_path).read_text(encoding="utf-8"))
+    except (OSError, SyntaxError, UnicodeError):
+        return paths
+
+    modules: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+            modules.append(node.module)
+        elif isinstance(node, ast.Import):
+            modules.extend(alias.name for alias in node.names)
+
+    for module in modules:
+        root = module.split(".")[0]
+        if root in external_modules:
+            continue
+        module_path = Path(*module.split("."))
+        for candidate in (
+            module_path.with_suffix(".py"),
+            module_path / "__init__.py",
+        ):
+            if (repository / candidate).is_file():
+                path = candidate.as_posix()
+                if path not in paths:
+                    paths.append(path)
+                break
+    return paths
+
+
 def _source_paths_imported_by_tests(
     repository_path: str | Path,
     test_paths: list[str],
@@ -81,28 +127,32 @@ def _source_paths_imported_by_tests(
     for relative_path in test_paths:
         if not Path(relative_path).name.startswith("test_"):
             continue
-        try:
-            tree = ast.parse((repository / relative_path).read_text(encoding="utf-8"))
-        except (OSError, SyntaxError, UnicodeError):
-            continue
-        modules: list[str] = []
-        for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
-                modules.append(node.module)
-            elif isinstance(node, ast.Import):
-                modules.extend(alias.name for alias in node.names)
-        for module in modules:
-            module_path = Path(*module.split("."))
-            for candidate in (
-                module_path.with_suffix(".py"),
-                module_path / "__init__.py",
-            ):
-                if (repository / candidate).is_file():
-                    path = candidate.as_posix()
-                    if path not in paths:
-                        paths.append(path)
-                    break
+        for path in _local_module_paths_from_file(repository, relative_path):
+            if path not in paths:
+                paths.append(path)
     return paths
+
+
+def _expand_transitive_local_imports(
+    repository: Path,
+    read_paths: list[str],
+    *,
+    limit: int = 8,
+) -> list[str]:
+    """Follow local imports across modules so multi-file bugs preload the chain."""
+
+    ordered = list(read_paths)
+    seen = set(ordered)
+    queue = [path for path in ordered if path.endswith(".py")]
+    while queue and len(ordered) < limit:
+        current = queue.pop(0)
+        for path in _local_module_paths_from_file(repository, current):
+            if path in seen:
+                continue
+            seen.add(path)
+            ordered.append(path)
+            queue.append(path)
+    return ordered
 
 
 def paths_from_search_output(output: str) -> list[str]:
@@ -170,7 +220,7 @@ def repair_context_paths(
         return []
     paths: list[str] = []
     for path in extract_failure_paths(test_output):
-        if path not in paths:
+        if (Path(repository_path) / path).is_file() and path not in paths:
             paths.append(path)
     test_paths = [path for path in paths if Path(path).name.startswith("test_")]
     for path in _source_paths_imported_by_tests(repository_path, test_paths):
@@ -218,16 +268,22 @@ def run_fix_pipeline(
 
     if not read_paths:
         read_paths.extend(
-            path.as_posix() for path in sorted(repository.glob("test_*.py"))
+            path.relative_to(repository).as_posix()
+            for path in sorted(repository.glob("test_*.py"))
         )
 
-    for path in read_paths[:4]:
+    read_paths = _expand_transitive_local_imports(repository, read_paths)
+
+    for path in read_paths[:8]:
         if (repository / path).is_file():
             execute("read_file", {"path": path})
 
     test_paths = [path for path in read_paths if Path(path).name.startswith("test_")]
     if not test_paths:
-        test_paths = [path.as_posix() for path in sorted(repository.glob("test_*.py"))]
+        test_paths = [
+            path.relative_to(repository).as_posix()
+            for path in sorted(repository.glob("test_*.py"))
+        ]
 
     return missing_local_module_paths(
         repository_path,
@@ -304,7 +360,9 @@ def nudge_after_diagnose_pipeline() -> ResponseNudge:
             "files. Use the tool results already in the conversation. Reply with one "
             "final JSON response only. The content must be a JSON object with keys "
             "file, line, cause, and evidence. Do not call propose_file, apply_patch, "
-            "or include diffs."
+            "or include diffs. Identify the implementation statement causing the "
+            "failure and explain why it disagrees with the expected behavior; "
+            "the failed assertion alone is a symptom, not a root cause."
         ),
     )
 

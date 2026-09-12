@@ -1,0 +1,6 @@
+{
+  "file": "sorter.py",
+  "line": 5,
+  "cause": "The `sort_asc` function returns the list sorted in descending order instead of ascending order.",
+  "evidence": "return sorted(values, reverse=True)"
+}

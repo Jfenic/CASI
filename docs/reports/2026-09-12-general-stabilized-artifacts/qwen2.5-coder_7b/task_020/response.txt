@@ -1,0 +1,19 @@
+--- a/lib.py
++++ b/lib.py
+@@ -2,10 +2,11 @@
+ 
+ 
+ def slugify(text: str) -> str:
+-	return text.strip().lower().replace(" ", "-")
+-
++ """Slugify a given text by stripping, lowercasing, and replacing spaces with hyphens."""
++ return text.strip().lower().replace(" ", "-")
+ 
+ def excerpt(text: str, limit: int = 40) -> str:
+-	if len(text) <= limit:
+-		return text
+-	return text[: limit - 3] + "..."
++ """Extract an excerpt from a text. If the text is longer than the limit, truncate it with an ellipsis."""
++ if len(text) <= limit:
++  return text
++ return text[: limit - 3] + "..."

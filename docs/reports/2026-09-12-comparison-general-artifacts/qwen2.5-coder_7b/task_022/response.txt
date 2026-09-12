@@ -1,0 +1,8 @@
+--- /dev/null
++++ b/palindrome.py
+@@ -0,0 +1,5 @@
++from typing import List
++
++
++def is_palindrome(text: str) -> bool:
++    return text == text[::-1]

@@ -1,0 +1,136 @@
+FF..FFFFFF                                                               [100%]
+=================================== FAILURES ===================================
+_______________________ test_pages[items0-2-2-expected0] _______________________
+
+items = [1, 2, 3, 4, 5], page = 2, size = 2, expected = [3, 4]
+
+    @pytest.mark.parametrize(
+        "items,page,size,expected",
+        [
+            ([1, 2, 3, 4, 5], 2, 2, [3, 4]),
+            ([1, 2, 3], 2, 2, [3]),
+            ([1], 3, 2, []),
+            ([], 1, 3, []),
+            ([1, 2], 1, 10, [1, 2]),
+        ],
+    )
+    def test_pages(items, page, size, expected):
+        before = items.copy()
+        result = paginate(items, page, size)
+>       assert result == expected
+E       assert [5] == [3, 4]
+E         
+E         At index 0 diff: 5 != 3
+E         Right contains one more item: 4
+E         Use -v to get more diff
+
+_benchmark_checks/test_acceptance.py:18: AssertionError
+_______________________ test_pages[items1-2-2-expected1] _______________________
+
+items = [1, 2, 3], page = 2, size = 2, expected = [3]
+
+    @pytest.mark.parametrize(
+        "items,page,size,expected",
+        [
+            ([1, 2, 3, 4, 5], 2, 2, [3, 4]),
+            ([1, 2, 3], 2, 2, [3]),
+            ([1], 3, 2, []),
+            ([], 1, 3, []),
+            ([1, 2], 1, 10, [1, 2]),
+        ],
+    )
+    def test_pages(items, page, size, expected):
+        before = items.copy()
+        result = paginate(items, page, size)
+>       assert result == expected
+E       assert [] == [3]
+E         
+E         Right contains one more item: 3
+E         Use -v to get more diff
+
+_benchmark_checks/test_acceptance.py:18: AssertionError
+______________________ test_pages[items4-1-10-expected4] _______________________
+
+items = [1, 2], page = 1, size = 10, expected = [1, 2]
+
+    @pytest.mark.parametrize(
+        "items,page,size,expected",
+        [
+            ([1, 2, 3, 4, 5], 2, 2, [3, 4]),
+            ([1, 2, 3], 2, 2, [3]),
+            ([1], 3, 2, []),
+            ([], 1, 3, []),
+            ([1, 2], 1, 10, [1, 2]),
+        ],
+    )
+    def test_pages(items, page, size, expected):
+        before = items.copy()
+        result = paginate(items, page, size)
+>       assert result == expected
+E       assert [] == [1, 2]
+E         
+E         Right contains 2 more items, first extra item: 1
+E         Use -v to get more diff
+
+_benchmark_checks/test_acceptance.py:18: AssertionError
+______________________________ test_invalid[0-2] _______________________________
+
+page = 0, size = 2
+
+    @pytest.mark.parametrize("page,size", [(0, 2), (-1, 2), (1, 0), (1, -1)])
+    def test_invalid(page, size):
+>       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE ValueError
+
+_benchmark_checks/test_acceptance.py:25: Failed
+______________________________ test_invalid[-1-2] ______________________________
+
+page = -1, size = 2
+
+    @pytest.mark.parametrize("page,size", [(0, 2), (-1, 2), (1, 0), (1, -1)])
+    def test_invalid(page, size):
+>       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE ValueError
+
+_benchmark_checks/test_acceptance.py:25: Failed
+______________________________ test_invalid[1-0] _______________________________
+
+page = 1, size = 0
+
+    @pytest.mark.parametrize("page,size", [(0, 2), (-1, 2), (1, 0), (1, -1)])
+    def test_invalid(page, size):
+>       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE ValueError
+
+_benchmark_checks/test_acceptance.py:25: Failed
+______________________________ test_invalid[1--1] ______________________________
+
+page = 1, size = -1
+
+    @pytest.mark.parametrize("page,size", [(0, 2), (-1, 2), (1, 0), (1, -1)])
+    def test_invalid(page, size):
+>       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE ValueError
+
+_benchmark_checks/test_acceptance.py:25: Failed
+_______________________________ test_first_page ________________________________
+
+    def test_first_page():
+>       assert paginate([1, 2, 3], 1, 2) == [1, 2]
+E       assert [3] == [1, 2]
+E         
+E         At index 0 diff: 3 != 1
+E         Right contains one more item: 2
+E         Use -v to get more diff
+
+test_visible.py:5: AssertionError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_pages[items0-2-2-expected0]
+FAILED _benchmark_checks/test_acceptance.py::test_pages[items1-2-2-expected1]
+FAILED _benchmark_checks/test_acceptance.py::test_pages[items4-1-10-expected4]
+FAILED _benchmark_checks/test_acceptance.py::test_invalid[0-2] - Failed: DID ...
+FAILED _benchmark_checks/test_acceptance.py::test_invalid[-1-2] - Failed: DID...
+FAILED _benchmark_checks/test_acceptance.py::test_invalid[1-0] - Failed: DID ...
+FAILED _benchmark_checks/test_acceptance.py::test_invalid[1--1] - Failed: DID...
+FAILED test_visible.py::test_first_page - assert [3] == [1, 2]
+8 failed, 2 passed in 0.04s

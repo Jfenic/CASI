@@ -1,0 +1,19 @@
+--- a/lib.py
++++ b/lib.py
+@@ -2,10 +2,12 @@
+ 
+ 
+ def slugify(text: str) -> str:
+-	return text.strip().lower().replace(" ", "-")
++    """Converts a string to a URL-friendly slug."""
++    return text.strip().lower().replace(" ", "-")
+ 
+ 
+ def excerpt(text: str, limit: int = 40) -> str:
+-	if len(text) <= limit:
+-		return text
+-	return text[: limit - 3] + "..."
++    """Extracts an excerpt from a string, limiting it to a specified number of characters."""
++    if len(text) <= limit:
++        return text
++    return text[: limit - 3] + "..."

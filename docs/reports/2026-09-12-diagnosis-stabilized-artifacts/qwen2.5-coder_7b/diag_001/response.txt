@@ -1,0 +1,6 @@
+{
+  "file": "counter.py",
+  "line": 9,
+  "cause": "Incrementing counter by 0 instead of 1",
+  "evidence": "self._value += 0"
+}

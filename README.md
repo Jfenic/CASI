@@ -96,7 +96,7 @@ The default model is `qwen2.5-coder:7b`. Override it with
 Environment variables:
 
 - `LOCALCODE_AGENT_USE_DOCKER` — prefer Docker sandbox for tests (default: `true`).
-- `LOCALCODE_AGENT_MAX_CORRECTION_ATTEMPTS` — patch retry limit after test failures (default: `2`).
+- `LOCALCODE_AGENT_MAX_CORRECTION_ATTEMPTS` — patch retry limit after test failures (default: `4`).
 - `LOCALCODE_AGENT_DOCKER_IMAGE` — sandbox image tag (default: `casi-sandbox:latest`).
 
 Run the benchmark suite:
@@ -152,7 +152,7 @@ environments, caches, `.env` files, private keys, and known credential files.
 The original repository is never mounted into the test container.
 
 When the agent proposes a unified diff, CASI validates it, runs tests on an
-isolated copy, and retries up to two times if tests fail before showing the
+isolated copy, and retries up to four times if tests fail before showing the
 result for human approval.
 
 In interactive mode, a valid unified diff in the model response is displayed with
@@ -182,6 +182,8 @@ OLLAMA_E2E=1 uv run --no-sync pytest tests/integration/test_ollama_repair.py -ra
 This requires a running Ollama server with `qwen2.5-coder:7b` (or the configured
 model). The test requires a proposed patch whose isolated test verification passes.
 
-Latest validation: [P0/P1 stabilization report](docs/reports/2026-09-09-stabilization.md).
+Latest validation: [September 12 stabilization report](docs/reports/2026-09-12-stabilization.md).
+The runtime suite passes, but real-model reliability remains under evaluation;
+see the report for measured success rates and remaining failures.
 
 See also `planning.md`, `TODO.md`, and `docs/implementation-tracker.md`.

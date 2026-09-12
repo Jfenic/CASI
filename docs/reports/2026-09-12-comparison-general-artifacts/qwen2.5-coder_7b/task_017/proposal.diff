@@ -1,0 +1,10 @@
+--- a/sorter.py
++++ b/sorter.py
+@@ -1,5 +1,6 @@
+ """Sort helper."""
+ 
+ 
++
+ def sort_asc(values: list[int]) -> list[int]:
+-	return sorted(values, reverse=True)
++    return sorted(values)

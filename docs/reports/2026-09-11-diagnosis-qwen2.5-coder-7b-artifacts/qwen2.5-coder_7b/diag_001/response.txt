@@ -1,0 +1,1 @@
+El método increment no incrementa el valor. En la línea 9 de counter.py, se tiene self._value += 0, lo que no cambia el valor del contador.

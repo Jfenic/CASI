@@ -49,7 +49,7 @@ def _request_patch_correction(
         kind_label = failure_kind.value if failure_kind is not None else "unknown"
         on_retry(f"patch retry ({kind_label}): {reason} Detail: {detail}")
     conversation.append_nudge(content, nudge.user_message)
-    return None, True
+    return verification, True
 
 
 def verify_patch_response(

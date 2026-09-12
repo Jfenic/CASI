@@ -1,0 +1,13 @@
+Based on the library code in lib.py, here are the public helper functions:
+
+**1. slugify(text: str) -> str**
+- Input: A text string
+- Output: A slugified version of the text (lowercase, spaces replaced with hyphens, leading/trailing whitespace removed)
+- Example: "Hello World" → "hello-world"
+
+**2. excerpt(text: str, limit: int = 40) -> str**
+- Input: A text string and an optional limit integer (default 40 characters)
+- Output: An excerpt of the text, truncated if it exceeds the limit
+- Example: "This is a very long text" → same if ≤40 chars, otherwise truncated to ~37 chars + "."
+
+Both functions are string-processing utilities designed for text manipulation tasks.

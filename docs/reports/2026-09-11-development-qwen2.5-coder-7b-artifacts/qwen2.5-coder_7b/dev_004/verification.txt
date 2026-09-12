@@ -1,0 +1,25 @@
+F...F.                                                                   [100%]
+=================================== FAILURES ===================================
+_________________________ test_round_lines_before_sum __________________________
+
+    def test_round_lines_before_sum():
+>       assert invoice_total([("0.005", 1), ("0.005", 1)]) == "0.02"
+E       AssertionError: assert '0.01' == '0.02'
+E         
+E         - 0.02
+E         ?    ^
+E         + 0.01
+E         ?    ^
+
+_benchmark_checks/test_acceptance.py:6: AssertionError
+____________________________ test_negative_quantity ____________________________
+
+    def test_negative_quantity():
+>       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE ValueError
+
+_benchmark_checks/test_acceptance.py:26: Failed
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_round_lines_before_sum - As...
+FAILED _benchmark_checks/test_acceptance.py::test_negative_quantity - Failed:...
+2 failed, 4 passed in 0.02s

@@ -1,0 +1,11 @@
+--- /dev/null
++++ b/stats.py
+@@ -0,0 +1,8 @@
++from typing import List
++
++
++
++def mean(numbers: List[float]) -> float:
++    if not numbers:
++        return 0.0
++    return sum(numbers) / len(numbers)

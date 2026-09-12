@@ -1,0 +1,1 @@
+Entendí que quieres que inspeccione el repositorio y describa por qué está fallando el test de contador. Llamo al siguiente comando relevante.

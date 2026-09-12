@@ -1,0 +1,6 @@
+{
+  "file": "test_clamp.py",
+  "line": 5,
+  "cause": "AssertionError",
+  "evidence": "assert 8 == 7"
+}

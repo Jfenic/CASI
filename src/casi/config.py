@@ -58,13 +58,12 @@ class Settings:
     fix_max_steps: int = int(os.getenv("LOCALCODE_AGENT_FIX_MAX_STEPS", "12"))
     create_max_steps: int = int(os.getenv("LOCALCODE_AGENT_CREATE_MAX_STEPS", "18"))
     max_agent_file_reads: int = int(os.getenv("LOCALCODE_AGENT_MAX_FILE_READS", "12"))
-    max_reads_per_file: int = int(
-        os.getenv("LOCALCODE_AGENT_MAX_READS_PER_FILE", "2")
-    )
+    max_reads_per_file: int = int(os.getenv("LOCALCODE_AGENT_MAX_READS_PER_FILE", "2"))
     agent_routing_mode: str = os.getenv(
         "LOCALCODE_AGENT_ROUTING_MODE",
         "assist",
     )
+    ollama_think_mode: str = os.getenv("LOCALCODE_AGENT_OLLAMA_THINK", "auto")
 
 
 settings = Settings()

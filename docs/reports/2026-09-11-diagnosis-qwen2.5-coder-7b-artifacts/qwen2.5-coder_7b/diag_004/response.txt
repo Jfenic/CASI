@@ -1,0 +1,1 @@
+The test is failing because the assertion 1.0 == 2.0 is false. The correct value should be 1.5.

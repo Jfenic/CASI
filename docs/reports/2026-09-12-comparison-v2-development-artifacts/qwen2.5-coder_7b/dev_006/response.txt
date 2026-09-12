@@ -1,0 +1,22 @@
+--- a/settings.py
++++ b/settings.py
+@@ -1,4 +1,16 @@
++import copy
++
+ def merge_settings(defaults, overrides):
+-    result = defaults.copy()
+-    result.update(overrides)
+-    return result
++    if isinstance(defaults, dict) and isinstance(overrides, dict):
++        result = defaults.copy()
++        for key, value in overrides.items():
++            if key in result:
++                if isinstance(result[key], dict) and isinstance(value, dict):
++                    result[key] = merge_settings(result[key], value)
++                else:
++                    result[key] = value
++            else:
++                result[key] = value
++        return result
++    else:
++        return overrides

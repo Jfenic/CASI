@@ -1,0 +1,6 @@
+{
+  "file": "validator.py",
+  "line": 7,
+  "cause": "The implementation returns True for 'user.example.com' because it contains a '.', but the expected behavior is False.",
+  "evidence": "is_valid_email('user.example.com') returns True, but the test asserts it should be False."
+}

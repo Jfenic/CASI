@@ -1,0 +1,6 @@
+{
+  "file": "counter.py",
+  "line": 9,
+  "cause": "Increment method does not actually increment the value.",
+  "evidence": "self._value += 0"
+}

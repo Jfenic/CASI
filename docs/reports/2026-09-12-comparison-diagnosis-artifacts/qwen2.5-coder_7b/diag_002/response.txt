@@ -1,0 +1,6 @@
+{
+  "file": "clamp.py",
+  "line": 9,
+  "cause": "Incorrectly increments the value by 1 instead of returning it as is.",
+  "evidence": "return value + 1"
+}

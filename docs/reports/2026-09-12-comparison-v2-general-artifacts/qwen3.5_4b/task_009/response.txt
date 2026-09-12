@@ -1,0 +1,11 @@
+El test `test_divide_by_zero()` está diseñado para validar que `divide(1, 0)` retorne `0`, pero **Python divide por cero** y lanza una excepción de tipo **ZeroDivisionError**. 
+
+La implementación actual simplemente ejecuta la operación `/` directamente sin manejo de errores:
+```python
+def divide(left: int, right: int) -> float:
+    return left / right
+```
+
+Esto causará que el test falle por error cuando se ejecute `divide(1, 0)`. En Python estándar, dividir por cero no es una operación válida y requiere un tratamiento explícito en la implementación si se desea manejar ese caso.
+
+**¿Quieres corregir esto agregando manejo de excepciones?**

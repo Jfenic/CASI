@@ -1,0 +1,7 @@
+--- /dev/null
++++ b/palindrome.py
+@@ -0,0 +1,4 @@
++def is_palindrome(text: str) -> bool:
++    """Check if text reads the same forwards and backwards."""
++    cleaned = text.lower().replace(" ", "").replace("\t", "")
++    return cleaned == cleaned[::-1]

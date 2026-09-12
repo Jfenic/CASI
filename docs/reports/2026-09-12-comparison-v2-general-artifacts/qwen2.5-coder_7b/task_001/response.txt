@@ -1,0 +1,1 @@
+lib.py contains utility functions for text processing, specifically slugify and excerpt.

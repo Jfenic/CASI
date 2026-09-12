@@ -1,0 +1,1 @@
+Comprendo que quieres inspeccionar el repositorio y determinar por qué falla el test de contador. Llamando al tool search_code con el query 'counter test'.

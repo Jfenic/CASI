@@ -1,0 +1,6 @@
+{
+  "file": "stats.py",
+  "line": 7,
+  "cause": "Division by len(values) - 1 instead of len(values)",
+  "evidence": "return sum(values) / len(values) - 1.0"
+}

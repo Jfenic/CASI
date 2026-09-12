@@ -1,0 +1,1 @@
+The test failure is in test_validator.py at line 5. The cause is an AssertionError because is_valid_email('user.example.com') is True, expected False.

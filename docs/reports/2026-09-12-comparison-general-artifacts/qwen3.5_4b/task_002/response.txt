@@ -1,0 +1,9 @@
+The `slugify` function in lib.py transforms input text by:
+
+1. **Stripping whitespace**: Removes leading and trailing spaces using `.strip()`
+2. **Converting to lowercase**: Ensures all characters are lowercase using `.lower()`
+3. **Replacing spaces with hyphens**: Converts internal spaces to dashes using `.replace(" ", "-")`
+
+For example:
+- "Hello World" → "hello-world"
+- "  Python Code  " → "python-code"

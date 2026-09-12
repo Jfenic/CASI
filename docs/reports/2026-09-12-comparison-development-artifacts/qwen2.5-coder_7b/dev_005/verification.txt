@@ -1,0 +1,16 @@
+.F.                                                                      [100%]
+=================================== FAILURES ===================================
+__________________________ test_zero_and_negative_ttl __________________________
+
+    def test_zero_and_negative_ttl():
+        cache = Cache(lambda: 100)
+        cache.set("zero", 5, 0)
+>       assert cache.get("zero") is None
+E       AssertionError: assert 5 is None
+E        +  where 5 = get('zero')
+E        +    where get = <cache.Cache object at 0x7fbec1c96710>.get
+
+_benchmark_checks/test_acceptance.py:23: AssertionError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_zero_and_negative_ttl - Ass...
+1 failed, 2 passed in 0.02s

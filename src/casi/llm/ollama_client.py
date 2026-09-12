@@ -11,6 +11,7 @@ from urllib.request import Request, urlopen
 from casi.config import settings
 from casi.exceptions import LLMError
 from casi.llm.base import ChatMessage, LLMResponse, ToolDefinition
+from casi.llm.ollama_policy import resolve_think_enabled, use_json_tool_protocol
 from casi.llm.parser import parse_response
 from casi.llm.prompts import build_system_prompt
 
@@ -25,11 +26,13 @@ class OllamaClient:
         timeout_seconds: float = settings.ollama_timeout_seconds,
         *,
         role_instructions: str = "",
+        think_mode: str = settings.ollama_think_mode,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.timeout_seconds = timeout_seconds
         self.role_instructions = role_instructions
+        self.think_mode = think_mode
 
     def complete(
         self,
@@ -37,6 +40,9 @@ class OllamaClient:
         tools: Sequence[ToolDefinition],
     ) -> LLMResponse:
         """Request one model decision from Ollama."""
+
+        think_enabled = resolve_think_enabled(self.model, self.think_mode)
+        json_tool_protocol = use_json_tool_protocol(think_enabled=think_enabled)
 
         payload: dict[str, Any] = {
             "model": self.model,
@@ -56,8 +62,9 @@ class OllamaClient:
             ],
             "stream": False,
             "format": "json",
+            "think": think_enabled,
         }
-        if tools:
+        if tools and not json_tool_protocol:
             payload["tools"] = [self._tool_schema(tool) for tool in tools]
 
         response_payload = self._post(payload)
@@ -128,24 +135,38 @@ class OllamaClient:
         if not isinstance(message, dict):
             raise LLMError("Ollama response does not contain a message")
 
+        content = message.get("content")
+        if not isinstance(content, str):
+            content = ""
+
         tool_calls = message.get("tool_calls", [])
+        if tool_calls and content.strip():
+            # Prefer explicit JSON content when the model supplied both.
+            tool_calls = []
+
         if tool_calls:
             return OllamaClient._parse_tool_call(tool_calls)
 
-        content = message.get("content")
-        if not isinstance(content, str):
-            raise LLMError("Ollama message does not contain text content")
-        try:
-            return parse_response(content)
-        except ValueError:
-            structured_response = OllamaClient._parse_content_tool_call(content)
-            if structured_response is not None:
-                return structured_response
+        thinking = message.get("thinking")
+        candidates = [content]
+        if isinstance(thinking, str) and thinking.strip():
+            candidates.append(thinking)
 
-            # Final answers may be plain text when the model does not use tool calls.
-            if content.strip():
-                return LLMResponse.final(content)
-            raise LLMError("Ollama message does not contain usable content") from None
+        last_error: ValueError | None = None
+        for candidate in candidates:
+            if not candidate.strip():
+                continue
+            try:
+                return parse_response(candidate)
+            except ValueError as exc:
+                last_error = exc
+                structured_response = OllamaClient._parse_content_tool_call(candidate)
+                if structured_response is not None:
+                    return structured_response
+                if candidate == content and content.strip():
+                    return LLMResponse.final(content)
+
+        raise LLMError("Ollama message does not contain usable content") from last_error
 
     @staticmethod
     def _parse_content_tool_call(content: str) -> LLMResponse | None:

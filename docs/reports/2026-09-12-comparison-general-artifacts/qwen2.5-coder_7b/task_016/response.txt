@@ -1,0 +1,17 @@
+{"type":"final","content":"La función `strip_lines` está definida en `parser.py` y se utiliza en los tests de `test_parser.py`. La función actualmente retorna las líneas de entrada tal como están, sin realizar ninguna operación de eliminación de espacios en blanco. Se espera que `strip_lines(["  
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    					
+					
+                    					
+                    
+                    					
+                    					
+                    
+                    					
+                    					

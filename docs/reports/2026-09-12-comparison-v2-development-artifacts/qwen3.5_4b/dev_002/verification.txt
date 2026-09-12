@@ -1,0 +1,138 @@
+.....FFFF..FFFFFFFF                                                      [100%]
+=================================== FAILURES ===================================
+_____________________________ test_false[ FALSE ] ______________________________
+
+value = ' FALSE '
+
+    @pytest.mark.parametrize("value", [" FALSE ", "0", "No", "off", False])
+    def test_false(value):
+>       assert parse_bool(value) is False
+E       AssertionError: assert True is False
+E        +  where True = parse_bool(' FALSE ')
+
+_benchmark_checks/test_acceptance.py:12: AssertionError
+________________________________ test_false[0] _________________________________
+
+value = '0'
+
+    @pytest.mark.parametrize("value", [" FALSE ", "0", "No", "off", False])
+    def test_false(value):
+>       assert parse_bool(value) is False
+E       AssertionError: assert True is False
+E        +  where True = parse_bool('0')
+
+_benchmark_checks/test_acceptance.py:12: AssertionError
+________________________________ test_false[No] ________________________________
+
+value = 'No'
+
+    @pytest.mark.parametrize("value", [" FALSE ", "0", "No", "off", False])
+    def test_false(value):
+>       assert parse_bool(value) is False
+E       AssertionError: assert True is False
+E        +  where True = parse_bool('No')
+
+_benchmark_checks/test_acceptance.py:12: AssertionError
+_______________________________ test_false[off] ________________________________
+
+value = 'off'
+
+    @pytest.mark.parametrize("value", [" FALSE ", "0", "No", "off", False])
+    def test_false(value):
+>       assert parse_bool(value) is False
+E       AssertionError: assert True is False
+E        +  where True = parse_bool('off')
+
+_benchmark_checks/test_acceptance.py:12: AssertionError
+______________________________ test_bad_string[] _______________________________
+
+value = ''
+
+    @pytest.mark.parametrize("value", ["", "enabled", "2"])
+    def test_bad_string(value):
+>       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE ValueError
+
+_benchmark_checks/test_acceptance.py:22: Failed
+___________________________ test_bad_string[enabled] ___________________________
+
+value = 'enabled'
+
+    @pytest.mark.parametrize("value", ["", "enabled", "2"])
+    def test_bad_string(value):
+>       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE ValueError
+
+_benchmark_checks/test_acceptance.py:22: Failed
+______________________________ test_bad_string[2] ______________________________
+
+value = '2'
+
+    @pytest.mark.parametrize("value", ["", "enabled", "2"])
+    def test_bad_string(value):
+>       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE ValueError
+
+_benchmark_checks/test_acceptance.py:22: Failed
+_______________________________ test_bad_type[0] _______________________________
+
+value = 0
+
+    @pytest.mark.parametrize("value", [0, 1, [], {}])
+    def test_bad_type(value):
+>       with pytest.raises(TypeError):
+E       Failed: DID NOT RAISE TypeError
+
+_benchmark_checks/test_acceptance.py:28: Failed
+_______________________________ test_bad_type[1] _______________________________
+
+value = 1
+
+    @pytest.mark.parametrize("value", [0, 1, [], {}])
+    def test_bad_type(value):
+>       with pytest.raises(TypeError):
+E       Failed: DID NOT RAISE TypeError
+
+_benchmark_checks/test_acceptance.py:28: Failed
+____________________________ test_bad_type[value2] _____________________________
+
+value = []
+
+    @pytest.mark.parametrize("value", [0, 1, [], {}])
+    def test_bad_type(value):
+>       with pytest.raises(TypeError):
+E       Failed: DID NOT RAISE TypeError
+
+_benchmark_checks/test_acceptance.py:28: Failed
+____________________________ test_bad_type[value3] _____________________________
+
+value = {}
+
+    @pytest.mark.parametrize("value", [0, 1, [], {}])
+    def test_bad_type(value):
+>       with pytest.raises(TypeError):
+E       Failed: DID NOT RAISE TypeError
+
+_benchmark_checks/test_acceptance.py:28: Failed
+______________________________ test_false_setting ______________________________
+
+    def test_false_setting():
+>       assert parse_bool("false") is False
+E       AssertionError: assert True is False
+E        +  where True = parse_bool('false')
+
+test_visible.py:5: AssertionError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_false[ FALSE ] - AssertionE...
+FAILED _benchmark_checks/test_acceptance.py::test_false[0] - AssertionError: ...
+FAILED _benchmark_checks/test_acceptance.py::test_false[No] - AssertionError:...
+FAILED _benchmark_checks/test_acceptance.py::test_false[off] - AssertionError...
+FAILED _benchmark_checks/test_acceptance.py::test_bad_string[] - Failed: DID ...
+FAILED _benchmark_checks/test_acceptance.py::test_bad_string[enabled] - Faile...
+FAILED _benchmark_checks/test_acceptance.py::test_bad_string[2] - Failed: DID...
+FAILED _benchmark_checks/test_acceptance.py::test_bad_type[0] - Failed: DID N...
+FAILED _benchmark_checks/test_acceptance.py::test_bad_type[1] - Failed: DID N...
+FAILED _benchmark_checks/test_acceptance.py::test_bad_type[value2] - Failed: ...
+FAILED _benchmark_checks/test_acceptance.py::test_bad_type[value3] - Failed: ...
+FAILED test_visible.py::test_false_setting - AssertionError: assert True is F...
+12 failed, 7 passed in 0.04s

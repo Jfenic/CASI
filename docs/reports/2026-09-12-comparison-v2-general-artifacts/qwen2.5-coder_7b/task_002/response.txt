@@ -1,0 +1,1 @@
+The `slugify` function in `lib.py` transforms input text by stripping any leading or trailing whitespace, converting all characters to lowercase, and replacing spaces with hyphens. For example, the input ' Hello World ' would be transformed to 'hello-world'.

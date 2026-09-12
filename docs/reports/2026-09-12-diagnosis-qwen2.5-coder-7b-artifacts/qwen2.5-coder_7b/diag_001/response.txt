@@ -1,0 +1,6 @@
+{
+  "file": "test_counter.py",
+  "line": 8,
+  "cause": "AssertionError",
+  "evidence": "assert counter.value() == 2"
+}

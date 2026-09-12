@@ -1,0 +1,22 @@
+.F.                                                                      [100%]
+=================================== FAILURES ===================================
+__________________________ test_zero_and_negative_ttl __________________________
+
+    def test_zero_and_negative_ttl():
+        cache = Cache(lambda: 100)
+>       cache.set("zero", 5, 0)
+
+_benchmark_checks/test_acceptance.py:22: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <cache.Cache object at 0x7fd5902be090>, key = 'zero', value = 5, ttl = 0
+
+    def set(self, key, value, ttl):
+        if ttl <= 0:
+>           raise ValueError("Negative TTL")
+E           ValueError: Negative TTL
+
+cache.py:8: ValueError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_zero_and_negative_ttl - Val...
+1 failed, 2 passed in 0.02s

@@ -1,0 +1,8 @@
+--- a/repeat.py
++++ b/repeat.py
+@@ -4,4 +4,4 @@
+ def repeat(text: str, times: int) -> str:
+ 	"""Return text repeated the requested number of times."""
+ 
+-	return text
++	return text * times

@@ -1,0 +1,8 @@
+--- a/test_visible.py
++++ b/test_visible.py
+@@ -6,4 +6,4 @@
+     result = standardize(rows)
+     for col in range(2):
+         column = [row[col] for row in result]
+-        assert abs(sum(column) / len(column)) < 1e-9
++        assert abs(sum(column) / len(column)) < 1e-9  # Corrected assertion

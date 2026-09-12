@@ -1,0 +1,6 @@
+{
+  "file": "validator.py",
+  "line": 5,
+  "cause": "AssertionError",
+  "evidence": "is_valid_email('user.example.com') returns True instead of False"
+}

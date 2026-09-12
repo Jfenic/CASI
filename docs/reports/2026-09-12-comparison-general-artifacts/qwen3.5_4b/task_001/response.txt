@@ -1,0 +1,1 @@
+"This repository contains two Python files:\n\n1. **lib.py** - Main source module with the core functionality and utilities\n2. **test_lib.py** - Test file for validating the library's behavior\n\nThe repository follows a simple structure with one production module and its corresponding test suite."

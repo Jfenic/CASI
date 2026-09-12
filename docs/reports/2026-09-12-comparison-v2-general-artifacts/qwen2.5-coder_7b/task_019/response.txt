@@ -1,0 +1,1 @@
+The `math_ops.py` file contains two functions, `add` and `divide`. There are also two test functions in the `test_math_ops.py` file, `test_addition` and `test_divide_by_zero`, which assert that the `add` and `divide` functions work correctly. However, the `test_divide_by_zero` function has a bug because it asserts that dividing 1 by 0 equals 0, which is incorrect.

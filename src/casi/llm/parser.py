@@ -17,6 +17,9 @@ def _extract_final_content(payload: dict[str, Any]) -> str | None:
     parts: list[str] = []
     for key in _FINAL_CONTENT_KEYS:
         value = payload.get(key)
+        if key == "content" and isinstance(value, dict) and value:
+            parts.append(json.dumps(value, ensure_ascii=False))
+            break
         if isinstance(value, str) and value.strip():
             parts.append(value.strip())
             break
@@ -45,7 +48,9 @@ def parse_response(raw_response: str) -> LLMResponse:
     if response_type == "final":
         content = _extract_final_content(payload)
         if content is None:
-            raise ValueError("Final response requires non-empty string content")
+            raise ValueError(
+                "Final response requires non-empty string or object content"
+            )
         return LLMResponse.final(content)
 
     if response_type == "tool_call":

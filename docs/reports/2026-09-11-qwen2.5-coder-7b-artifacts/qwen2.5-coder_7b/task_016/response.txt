@@ -1,0 +1,22 @@
+{"type":"final","content":"La función `strip_lines` en `parser.py` toma una lista de líneas de texto y devuelve una nueva lista con las líneas sin espacios en blanco al principio y al final. Se prueba esta función en `test_parser.py` con una aserción que verifica que `strip_lines(["  
+  		
+		
+  
+        
+        
+  		
+		
+  		
+		
+  		
+		
+  
+        
+        
+  		
+		
+  		
+		
+  		
+		
+ 

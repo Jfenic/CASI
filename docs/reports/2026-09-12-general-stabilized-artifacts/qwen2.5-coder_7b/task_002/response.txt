@@ -1,0 +1,1 @@
+La función `slugify` en `lib.py` toma un texto como entrada y lo transforma en un slug. El slug es un texto en minúsculas y con guiones en lugar de espacios. Se eliminan los espacios al inicio y al final del texto antes de la transformación.

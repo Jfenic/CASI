@@ -1,0 +1,15 @@
+F......                                                                  [100%]
+=================================== FAILURES ===================================
+___________________________ test_partial_final_batch ___________________________
+
+    def test_partial_final_batch():
+>       assert iterate_minibatches([1, 2, 3, 4, 5], 2) == [[1, 2], [3, 4], [5]]
+E       assert [[1, 2], [3, 4]] == [[1, 2], [3, 4], [5]]
+E         
+E         Right contains one more item: [5]
+E         Use -v to get more diff
+
+_benchmark_checks/test_acceptance.py:7: AssertionError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_partial_final_batch - asser...
+1 failed, 6 passed in 0.02s

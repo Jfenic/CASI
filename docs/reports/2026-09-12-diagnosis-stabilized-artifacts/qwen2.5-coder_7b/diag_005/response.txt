@@ -1,0 +1,6 @@
+{
+  "file": "validator.py",
+  "line": 7,
+  "cause": "The function always returns True if the email contains a '.', regardless of the presence of an '@' sign.",
+  "evidence": "is_valid_email('user.example.com') returns True"
+}

@@ -1,0 +1,17 @@
+F.......                                                                 [100%]
+=================================== FAILURES ===================================
+_________________________ test_shuffle_with_known_seed _________________________
+
+    def test_shuffle_with_known_seed():
+        items = list(range(10))
+        train, test = train_test_split(items, test_fraction=0.2, seed=42)
+>       assert test == [7, 3]
+E       assert [0, 1] == [7, 3]
+E         
+E         At index 0 diff: 0 != 7
+E         Use -v to get more diff
+
+_benchmark_checks/test_acceptance.py:9: AssertionError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_shuffle_with_known_seed - a...
+1 failed, 7 passed in 0.02s

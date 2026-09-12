@@ -1,0 +1,1 @@
+Understood. I will search for public helper functions exported by the library.

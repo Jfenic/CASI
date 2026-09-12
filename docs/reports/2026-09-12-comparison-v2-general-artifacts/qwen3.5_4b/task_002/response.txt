@@ -1,0 +1,12 @@
+La función `slugify` en lib.py transforma el texto de la siguiente manera:
+
+1. **Elimina espacios vacíos**: `.strip()` remueve espacios, saltos de línea y caracteres blancos al principio y final del texto.
+2. **Convierte a minúsculas**: `.lower()` asegura que todas las letras sean minúsculas (útil para URLs uniformes).
+3. **Reemplaza espacios con guiones**: `.replace(" ", "-")` convierte los espacios en hífenses para crear un formato compatible con URLs.
+
+**Ejemplo:**
+```
+texto original:  "Mi Proyecto Específico"
+resultado: "mi-proyecto-especifico"
+```
+Esta transformación es común para convertir títulos o entradas en identificadores amigables para URLs o IDs.

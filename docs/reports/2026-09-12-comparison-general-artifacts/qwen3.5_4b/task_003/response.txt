@@ -1,0 +1,3 @@
+The search for "excerpt helper" returned no results. Let me try a broader search to see if you meant something like "extract helper" or if there's an excerpt-related function in the repository.
+
+Let me list the files and do another search:

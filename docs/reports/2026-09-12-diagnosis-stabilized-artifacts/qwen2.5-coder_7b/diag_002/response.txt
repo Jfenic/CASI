@@ -1,0 +1,6 @@
+{
+  "file": "clamp.py",
+  "line": 9,
+  "cause": "The return statement should be `return value` instead of `return value + 1` to correctly clamp the value to the interval.",
+  "evidence": "assert clamp(7, 0, 10) == 7 fails with `8 == 7` because `clamp(7, 0, 10)` returns 8 instead of 7."
+}

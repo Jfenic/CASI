@@ -1,0 +1,17 @@
+file: discount.py
+line:
+  min: 5
+  max: 6
+cause:
+  any: [">", "greater than", "exclusive", "threshold", "boundary", "at least", ">="]
+evidence:
+  any: ["> 100", "total >", "> 50"]
+forbidden:
+  - "```diff"
+  - "propose_file"
+  - "apply_patch"
+required_fields:
+  - file
+  - line
+  - cause
+  - evidence

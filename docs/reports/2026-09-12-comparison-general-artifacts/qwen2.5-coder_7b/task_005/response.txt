@@ -1,0 +1,1 @@
+Identify the public helper functions exported by the library and describe their inputs and outputs.

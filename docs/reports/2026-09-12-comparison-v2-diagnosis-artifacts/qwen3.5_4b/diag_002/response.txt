@@ -1,0 +1,1 @@
+{"file": "clamp.py", "line": 9, "cause": "La función clamp devuelve value + 1 cuando el valor está dentro del rango [low, high], en lugar de devolver el valor directamente", "evidence": "En line 9 de clamp.py se ejecuta 'return value + 1' para valores dentro del rango. El test clama(7, 0, 10) espera 7 (porque 7 ∈ [0,10]) pero recibe 8 por causa del +1 injustificado"}

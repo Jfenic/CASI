@@ -1,0 +1,1 @@
+{"file": "counter.py", "line": 9, "cause": "The increment method adds 0 instead of 1 to self._value, so repeated calls never increase the counter value.", "evidence": "Line 9 shows `self._value += 0` which should be `self._value += 1`. This causes value() to always return 0 regardless of how many times increment() is called."}

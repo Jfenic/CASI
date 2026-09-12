@@ -1,0 +1,20 @@
+--- a/metrics.py
++++ b/metrics.py
+@@ -14,7 +14,7 @@
+ 
+ def accuracy(y_true, y_pred):
+     tp, fp, fn, tn = confusion_counts(y_true, y_pred)
+-    total = tp + fp + fn
++    total = tp + fp + fn + tn
+     if total == 0:
+         return 0.0
+     return (tp + tn) / total
+@@ -22,7 +22,7 @@
+ 
+ def precision(y_true, y_pred):
+     tp, fp, fn, tn = confusion_counts(y_true, y_pred)
+-    denom = tp + fp + fn + tn
++    denom = tp + fp
+     if denom == 0:
+         return 0.0
+     return tp / denom

@@ -1,0 +1,53 @@
+F..FFF                                                                   [100%]
+=================================== FAILURES ===================================
+_________________________ test_round_lines_before_sum __________________________
+
+    def test_round_lines_before_sum():
+>       assert invoice_total([("0.005", 1), ("0.005", 1)]) == "0.02"
+E       AssertionError: assert '0.01' == '0.02'
+E         
+E         - 0.02
+E         ?    ^
+E         + 0.01
+E         ?    ^
+
+_benchmark_checks/test_acceptance.py:6: AssertionError
+___________________________ test_precision_and_input ___________________________
+
+    def test_precision_and_input():
+        lines = [("9007199254740993.01", 1), ("0.10", 3)]
+        before = list(lines)
+>       assert invoice_total(lines) == "9007199254740993.31"
+E       AssertionError: assert '9007199254740994.00' == '9007199254740993.31'
+E         
+E         - 9007199254740993.31
+E         ?                ^ ^^
+E         + 9007199254740994.00
+E         ?                ^ ^^
+
+_benchmark_checks/test_acceptance.py:21: AssertionError
+____________________________ test_negative_quantity ____________________________
+
+    def test_negative_quantity():
+>       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE ValueError
+
+_benchmark_checks/test_acceptance.py:26: Failed
+_________________________________ test_half_up _________________________________
+
+    def test_half_up():
+>       assert invoice_total([("1.005", 1)]) == "1.01"
+E       AssertionError: assert '1.00' == '1.01'
+E         
+E         - 1.01
+E         ?    ^
+E         + 1.00
+E         ?    ^
+
+test_visible.py:5: AssertionError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_round_lines_before_sum - As...
+FAILED _benchmark_checks/test_acceptance.py::test_precision_and_input - Asser...
+FAILED _benchmark_checks/test_acceptance.py::test_negative_quantity - Failed:...
+FAILED test_visible.py::test_half_up - AssertionError: assert '1.00' == '1.01'
+4 failed, 2 passed in 0.05s

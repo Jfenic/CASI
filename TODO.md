@@ -2,6 +2,17 @@
 
 Lista priorizada de próximos pasos del proyecto.
 
+## Estabilización (2026-09-12)
+
+- [x] Corregir los errores Ruff y normalizar el formato del código y los tests.
+- [x] Confirmar la suite completa: 319 passed, 2 skipped; Docker y API incluidos.
+- [x] Unificar el contrato JSON de diagnóstico entre parser, política y evaluador.
+- [x] Añadir regresiones para diagnóstico, contexto de reparación y parches CREATE.
+- [x] Usar el fallo más reciente en los reintentos y recordar el contrato completo.
+- [x] Medir diagnóstico con Ollama: 4/5 frente a 0/5; rúbricas sin cambios.
+- [ ] Cerrar los fallos residuales de fiabilidad documentados en el [informe](docs/reports/2026-09-12-stabilization.md).
+- [ ] Revisar y versionar las correcciones y los nuevos informes.
+
 ## Completado recientemente
 
 - [x] Bloquear `apply_patch` desde el agente y el registro de herramientas.
@@ -87,9 +98,9 @@ Lista priorizada de próximos pasos del proyecto.
 
 ## Cierre de cada hito
 
-- [x] Ejecutar la suite completa de pruebas (291 passed, 2 skipped).
+- [x] Ejecutar la suite completa de pruebas (319 passed, 2 skipped; 2026-09-12).
 - [x] Ejecutar `python3 -m compileall -q src tests`.
 - [x] Ejecutar `git diff --check`.
 - [x] Actualizar `README.md`, `planning.md` y `docs/implementation-tracker.md`.
-- [x] Crear commits Git pequeños y descriptivos.
-- [x] Confirmar que el working tree queda limpio antes de iniciar el siguiente cambio.
+- [ ] Crear commits Git pequeños y descriptivos para este hito tras la revisión.
+- [ ] Confirmar que el working tree queda limpio tras revisar y versionar este hito.

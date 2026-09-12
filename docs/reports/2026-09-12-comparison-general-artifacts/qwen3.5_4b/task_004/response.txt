@@ -1,0 +1,3 @@
+No se ejecutaron los tests explícitamente para ver sus comportamientos. Los resultados muestran solo 2 pruebas pasando, pero sin información detallada sobre qué están verificando.
+
+Para determinar qué comportamientos se verifican en las pruebas, necesitaría que me muestren primero el contenido de los archivos de prueba o busques específicamente por nombres de funciones/todos para entender mejor su lógica.

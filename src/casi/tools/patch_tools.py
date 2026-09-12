@@ -110,6 +110,10 @@ class ProposeFileTool(Tool):
             )
         if content and not content.endswith("\n"):
             content += "\n"
+        # Blank lines after the last Python statement carry no program data and
+        # cause git apply --whitespace=error to reject otherwise valid proposals.
+        if relative.suffix == ".py" and content.strip():
+            content = content.rstrip("\r\n") + "\n"
         if relative.suffix == ".py" and content.strip():
             try:
                 ast.parse(content)

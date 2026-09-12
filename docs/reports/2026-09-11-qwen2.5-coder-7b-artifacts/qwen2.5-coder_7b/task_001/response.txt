@@ -1,0 +1,1 @@
+Librería de funciones útiles. Prueba unitaria para la librería.

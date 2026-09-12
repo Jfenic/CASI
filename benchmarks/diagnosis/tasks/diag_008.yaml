@@ -1,0 +1,15 @@
+id: diag_008
+name: checkout_mini
+repository: checkout_mini
+category: diagnose
+capability: mini_project_integration
+difficulty: advanced
+instruction: >
+  This repository is a small checkout mini-project (catalog, cart, totals, tax,
+  receipt). Tests fail for carts with quantity greater than one. Use tools to
+  inspect the failure across modules. Do NOT modify files or propose patches.
+  Reply with one final JSON response with keys file, line, cause, and evidence.
+  Identify the implementation statement that ignores quantity when computing the
+  subtotal, not merely the failing assertion in the test.
+response_grader: ../rubrics/diag_008
+max_steps: 14

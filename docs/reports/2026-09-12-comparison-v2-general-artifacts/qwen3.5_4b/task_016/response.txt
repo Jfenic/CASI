@@ -1,0 +1,20 @@
+Based on my inspection, here's the current behavior of the strip_lines helper:
+
+**Implementation (parser.py):**
+```python
+def strip_lines(lines: list[str]) -> list[str]:
+    return [line for line in lines]
+```
+
+The function currently **does not actually strip whitespace**. It simply returns the input list unchanged with a list comprehension that doesn't apply any string processing.
+
+**Expected behavior (test_parser.py):**
+The test `test_strips_whitespace` expects it to:
+```python
+assert strip_lines(["  a  ", " b "]) == ["a", "b"]
+```
+This means whitespace should be trimmed from each line.
+
+**Issue:** The implementation and test expectations are misaligned. The current code doesn't perform any whitespace stripping, so the function would not pass its existing test without modifications.
+
+The helper needs to be updated to actually strip leading and trailing whitespace from each line in the input list.

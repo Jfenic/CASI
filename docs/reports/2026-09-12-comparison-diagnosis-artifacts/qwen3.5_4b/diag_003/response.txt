@@ -1,0 +1,1 @@
+{"file": "sorter.py", "line": 5, "cause": "The sort_asc function uses sorted(values, reverse=True) which sorts in descending order, but the test expects ascending order.", "evidence": "test_sorts_ascending asserts sort_asc([3, 1, 2]) should equal [1, 2, 3], but sort_asc returns [3, 2, 1] due to reverse=True parameter."}

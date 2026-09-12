@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import json
-import re
 from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
 
-_JSON_BLOCK_PATTERN = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
+from casi.llm.diagnosis import extract_diagnosis_payload
 
 
 @dataclass(frozen=True)
@@ -24,7 +22,6 @@ class DiagnosisRubric:
     evidence_terms_any: tuple[str, ...]
     evidence_terms_all: tuple[str, ...]
     required_fields: tuple[str, ...]
-    max_words: int
     forbidden_patterns: tuple[str, ...]
 
 
@@ -89,47 +86,8 @@ def load_diagnosis_rubric(path: Path) -> DiagnosisRubric:
         evidence_terms_any=evidence_any,
         evidence_terms_all=evidence_all,
         required_fields=tuple(str(field) for field in required_fields),
-        max_words=int(data.get("max_words", 60)),
         forbidden_patterns=tuple(str(pattern) for pattern in forbidden),
     )
-
-
-def extract_diagnosis_payload(response: str) -> dict[str, object] | None:
-    """Parse the bounded JSON diagnosis object from an agent final response."""
-
-    text = response.strip()
-    if not text:
-        return None
-
-    candidates: list[str] = [text]
-    try:
-        outer = json.loads(text)
-    except json.JSONDecodeError:
-        outer = None
-
-    if isinstance(outer, dict):
-        if outer.get("type") == "final":
-            content = outer.get("content")
-            if isinstance(content, str) and content.strip():
-                candidates.insert(0, content.strip())
-        elif all(key in outer for key in ("file", "cause")):
-            return outer
-
-    for candidate in candidates:
-        block_match = _JSON_BLOCK_PATTERN.search(candidate)
-        if block_match is not None:
-            candidate = block_match.group(1)
-        try:
-            payload = json.loads(candidate)
-        except json.JSONDecodeError:
-            continue
-        if isinstance(payload, dict):
-            return payload
-    return None
-
-
-def _word_count(*parts: str) -> int:
-    return sum(len(part.split()) for part in parts if part.strip())
 
 
 def _contains_any(text: str, terms: tuple[str, ...]) -> bool:
@@ -182,11 +140,6 @@ def grade_diagnosis_response(
 
     cause = str(payload.get("cause", ""))
     evidence = str(payload.get("evidence", ""))
-    word_count = _word_count(cause, evidence)
-    if word_count > rubric.max_words:
-        reasons.append(
-            f"response too long: {word_count} words (max {rubric.max_words})"
-        )
 
     if not _contains_any(cause, rubric.cause_terms_any):
         reasons.append("cause missing expected failure description")

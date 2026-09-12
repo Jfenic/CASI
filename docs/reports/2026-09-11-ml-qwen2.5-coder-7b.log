@@ -1,0 +1,40 @@
+[benchmark] Model 'qwen2.5-coder:7b' — 5 task(s)
+
+[benchmark] Task 1/5: ml_001 — classification_metrics
+[benchmark]   model=qwen2.5-coder:7b repo=classification_metrics category=ml max_steps=18
+[benchmark]   instruction: Fix accuracy, precision, recall, and f1_score in metrics.py. Labels are binary (0 or 1). Use the ...
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=ok | 38.8s | steps=6 | tools=1 | files_read=2 | patch=applied
+[benchmark]   tokens: prompt=2370 completion=507
+
+[benchmark] Task 2/5: ml_002 — train_test_split
+[benchmark]   model=qwen2.5-coder:7b repo=train_test_split category=ml max_steps=18
+[benchmark]   instruction: Fix train_test_split in split.py. Shuffle a copy of the input with the given seed before splittin...
+[benchmark]   running agent...
+[benchmark]   result: FAIL | agent=fail | pytest=fail | 68.6s | steps=20 | tools=2 | files_read=1 | patch=none
+[benchmark]   tokens: prompt=23417 completion=561
+[benchmark]   error: The agent finished without a valid patch. Ask CASI again to call propose_file with the complete corrected file content.
+
+[benchmark] Task 3/5: ml_003 — standardize
+[benchmark]   model=qwen2.5-coder:7b repo=standardize category=ml max_steps=18
+[benchmark]   instruction: Fix standardize in normalize.py. Each row is a feature vector of equal length. Per feature, subtr...
+[benchmark]   running agent...
+[benchmark]   result: FAIL | agent=fail | pytest=fail | 29.4s | steps=10 | tools=2 | files_read=2 | patch=valid
+[benchmark]   tokens: prompt=7398 completion=396
+[benchmark]   error: Patch changes disallowed files: test_visible.py
+
+[benchmark] Task 4/5: ml_004 — minibatch
+[benchmark]   model=qwen2.5-coder:7b repo=minibatch category=ml max_steps=18
+[benchmark]   instruction: Fix iterate_minibatches in batches.py. Yield consecutive slices of the input list with the given ...
+[benchmark]   running agent...
+[benchmark]   result: FAIL | agent=fail | pytest=fail | 73.8s | steps=28 | tools=2 | files_read=2 | patch=none
+[benchmark]   tokens: prompt=40551 completion=1035
+[benchmark]   error: The agent finished without a valid patch. Ask CASI again to call propose_file with the complete corrected file content.
+
+[benchmark] Task 5/5: ml_005 — one_hot
+[benchmark]   model=qwen2.5-coder:7b repo=one_hot category=ml max_steps=18
+[benchmark]   instruction: Fix one_hot_encode in encode.py. Given integer class labels, return a list of rows where each row...
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=ok | 10.6s | steps=6 | tools=1 | files_read=2 | patch=applied
+[benchmark]   tokens: prompt=2000 completion=115
+

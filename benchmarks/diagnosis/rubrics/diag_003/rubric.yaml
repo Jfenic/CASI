@@ -6,7 +6,6 @@ cause:
   any: ["reverse", "descending", "desc", "wrong order", "backwards"]
 evidence:
   any: ["reverse", "sort_asc", "sorted"]
-max_words: 40
 forbidden:
   - "```diff"
   - "propose_file"

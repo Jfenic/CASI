@@ -12,6 +12,7 @@ de desarrollo.
 | ml_003 | Preprocesado | Estandarización por columna (ddof=1) | Intermedia |
 | ml_004 | Batching | Mini-batches con último lote parcial | Básica |
 | ml_005 | Codificación | One-hot con número correcto de clases | Básica |
+| ml_006 | Pérdida | MSE (no RMSE) y validación de longitud | Básica |
 
 Las tareas usan `category: ml` para enrutar al perfil especializado del agente.
 

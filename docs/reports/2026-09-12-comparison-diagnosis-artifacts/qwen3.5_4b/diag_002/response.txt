@@ -1,0 +1,1 @@
+{"file": "clamp.py", "line": 9, "cause": "The clamp function incorrectly returns `value + 1` when the value is within the range [low, high], which adds an unintended increment.", "evidence": "Line 9: return value + 1 — should be 'return value' to keep values in range unchanged. Test expects clamp(7, 0, 10) == 7, but implementation returns 8."}

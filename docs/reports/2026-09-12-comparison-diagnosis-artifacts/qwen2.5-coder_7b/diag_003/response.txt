@@ -1,0 +1,6 @@
+{
+  "file": "sorter.py",
+  "line": 5,
+  "cause": "reverse=True instead of reverse=False",
+  "evidence": "return sorted(values, reverse=True)"
+}

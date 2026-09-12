@@ -1,0 +1,160 @@
+{
+  "schema_version": 2,
+  "run_id": "c1232557981743f58ba1e80a86230ce7",
+  "created_at": "2026-09-12T11:47:03.626164+00:00",
+  "execution": {
+    "model": "qwen2.5-coder:7b",
+    "repository": "/tmp/casi-benchmark-rukuzfyh/healthy_lib",
+    "task": "Inspect the repository and list the Python source files with a one-line summary of each module's responsibility.",
+    "started_at": "2026-09-12T11:46:59.031489+00:00",
+    "finished_at": "2026-09-12T11:47:03.388703+00:00",
+    "files_read": [],
+    "tools_called": [
+      "list_files"
+    ],
+    "patches_proposed": 0,
+    "errors": [],
+    "prompt_tokens": 3249,
+    "completion_tokens": 46,
+    "total_duration_ms": 4357.214,
+    "steps": [
+      {
+        "step": 1,
+        "decision_kind": "tool_call",
+        "tool": null,
+        "duration_ms": 2785.53,
+        "success": null
+      },
+      {
+        "step": 1,
+        "decision_kind": "tool_result",
+        "tool": "list_files",
+        "duration_ms": null,
+        "success": true
+      },
+      {
+        "step": 2,
+        "decision_kind": "final",
+        "tool": null,
+        "duration_ms": 1568.46,
+        "success": null
+      },
+      {
+        "step": 2,
+        "decision_kind": "final",
+        "tool": null,
+        "duration_ms": null,
+        "success": null
+      }
+    ],
+    "test_runs": []
+  },
+  "metrics": {
+    "total_steps": 4,
+    "decision_steps": 1,
+    "tool_calls": 1,
+    "files_read": 0,
+    "patches_proposed": 0,
+    "test_runs": 0,
+    "failed_tools": 0,
+    "prompt_tokens": 3249,
+    "completion_tokens": 46,
+    "total_duration_ms": 4357.214,
+    "step_duration_ms": 2176.995
+  },
+  "events": [
+    {
+      "timestamp": "2026-09-12T11:46:59.031596+00:00",
+      "kind": "plan",
+      "message": "plan: 1. [general|read] Inspect the repository and list the Python source files with a one-line summary of each module's responsibility. — repository tools as needed",
+      "data": {
+        "steps": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-12T11:46:59.031616+00:00",
+      "kind": "orchestrator_step",
+      "message": "orchestrator step 1/1: general (General Repository Agent)",
+      "data": {
+        "step_number": 1,
+        "total_steps": 1,
+        "agent_name": "general",
+        "agent_role": "General Repository Agent",
+        "objective": "unknown"
+      }
+    },
+    {
+      "timestamp": "2026-09-12T11:47:01.817938+00:00",
+      "kind": "step_timing",
+      "message": "timing 1/8: tool_call 2785.5ms",
+      "data": {
+        "step": 1,
+        "step_limit": 8,
+        "decision_kind": "tool_call",
+        "duration_ms": 2785.53
+      }
+    },
+    {
+      "timestamp": "2026-09-12T11:47:01.817975+00:00",
+      "kind": "usage",
+      "message": "usage prompt=1599 completion=19",
+      "data": {
+        "prompt_tokens": 1599,
+        "completion_tokens": 19
+      }
+    },
+    {
+      "timestamp": "2026-09-12T11:47:01.817999+00:00",
+      "kind": "tool_call",
+      "message": "decision 1/8: tool list_files max_files=10",
+      "data": {
+        "step": 1,
+        "step_limit": 8,
+        "tool": "list_files"
+      }
+    },
+    {
+      "timestamp": "2026-09-12T11:47:01.818916+00:00",
+      "kind": "tool_result",
+      "message": "  -> list_files ok: lib.py test_lib.py",
+      "data": {
+        "tool": "list_files",
+        "success": true,
+        "count": 2,
+        "files": [
+          "lib.py",
+          "test_lib.py"
+        ]
+      }
+    },
+    {
+      "timestamp": "2026-09-12T11:47:03.387556+00:00",
+      "kind": "step_timing",
+      "message": "timing 2/8: final 1568.5ms",
+      "data": {
+        "step": 2,
+        "step_limit": 8,
+        "decision_kind": "final",
+        "duration_ms": 1568.46
+      }
+    },
+    {
+      "timestamp": "2026-09-12T11:47:03.387668+00:00",
+      "kind": "usage",
+      "message": "usage prompt=1650 completion=27",
+      "data": {
+        "prompt_tokens": 1650,
+        "completion_tokens": 27
+      }
+    },
+    {
+      "timestamp": "2026-09-12T11:47:03.387706+00:00",
+      "kind": "final",
+      "message": "decision 2/8: final Inspected repository and found the following Python source files: lib.py and test_lib.py.",
+      "data": {
+        "step": 2,
+        "step_limit": 8
+      }
+    }
+  ]
+}

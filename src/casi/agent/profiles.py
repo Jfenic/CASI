@@ -91,17 +91,20 @@ PROFILES: dict[TaskIntent, AgentProfile] = {
         prompt_instructions=_instructions(
             "You are the failure diagnosis specialist.",
             "Call run_tests first, then read_file on failing source and test files.",
-            (
-                "Do not call propose_file or apply_patch; diagnosis tasks are "
-                "read-only."
-            ),
+            ("Do not call propose_file or apply_patch; diagnosis tasks are read-only."),
             (
                 "Reply with one final JSON response. Put a JSON object in content "
                 "with keys file, line, cause, and evidence."
             ),
             (
-                "Keep cause and evidence short and grounded in code you inspected "
-                "(symbol, expression, or operator)."
+                "Ground cause and evidence in code you inspected "
+                "(symbol, expression, or operator). Be precise; length is fine."
+            ),
+            (
+                "Trace the failed assertion back to the responsible implementation "
+                "statement. Report the cause of the wrong value, not merely "
+                "AssertionError or the test assertion. Only blame a test when its "
+                "expectation contradicts the stated behavior contract."
             ),
         ),
         max_steps=10,
@@ -174,17 +177,17 @@ PROFILES: dict[TaskIntent, AgentProfile] = {
         prompt_instructions=_instructions(
             "You are the module creation specialist.",
             (
-                "The tests define the required API; read them first and "
-                "treat them as the specification."
+                "Read the task requirements and tests to identify the required API. "
+                "Visible tests may cover only part of the requested behavior."
             ),
-            "The target module or file does not exist yet, so do not search for it.",
+            "Inspect existing target files before replacing them; create missing ones.",
             (
                 "Create the missing file with propose_file using the "
                 "repository-relative path and complete file content."
             ),
             (
-                "Implement only the behavior required by the tests; keep "
-                "the solution minimal."
+                "Implement every explicit task requirement, including validation "
+                "and edge cases absent from visible tests. Keep the solution minimal."
             ),
             (
                 "Do not hand-write a diff when propose_file is available "

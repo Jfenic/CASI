@@ -1,0 +1,15 @@
+--- a/validator.py
++++ b/validator.py
+@@ -2,8 +2,8 @@
+ 
+ 
+ def is_valid_email(email: str) -> bool:
+-	"""Return True when the address looks valid."""
++    """Return True when the address looks valid."""
+ 
+-	if not email:
+-		return False
+-	return "." in email
++    if not email:
++        return False
++    return '@' in email

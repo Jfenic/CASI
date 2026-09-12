@@ -1,0 +1,19 @@
+id: dev_011
+name: version_parse
+repository: version_parse
+category: fix
+capability: input_validation
+difficulty: basic
+instruction: Fix parse_version(text) in version.py. Valid input is exactly three
+  dot-separated integer parts (for example "1.2.3"). Invalid part counts and
+  non-integer parts must raise ValueError instead of returning None. Keep
+  existing tests passing. Modify only version.py.
+allowed_files:
+- version.py
+grader: ../graders/version_parse
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

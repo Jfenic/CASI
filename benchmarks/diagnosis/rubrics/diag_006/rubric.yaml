@@ -1,0 +1,17 @@
+file: normalize.py
+line:
+  min: 7
+  max: 8
+cause:
+  any: ["off by one", "n-1", "len(values) - 1", "divisor", "count", "wrong denominator"]
+evidence:
+  any: ["len(values) - 1", "count =", "values) - 1"]
+forbidden:
+  - "```diff"
+  - "propose_file"
+  - "apply_patch"
+required_fields:
+  - file
+  - line
+  - cause
+  - evidence

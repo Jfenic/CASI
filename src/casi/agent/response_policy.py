@@ -11,6 +11,7 @@ from casi.agent.intent import (
 )
 from casi.agent.nudges import (
     ResponseNudge,
+    nudge_for_diagnosis_format,
     nudge_for_fix_without_inspection,
     nudge_for_malformed_json,
     nudge_for_missing_patch,
@@ -20,6 +21,7 @@ from casi.agent.nudges import (
 from casi.agent.pipelines import repair_context_paths
 from casi.agent.responses import is_malformed_json, response_missing_required_patch
 from casi.agent.test_failures import output_reports_failures
+from casi.llm.diagnosis import diagnosis_response_error
 from casi.patching.extract import extract_patch
 
 
@@ -52,6 +54,13 @@ class ResponsePolicy:
         read_file_paths: set[str] | None = None,
         repository_path: str | None = None,
     ) -> ResponseNudge | None:
+        if intent is TaskIntent.DIAGNOSE:
+            error = diagnosis_response_error(content)
+            if error is not None and retries.format_nudges < retries.max_format:
+                retries.format_nudges += 1
+                return nudge_for_diagnosis_format(error)
+            return None
+
         if is_malformed_json(content) and retries.format_nudges < retries.max_format:
             retries.format_nudges += 1
             return nudge_for_malformed_json()

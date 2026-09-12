@@ -1,0 +1,21 @@
+id: dev_012
+name: checkout_mini
+repository: checkout_mini
+category: fix
+capability: mini_project_integration
+difficulty: advanced
+instruction: >
+  This is a small checkout mini-project with catalog.py, cart.py, totals.py,
+  tax.py, and receipt.py. Tests fail when building a receipt for carts with
+  quantities greater than one. Trace the flow from receipt.build_receipt through
+  totals.subtotal and catalog.get_price. Fix the integration bug so subtotals
+  multiply unit price by quantity and all tests pass. Modify only totals.py.
+allowed_files:
+- totals.py
+grader: ../graders/checkout_mini
+max_steps: 24
+success_command:
+- python3
+- -m
+- pytest
+- -q

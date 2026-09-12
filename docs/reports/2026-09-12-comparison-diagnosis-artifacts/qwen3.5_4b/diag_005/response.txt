@@ -1,0 +1,1 @@
+{"file": "validator.py", "line": 4, "cause": "The function returns True for any string containing '.', including 'user.example.com' which lacks an '@' symbol, because the email validation logic only checks if '.' is present in the string.", "evidence": "return \".\" in email"}

@@ -52,6 +52,7 @@ from casi.agent.tool_confirmation import build_task_tool_confirmation
 from casi.agent.trace import AgentTraceRecorder
 from casi.config import settings
 from casi.llm.base import ChatMessage, LLMClient, LLMResponse, ToolDefinition
+from casi.llm.diagnosis import diagnosis_response_error
 from casi.patching.extract import extract_patch
 from casi.tools.registry import ToolRegistry
 from casi.tools.result import ToolResult
@@ -316,6 +317,15 @@ class AgentLoop:
             self._notify_activity("Inspecting repository before first model call...")
             self._run_pipeline(intent, task_context, active.retries)
 
+        if self._in_mutation_workflow(active):
+            self.conversation.append(
+                "user",
+                "Implement the complete task contract below, including requirements "
+                "not exercised by the visible tests. Check each requirement before "
+                "calling propose_file; do not import or copy tests into source files.\n"
+                + task_context,
+            )
+
         return self._run_steps(active, tools)
 
     def _session_merge_target(self) -> list[ChatMessage] | None:
@@ -526,6 +536,21 @@ class AgentLoop:
                 )
                 continue
 
+            if active.intent is TaskIntent.DIAGNOSE:
+                error = diagnosis_response_error(response.content)
+                self.conversation.append("assistant", response.content)
+                return self._finish(
+                    active,
+                    AgentResult(
+                        success=error is None,
+                        response=response.content,
+                        error=error,
+                        steps=step,
+                        messages=active_messages,
+                        requested_code_change=False,
+                    ),
+                )
+
             patch_verification, should_retry = verify_patch_response(
                 self.conversation,
                 response.content,
@@ -535,10 +560,16 @@ class AgentLoop:
                     self.trace.record_nudge(reason) if self.trace is not None else None
                 ),
             )
-            active.patch_verification = patch_verification
+            if patch_verification is not None:
+                active.patch_verification = patch_verification
             if should_retry:
                 active.correction_attempts += 1
                 active.retries.patch_nudges = 0
+                self.conversation.append(
+                    "user",
+                    "Keep the complete task contract while correcting the proposal:\n"
+                    + active.original_task,
+                )
                 continue
             if patch_verification is not None and not patch_verification.passed:
                 return self._finish(
@@ -871,7 +902,18 @@ class AgentLoop:
                 metadata=result.metadata,
             )
         if tool_name == "run_tests" and self._should_run_fix_pipeline(result.output):
-            self._run_fix_pipeline(task_context, test_output=result.output)
+            if intent is TaskIntent.DIAGNOSE:
+                run_diagnose_pipeline(
+                    task_context,
+                    self._execute_pipeline_tool,
+                    repository_path=self.registry.repository_path,
+                    test_output=result.output,
+                )
+                self.conversation.append(
+                    "user", nudge_after_diagnose_pipeline().user_message
+                )
+            else:
+                self._run_fix_pipeline(task_context, test_output=result.output)
 
     def _should_run_fix_pipeline(self, test_output: str | None) -> bool:
         if not test_output:
@@ -879,6 +921,10 @@ class AgentLoop:
         return output_reports_failures(test_output)
 
     def _last_test_output(self) -> str | None:
+        if self._active_task is not None:
+            verification = self._active_task.patch_verification
+            if verification is not None and verification.runner != "validation":
+                return verification.output
         last_tests = self.conversation.last_tool_result("run_tests")
         if last_tests is None:
             return None

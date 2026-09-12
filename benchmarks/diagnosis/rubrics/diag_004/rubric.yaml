@@ -6,7 +6,6 @@ cause:
   any: ["- 1", "minus 1", "subtract", "subtracts", "off by one", "too low"]
 evidence:
   any: ["- 1.0", "- 1", "mean", "sum"]
-max_words: 40
 forbidden:
   - "```diff"
   - "propose_file"

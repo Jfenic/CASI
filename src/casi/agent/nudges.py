@@ -24,6 +24,7 @@ _PREFIX_PATCH_CORRECTION = "Provide corrected file content via propose_file"
 _PREFIX_READ_INSTEAD_OF_SEARCH = "search_code results are already available"
 _PREFIX_CORRUPT_PATCH = "The diff format was invalid for git apply"
 _PREFIX_PROPOSE_FILE_FAILURE = "propose_file could not build the patch"
+_PREFIX_DIAGNOSIS_FORMAT = "Your diagnosis does not satisfy the response contract"
 
 _PROPOSE_FILE_INSTRUCTION = (
     "Call propose_file with the repository-relative path and the complete "
@@ -45,6 +46,7 @@ AGENT_NUDGE_PREFIXES = (
     _PREFIX_READ_INSTEAD_OF_SEARCH,
     _PREFIX_CORRUPT_PATCH,
     _PREFIX_PROPOSE_FILE_FAILURE,
+    _PREFIX_DIAGNOSIS_FORMAT,
 )
 
 
@@ -53,6 +55,19 @@ class ResponseNudge:
     """Instruction to retry the model after an invalid or incomplete final answer."""
 
     user_message: str
+
+
+def nudge_for_diagnosis_format(error: str) -> ResponseNudge:
+    return ResponseNudge(
+        user_message=(
+            f"{_PREFIX_DIAGNOSIS_FORMAT}: {error}. "
+            'Reply with {"type":"final","content":{"file":"relative/path.py",'
+            '"line":1,"cause":"root cause in the implementation",'
+            '"evidence":"exact code expression"}}. '
+            "Use the actual path, line number, and evidence from the loaded files. "
+            "Do not replace the JSON object with prose or propose a patch."
+        ),
+    )
 
 
 def is_agent_nudge(content: str) -> bool:

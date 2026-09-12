@@ -150,6 +150,46 @@ def test_fix_pipeline_reports_missing_local_module(tmp_path: Path) -> None:
     assert missing == ["stats.py"]
 
 
+def test_fix_pipeline_follows_transitive_local_imports(tmp_path: Path) -> None:
+    (tmp_path / "catalog.py").write_text("PRICE = 1\n", encoding="utf-8")
+    (tmp_path / "totals.py").write_text(
+        "import catalog\n\ndef subtotal():\n    return catalog.PRICE\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "receipt.py").write_text(
+        "import totals\n\ndef build():\n    return totals.subtotal()\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "test_receipt.py").write_text(
+        "from receipt import build\n\n"
+        "def test_build():\n"
+        "    assert build() == 2\n",
+        encoding="utf-8",
+    )
+    calls: list[tuple[str, dict[str, object]]] = []
+
+    def execute(tool_name: str, arguments: dict[str, object]) -> ToolResult:
+        calls.append((tool_name, arguments))
+        return ToolResult(success=True, output="")
+
+    from casi.agent.pipelines import run_fix_pipeline
+
+    run_fix_pipeline(
+        "diagnose failing receipt",
+        execute,
+        repository_path=tmp_path,
+        test_output="FAILED test_receipt.py::test_build - AssertionError",
+    )
+
+    read_calls = [
+        arguments["path"] for tool_name, arguments in calls if tool_name == "read_file"
+    ]
+    assert "test_receipt.py" in read_calls
+    assert "receipt.py" in read_calls
+    assert "totals.py" in read_calls
+    assert "catalog.py" in read_calls
+
+
 def test_repair_context_paths_includes_source_from_failed_test(tmp_path: Path) -> None:
     from casi.agent.pipelines import repair_context_paths
 

@@ -1,0 +1,6 @@
+{
+  "file": "test_stats.py",
+  "line": 5,
+  "cause": "AssertionError",
+  "evidence": "assert mean([1.0, 2.0, 3.0]) == 2.0"
+}

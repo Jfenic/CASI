@@ -1,0 +1,51 @@
+FF...                                                                    [100%]
+=================================== FAILURES ===================================
+_________________________ test_quoting_and_adjustments _________________________
+
+    def test_quoting_and_adjustments():
+        text = 'product,quantity\r\n"red, large",3\r\n"red, large",-1\r\n\r\nblue,0\r\n'
+>       assert totals(text) == {"red, large": 2, "blue": 0}
+               ^^^^^^^^^^^^
+
+_benchmark_checks/test_acceptance.py:7: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+text = 'product,quantity\r\n"red, large",3\r\n"red, large",-1\r\n\r\nblue,0\r\n'
+
+    def totals(text):
+        result = {}
+        for line in text.splitlines()[1:]:
+            if not line:
+                continue
+            fields = line.strip().split(",")
+            if len(fields) != 2:
+>               raise ValueError("Invalid CSV format")
+E               ValueError: Invalid CSV format
+
+sales.py:8: ValueError
+____________________________ test_multiline_product ____________________________
+
+    def test_multiline_product():
+>       assert totals('product,quantity\n"two\nlines",4\n') == {"two\nlines": 4}
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+_benchmark_checks/test_acceptance.py:11: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+text = 'product,quantity\n"two\nlines",4\n'
+
+    def totals(text):
+        result = {}
+        for line in text.splitlines()[1:]:
+            if not line:
+                continue
+            fields = line.strip().split(",")
+            if len(fields) != 2:
+>               raise ValueError("Invalid CSV format")
+E               ValueError: Invalid CSV format
+
+sales.py:8: ValueError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_quoting_and_adjustments - V...
+FAILED _benchmark_checks/test_acceptance.py::test_multiline_product - ValueEr...
+2 failed, 3 passed in 0.02s

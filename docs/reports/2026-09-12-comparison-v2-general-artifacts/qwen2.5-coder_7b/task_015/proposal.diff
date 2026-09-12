@@ -1,0 +1,9 @@
+--- a/parser.py
++++ b/parser.py
+@@ -1,5 +1,2 @@
+-"""Parse simple text lines."""
+-
+-
+ def strip_lines(lines: list[str]) -> list[str]:
+-	return [line for line in lines]
++ return [line.strip() for line in lines]

@@ -1,0 +1,6 @@
+Based on the repository structure, here are the Python source files:
+
+- **lib.py** - Core library implementation with main data processing functions and utilities
+- **test_lib.py** - Test suite for validating lib.py functionality and edge cases
+
+The repository appears to be a simple utility library with no external dependencies or documentation files found.

@@ -117,9 +117,7 @@ def load_tasks(tasks_dir: str | Path) -> list[BenchmarkTask]:
             ).resolve()
             rubric_path = response_grader_directory / "rubric.yaml"
             if not response_grader_directory.is_dir() or not rubric_path.is_file():
-                raise ValueError(
-                    f"response_grader requires rubric.yaml: {path}"
-                )
+                raise ValueError(f"response_grader requires rubric.yaml: {path}")
 
         tasks.append(
             BenchmarkTask(

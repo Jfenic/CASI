@@ -1,0 +1,6 @@
+--- /dev/null
++++ b/palindrome.py
+@@ -0,0 +1,3 @@
++def is_palindrome(text):
++    cleaned = ''.join(c.lower() for c in text if c.isalnum())
++    return cleaned == cleaned[::-1]

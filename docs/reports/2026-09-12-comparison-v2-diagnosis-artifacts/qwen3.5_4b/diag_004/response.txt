@@ -1,0 +1,1 @@
+{"file": "stats.py", "line": 7, "cause": "The mean function incorrectly subtracts 1.0 from the final result (sum(values) / len(values) - 1.0), causing all calculated means to be off by exactly 1 unit.", "evidence": "mean([1.0, 2.0, 3.0]) should return 2.0 but returns 1.0 because sum is 6 and length is 3, so 6/3 - 1.0 = 2.0 - 1.0 = 1.0"}

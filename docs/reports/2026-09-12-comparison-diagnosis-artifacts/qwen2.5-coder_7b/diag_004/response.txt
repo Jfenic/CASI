@@ -1,0 +1,6 @@
+{
+  "file": "stats.py",
+  "line": 7,
+  "cause": "Incorrect calculation of mean",
+  "evidence": "return sum(values) / len(values) - 1.0"
+}

@@ -1,0 +1,1 @@
+La prueba 'test_keeps_in_range_value' en 'test_clamp.py' falla porque la función 'clamp' devuelve 8 en lugar de 7 cuando el valor está dentro del rango.

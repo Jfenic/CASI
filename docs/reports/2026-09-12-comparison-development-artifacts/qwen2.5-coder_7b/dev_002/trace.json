@@ -1,0 +1,227 @@
+{
+  "schema_version": 2,
+  "run_id": "33f71754ff6848af8c0defd9639b0eec",
+  "created_at": "2026-09-12T12:30:58.287792+00:00",
+  "execution": {
+    "model": "qwen2.5-coder:7b",
+    "repository": "/tmp/casi-benchmark-wzxsa1ep/boolean_config",
+    "task": "Fix parse_bool(value, default=False) in config.py. None returns default. Booleans remain unchanged. Strings are stripped and case-insensitive: true/1/yes/on mean True; false/0/no/off mean False. Other strings raise ValueError. Non-string non-bool values raise TypeError. Modify only config.py.",
+    "started_at": "2026-09-12T12:30:43.461389+00:00",
+    "finished_at": "2026-09-12T12:30:57.616993+00:00",
+    "files_read": [
+      "test_visible.py",
+      "config.py"
+    ],
+    "tools_called": [
+      "propose_file"
+    ],
+    "patches_proposed": 1,
+    "errors": [
+      "  -> run_tests failed {'runner': 'docker', 'exit_code': 1, 'timed_out': False}: F [100%] =================================== FAILURES =================================== ___________________________..."
+    ],
+    "prompt_tokens": 1860,
+    "completion_tokens": 185,
+    "total_duration_ms": 14155.604000000001,
+    "steps": [
+      {
+        "step": 0,
+        "decision_kind": "tool_result",
+        "tool": "run_tests",
+        "duration_ms": null,
+        "success": false
+      },
+      {
+        "step": 0,
+        "decision_kind": "tool_result",
+        "tool": "read_file",
+        "duration_ms": null,
+        "success": true
+      },
+      {
+        "step": 0,
+        "decision_kind": "tool_result",
+        "tool": "read_file",
+        "duration_ms": null,
+        "success": true
+      },
+      {
+        "step": 1,
+        "decision_kind": "tool_call",
+        "tool": null,
+        "duration_ms": 11242.9,
+        "success": null
+      },
+      {
+        "step": 1,
+        "decision_kind": "tool_result",
+        "tool": "propose_file",
+        "duration_ms": null,
+        "success": true
+      },
+      {
+        "step": 1,
+        "decision_kind": "final",
+        "tool": null,
+        "duration_ms": null,
+        "success": null
+      }
+    ],
+    "test_runs": [
+      {
+        "tool": "run_tests",
+        "passed": false,
+        "runner": "docker",
+        "exit_code": 1
+      }
+    ]
+  },
+  "metrics": {
+    "total_steps": 6,
+    "decision_steps": 1,
+    "tool_calls": 1,
+    "files_read": 2,
+    "patches_proposed": 1,
+    "test_runs": 1,
+    "failed_tools": 1,
+    "prompt_tokens": 1860,
+    "completion_tokens": 185,
+    "total_duration_ms": 14155.604000000001,
+    "step_duration_ms": 11242.9
+  },
+  "events": [
+    {
+      "timestamp": "2026-09-12T12:30:43.461490+00:00",
+      "kind": "plan",
+      "message": "plan: 1. [fix|read] Fix parse_bool(value, default=False) in config.py. None returns default. Booleans remain unchanged. Strings are stripped and case-insensitive: true/1/yes/on mean True; false/0/no/off mean False. Other strings raise ValueError. Non-string non-bool values raise TypeError. Modify only config.py. — repository tools as needed",
+      "data": {
+        "steps": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-12T12:30:43.461530+00:00",
+      "kind": "orchestrator_step",
+      "message": "orchestrator step 1/1: fix (Fix and Patch Specialist)",
+      "data": {
+        "step_number": 1,
+        "total_steps": 1,
+        "agent_name": "fix",
+        "agent_role": "Fix and Patch Specialist",
+        "objective": "fix"
+      }
+    },
+    {
+      "timestamp": "2026-09-12T12:30:44.184056+00:00",
+      "kind": "tool_result",
+      "message": "  -> run_tests failed {'runner': 'docker', 'exit_code': 1, 'timed_out': False}: F [100%] =================================== FAILURES =================================== ___________________________...",
+      "data": {
+        "tool": "run_tests",
+        "success": false,
+        "command": [
+          "python3",
+          "-m",
+          "pytest",
+          "-q",
+          "--rootdir",
+          "/workspace",
+          "/workspace"
+        ],
+        "exit_code": 1,
+        "duration_seconds": 0.5179319120006767,
+        "timed_out": false,
+        "runner": "docker",
+        "failure_kind": "code"
+      }
+    },
+    {
+      "timestamp": "2026-09-12T12:30:44.184842+00:00",
+      "kind": "pipeline_tool_call",
+      "message": "pipeline tool read_file",
+      "data": {
+        "tool": "read_file"
+      }
+    },
+    {
+      "timestamp": "2026-09-12T12:30:44.185196+00:00",
+      "kind": "tool_result",
+      "message": "  -> read_file ok {'path': 'test_visible.py'}: 1: from config import parse_bool 2: 3: 4: def test_false_setting(): 5: assert parse_bool(\"false\") is False",
+      "data": {
+        "tool": "read_file",
+        "success": true,
+        "path": "test_visible.py",
+        "start_line": 1,
+        "end_line": 300
+      }
+    },
+    {
+      "timestamp": "2026-09-12T12:30:44.185222+00:00",
+      "kind": "pipeline_tool_call",
+      "message": "pipeline tool read_file",
+      "data": {
+        "tool": "read_file"
+      }
+    },
+    {
+      "timestamp": "2026-09-12T12:30:44.185399+00:00",
+      "kind": "tool_result",
+      "message": "  -> read_file ok {'path': 'config.py'}: 1: def parse_bool(value, default=False): 2: if value is None: 3: return default 4: return bool(value)",
+      "data": {
+        "tool": "read_file",
+        "success": true,
+        "path": "config.py",
+        "start_line": 1,
+        "end_line": 300
+      }
+    },
+    {
+      "timestamp": "2026-09-12T12:30:56.904797+00:00",
+      "kind": "step_timing",
+      "message": "timing 1/18: tool_call 11242.9ms",
+      "data": {
+        "step": 1,
+        "step_limit": 18,
+        "decision_kind": "tool_call",
+        "duration_ms": 11242.9
+      }
+    },
+    {
+      "timestamp": "2026-09-12T12:30:56.904825+00:00",
+      "kind": "usage",
+      "message": "usage prompt=1860 completion=185",
+      "data": {
+        "prompt_tokens": 1860,
+        "completion_tokens": 185
+      }
+    },
+    {
+      "timestamp": "2026-09-12T12:30:56.904871+00:00",
+      "kind": "tool_call",
+      "message": "decision 1/18: tool propose_file path='config.py', content='1: def parse_bool(value, default=False): 2: if value is None: 3: return default 4: if isinstance(value, bool): 5: return value 6: if isinstance(value, str): ...'",
+      "data": {
+        "step": 1,
+        "step_limit": 18,
+        "tool": "propose_file"
+      }
+    },
+    {
+      "timestamp": "2026-09-12T12:30:56.905971+00:00",
+      "kind": "tool_result",
+      "message": "  -> propose_file ok {'path': 'config.py'}: --- a/config.py +++ b/config.py @@ -1,4 +1,15 @@ def parse_bool(value, default=False): if value is None: return defau...",
+      "data": {
+        "tool": "propose_file",
+        "success": true,
+        "path": "config.py",
+        "stripped_line_numbers": true,
+        "created": false
+      }
+    },
+    {
+      "timestamp": "2026-09-12T12:30:56.906001+00:00",
+      "kind": "final",
+      "message": "decision 1/18: final --- a/config.py +++ b/config.py @@ -1,4 +1,15 @@ def parse_bool(value, default=False): if value is None: return defau...",
+      "data": {
+        "step": 1,
+        "step_limit": 18
+      }
+    }
+  ]
+}

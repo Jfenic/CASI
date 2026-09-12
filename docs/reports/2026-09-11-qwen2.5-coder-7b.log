@@ -1,0 +1,189 @@
+[benchmark] Model 'qwen2.5-coder:7b' — 26 task(s)
+
+[benchmark] Task 1/26: task_001 — inspect_healthy_lib
+[benchmark]   model=qwen2.5-coder:7b repo=healthy_lib category=inspect max_steps=8
+[benchmark]   instruction: Inspect the repository and list the Python source files with a one-line summary of each module's ...
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=ok (pytest ignored for read-only tasks) | 112.2s | steps=4 | tools=1 | files_read=0 | patch=none
+[benchmark]   tokens: prompt=3079 completion=46
+
+[benchmark] Task 2/26: task_002 — read_slugify
+[benchmark]   model=qwen2.5-coder:7b repo=healthy_lib category=read max_steps=8
+[benchmark]   instruction: Read lib.py and explain how slugify transforms input text.
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=ok (pytest ignored for read-only tasks) | 8.3s | steps=3 | tools=0 | files_read=1 | patch=none
+[benchmark]   tokens: prompt=1689 completion=112
+
+[benchmark] Task 3/26: task_003 — search_excerpt
+[benchmark]   model=qwen2.5-coder:7b repo=healthy_lib category=search max_steps=8
+[benchmark]   instruction: Search the repository for the excerpt helper and summarize where it is defined and how it behaves.
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=ok (pytest ignored for read-only tasks) | 8.0s | steps=6 | tools=1 | files_read=0 | patch=none
+[benchmark]   tokens: prompt=4727 completion=95
+
+[benchmark] Task 4/26: task_004 — read_tests
+[benchmark]   model=qwen2.5-coder:7b repo=healthy_lib category=read max_steps=8
+[benchmark]   instruction: Read the repository tests and list which behaviors they verify.
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=ok (pytest ignored for read-only tasks) | 6.6s | steps=4 | tools=1 | files_read=0 | patch=none
+[benchmark]   tokens: prompt=3067 completion=48
+
+[benchmark] Task 5/26: task_005 — summarize_exports
+[benchmark]   model=qwen2.5-coder:7b repo=healthy_lib category=inspect max_steps=8
+[benchmark]   instruction: Identify the public helper functions exported by the library and describe their inputs and outputs.
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=ok (pytest ignored for read-only tasks) | 5.9s | steps=6 | tools=1 | files_read=0 | patch=none
+[benchmark]   tokens: prompt=4726 completion=89
+
+[benchmark] Task 6/26: task_006 — fix_email_missing_at
+[benchmark]   model=qwen2.5-coder:7b repo=email_app category=fix max_steps=12
+[benchmark]   instruction: Reject email addresses without an @ character and make all tests pass.
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=ok | 10.6s | steps=6 | tools=1 | files_read=2 | patch=applied
+[benchmark]   tokens: prompt=1724 completion=114
+
+[benchmark] Task 7/26: task_007 — fix_email_empty_string
+[benchmark]   model=qwen2.5-coder:7b repo=email_app category=fix max_steps=12
+[benchmark]   instruction: Ensure empty email strings are rejected and keep the existing tests passing.
+[benchmark]   running agent...
+[benchmark]   result: FAIL | agent=fail | pytest=fail | 25.9s | steps=20 | tools=2 | files_read=2 | patch=none
+[benchmark]   tokens: prompt=19860 completion=371
+[benchmark]   error: The agent finished without a valid patch. Ask CASI again to call propose_file with the complete corrected file content.
+
+[benchmark] Task 8/26: task_008 — fix_divide_by_zero
+[benchmark]   model=qwen2.5-coder:7b repo=math_app category=fix max_steps=12
+[benchmark]   instruction: Fix divide so dividing by zero returns 0 and all tests pass.
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=ok | 10.7s | steps=6 | tools=1 | files_read=2 | patch=applied
+[benchmark]   tokens: prompt=1805 completion=114
+
+[benchmark] Task 9/26: task_009 — explain_math_failure
+[benchmark]   model=qwen2.5-coder:7b repo=math_app category=read max_steps=10
+[benchmark]   instruction: Read the failing tests and explain why divide currently fails.
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=fail (pytest ignored for read-only tasks) | 7.5s | steps=6 | tools=1 | files_read=0 | patch=none
+[benchmark]   tokens: prompt=4729 completion=104
+
+[benchmark] Task 10/26: task_010 — fix_sort_ascending
+[benchmark]   model=qwen2.5-coder:7b repo=sort_app category=fix max_steps=12
+[benchmark]   instruction: Fix sort_asc so it returns values in ascending order and all tests pass.
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=ok | 6.1s | steps=6 | tools=1 | files_read=2 | patch=applied
+[benchmark]   tokens: prompt=1746 completion=62
+
+[benchmark] Task 11/26: task_011 — fix_counter_increment
+[benchmark]   model=qwen2.5-coder:7b repo=counter_app category=fix max_steps=12
+[benchmark]   instruction: Fix the Counter so increment increases the stored value and all tests pass.
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=ok | 17.4s | steps=8 | tools=1 | files_read=2 | patch=applied
+[benchmark]   tokens: prompt=3866 completion=243
+
+[benchmark] Task 12/26: task_012 — inspect_counter_repo
+[benchmark]   model=qwen2.5-coder:7b repo=counter_app category=inspect max_steps=10
+[benchmark]   instruction: Inspect the repository and describe why the counter test is failing.
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=fail (pytest ignored for read-only tasks) | 8.3s | steps=6 | tools=1 | files_read=0 | patch=none
+[benchmark]   tokens: prompt=4695 completion=107
+
+[benchmark] Task 13/26: task_013 — fix_greet_title_case
+[benchmark]   model=qwen2.5-coder:7b repo=greet_app category=fix max_steps=12
+[benchmark]   instruction: Update greet so it returns a title-case greeting and all tests pass.
+[benchmark]   running agent...
+[benchmark]   result: FAIL | agent=fail | pytest=fail | 28.9s | steps=28 | tools=3 | files_read=2 | patch=none
+[benchmark]   tokens: prompt=29740 completion=414
+[benchmark]   error: Agent reached the maximum of 12 steps without a valid patch. Last event: -> nudge: patch retry (code): The proposed patch failed tests in the docker sandbox. Detail: F [100%] ======================...
+
+[benchmark] Task 14/26: task_014 — read_greet_tests
+[benchmark]   model=qwen2.5-coder:7b repo=greet_app category=read max_steps=8
+[benchmark]   instruction: Read the greet tests and explain the expected output format.
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=fail (pytest ignored for read-only tasks) | 13.9s | steps=14 | tools=1 | files_read=0 | patch=none
+[benchmark]   tokens: prompt=11806 completion=240
+
+[benchmark] Task 15/26: task_015 — fix_strip_lines
+[benchmark]   model=qwen2.5-coder:7b repo=parse_app category=fix max_steps=12
+[benchmark]   instruction: Fix strip_lines so it removes surrounding whitespace from each line and all tests pass.
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=ok | 26.2s | steps=21 | tools=2 | files_read=2 | patch=applied
+[benchmark]   tokens: prompt=22260 completion=415
+
+[benchmark] Task 16/26: task_016 — search_parse_helper
+[benchmark]   model=qwen2.5-coder:7b repo=parse_app category=search max_steps=8
+[benchmark]   instruction: Search for the strip_lines helper and summarize its current behavior.
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=fail (pytest ignored for read-only tasks) | 6.3s | steps=5 | tools=0 | files_read=2 | patch=none
+
+[benchmark] Task 17/26: task_017 — fix_sort_empty_list
+[benchmark]   model=qwen2.5-coder:7b repo=sort_app category=fix max_steps=12
+[benchmark]   instruction: Ensure sort_asc handles empty lists correctly while keeping ascending order for non-empty inputs.
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=ok | 7.9s | steps=9 | tools=3 | files_read=2 | patch=applied
+[benchmark]   tokens: prompt=4891 completion=97
+
+[benchmark] Task 18/26: task_018 — search_email_validation
+[benchmark]   model=qwen2.5-coder:7b repo=email_app category=search max_steps=8
+[benchmark]   instruction: Search the repository for email validation logic and summarize the current rules.
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=fail (pytest ignored for read-only tasks) | 6.2s | steps=6 | tools=1 | files_read=0 | patch=none
+[benchmark]   tokens: prompt=4701 completion=90
+
+[benchmark] Task 19/26: task_019 — read_math_module
+[benchmark]   model=qwen2.5-coder:7b repo=math_app category=read max_steps=8
+[benchmark]   instruction: Read math_ops.py and describe each function's behavior.
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=fail (pytest ignored for read-only tasks) | 3.8s | steps=4 | tools=0 | files_read=1 | patch=none
+[benchmark]   tokens: prompt=1720 completion=56
+
+[benchmark] Task 20/26: task_020 — fix_add_documentation
+[benchmark]   model=qwen2.5-coder:7b repo=healthy_lib category=fix max_steps=12
+[benchmark]   instruction: Add concise docstrings to slugify and excerpt in lib.py if they are missing. Do not change behavi...
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=ok | 9.4s | steps=5 | tools=1 | files_read=1 | patch=applied
+[benchmark]   tokens: prompt=1548 completion=138
+
+[benchmark] Task 21/26: task_021 — create_stats_module
+[benchmark]   model=qwen2.5-coder:7b repo=stats_app category=create max_steps=12
+[benchmark]   instruction: Create the missing stats.py module so mean computes the arithmetic average of a list of numbers a...
+[benchmark]   running agent...
+[benchmark]   result: FAIL | agent=fail | pytest=fail | 73.0s | steps=31 | tools=2 | files_read=1 | patch=none
+[benchmark]   tokens: prompt=42525 completion=809
+[benchmark]   error: Patch verification failed after exhausting correction attempts: ==================================== ERRORS ==================================== ________________________ ERROR collecting test_stats...
+
+[benchmark] Task 22/26: task_022 — create_palindrome_module
+[benchmark]   model=qwen2.5-coder:7b repo=palindrome_app category=create max_steps=12
+[benchmark]   instruction: Create the missing palindrome.py module with is_palindrome(text) returning True when text reads t...
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=ok | 5.4s | steps=5 | tools=1 | files_read=1 | patch=applied
+[benchmark]   tokens: prompt=1724 completion=45
+
+[benchmark] Task 23/26: task_023 — create_initials_module
+[benchmark]   model=qwen2.5-coder:7b repo=initials_app category=create max_steps=12
+[benchmark]   instruction: Create the missing initials.py module. initials(first, last) must return uppercase initials separ...
+[benchmark]   running agent...
+[benchmark]   result: FAIL | agent=fail | pytest=fail | 70.7s | steps=29 | tools=2 | files_read=1 | patch=none
+[benchmark]   tokens: prompt=38619 completion=575
+[benchmark]   error: Patch verification failed after exhausting correction attempts: ==================================== ERRORS ==================================== ______________________ ERROR collecting test_initial...
+
+[benchmark] Task 24/26: task_024 — fix_clamp_in_range
+[benchmark]   model=qwen2.5-coder:7b repo=clamp_app category=fix max_steps=12
+[benchmark]   instruction: Fix clamp so values already inside the range are returned unchanged and all tests pass. Use propo...
+[benchmark]   running agent...
+[benchmark]   result: FAIL | agent=fail | pytest=fail | 25.7s | steps=21 | tools=2 | files_read=2 | patch=none
+[benchmark]   tokens: prompt=23358 completion=341
+[benchmark]   error: The agent finished without a valid patch. Ask CASI again to call propose_file with the complete corrected file content.
+
+[benchmark] Task 25/26: task_025 — fix_repeat_string
+[benchmark]   model=qwen2.5-coder:7b repo=repeat_app category=fix max_steps=12
+[benchmark]   instruction: Fix repeat so it returns the input text repeated the requested number of times. Use propose_file ...
+[benchmark]   running agent...
+[benchmark]   result: FAIL | agent=fail | pytest=fail | 38.7s | steps=25 | tools=2 | files_read=2 | patch=none
+[benchmark]   tokens: prompt=32761 completion=531
+[benchmark]   error: Agent reached the maximum of 12 steps without a valid patch. Last event: -> nudge: propose_file failed: Proposed Python content for repeat.py has a syntax error at line 1: unexpected character afte...
+
+[benchmark] Task 26/26: task_026 — fix_strip_lines_whitespace
+[benchmark]   model=qwen2.5-coder:7b repo=strip_app category=fix max_steps=12
+[benchmark]   instruction: Fix strip_lines so it removes surrounding whitespace from each line. Read the failing tests first...
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=ok | 14.9s | steps=8 | tools=1 | files_read=2 | patch=applied
+[benchmark]   tokens: prompt=3754 completion=179
+

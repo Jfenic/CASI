@@ -1,0 +1,15 @@
+El test falla porque en el archivo `counter.py`, la función `increment()` incrementa el valor en **0** en lugar de **1**.
+
+Línea culpable:
+
+```
+self._value += 0
+```
+
+Debería ser:
+
+```
+self._value += 1
+```
+
+Como consecuencia, después de dos llamadas a `increment()`, el valor sigue siendo 0 en lugar de 2, haciendo que la afirmación `assert counter.value() == 2` falle.

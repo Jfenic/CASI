@@ -1,0 +1,22 @@
+--- /dev/null
++++ b/reader.py
+@@ -0,0 +1,19 @@
++import json
++
++
++def read_records(text):
++    result = []
++    lines = text.splitlines()
++    for i, line in enumerate(lines, start=1):
++        line = line.strip()
++        if not line:
++            continue
++        try:
++            obj = json.loads(line)
++            if isinstance(obj, dict):
++                result.append(obj)
++            else:
++                raise ValueError(f'line {i}: not a dictionary')
++        except json.JSONDecodeError as e:
++            raise ValueError(f'line {i}: {e}')
++    return result

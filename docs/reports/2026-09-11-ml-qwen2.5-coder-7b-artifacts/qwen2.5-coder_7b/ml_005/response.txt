@@ -1,0 +1,11 @@
+--- a/encode.py
++++ b/encode.py
+@@ -1,7 +1,7 @@
+ def one_hot_encode(labels):
+     if not labels:
+         return []
+-    num_classes = max(labels)
++    num_classes = max(labels) + 1
+     rows = []
+     for label in labels:
+         row = [0] * num_classes

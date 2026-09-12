@@ -1,0 +1,6 @@
+The repository contains two files:
+
+1. **lib.py** - This is likely the main library file that exports public helper functions
+2. **test_lib.py** - This is the test file for the library
+
+Let me examine lib.py to identify the public helper functions and their inputs/outputs.

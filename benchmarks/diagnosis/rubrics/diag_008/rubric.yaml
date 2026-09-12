@@ -1,0 +1,17 @@
+file: totals.py
+line:
+  min: 10
+  max: 10
+cause:
+  any: ["quantity", "qty", "multiply", "unit price", "per item", "not multiplied", "ignores"]
+evidence:
+  any: ["get_price(sku)", "* qty", "qty", "for sku, qty"]
+forbidden:
+  - "```diff"
+  - "propose_file"
+  - "apply_patch"
+required_fields:
+  - file
+  - line
+  - cause
+  - evidence

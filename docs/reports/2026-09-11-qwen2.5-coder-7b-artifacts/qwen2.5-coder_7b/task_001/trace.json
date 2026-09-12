@@ -1,0 +1,160 @@
+{
+  "schema_version": 2,
+  "run_id": "35f875afc8ed4c87b435df474896012c",
+  "created_at": "2026-09-11T10:50:02.978304+00:00",
+  "execution": {
+    "model": "qwen2.5-coder:7b",
+    "repository": "/tmp/casi-benchmark-ky1gzqig/healthy_lib",
+    "task": "Inspect the repository and list the Python source files with a one-line summary of each module's responsibility.",
+    "started_at": "2026-09-11T10:48:10.308390+00:00",
+    "finished_at": "2026-09-11T10:50:02.511896+00:00",
+    "files_read": [],
+    "tools_called": [
+      "list_files"
+    ],
+    "patches_proposed": 0,
+    "errors": [],
+    "prompt_tokens": 3079,
+    "completion_tokens": 46,
+    "total_duration_ms": 112203.50600000001,
+    "steps": [
+      {
+        "step": 1,
+        "decision_kind": "tool_call",
+        "tool": null,
+        "duration_ms": 110295.01,
+        "success": null
+      },
+      {
+        "step": 1,
+        "decision_kind": "tool_result",
+        "tool": "list_files",
+        "duration_ms": null,
+        "success": true
+      },
+      {
+        "step": 2,
+        "decision_kind": "final",
+        "tool": null,
+        "duration_ms": 1891.1,
+        "success": null
+      },
+      {
+        "step": 2,
+        "decision_kind": "final",
+        "tool": null,
+        "duration_ms": null,
+        "success": null
+      }
+    ],
+    "test_runs": []
+  },
+  "metrics": {
+    "total_steps": 4,
+    "decision_steps": 1,
+    "tool_calls": 1,
+    "files_read": 0,
+    "patches_proposed": 0,
+    "test_runs": 0,
+    "failed_tools": 0,
+    "prompt_tokens": 3079,
+    "completion_tokens": 46,
+    "total_duration_ms": 112203.50600000001,
+    "step_duration_ms": 56093.055
+  },
+  "events": [
+    {
+      "timestamp": "2026-09-11T10:48:10.308498+00:00",
+      "kind": "plan",
+      "message": "plan: 1. [general|read] Inspect the repository and list the Python source files with a one-line summary of each module's responsibility. — repository tools as needed",
+      "data": {
+        "steps": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-11T10:48:10.308518+00:00",
+      "kind": "orchestrator_step",
+      "message": "orchestrator step 1/1: general (General Repository Agent)",
+      "data": {
+        "step_number": 1,
+        "total_steps": 1,
+        "agent_name": "general",
+        "agent_role": "General Repository Agent",
+        "objective": "unknown"
+      }
+    },
+    {
+      "timestamp": "2026-09-11T10:50:00.604271+00:00",
+      "kind": "step_timing",
+      "message": "timing 1/8: tool_call 110295.0ms",
+      "data": {
+        "step": 1,
+        "step_limit": 8,
+        "decision_kind": "tool_call",
+        "duration_ms": 110295.01
+      }
+    },
+    {
+      "timestamp": "2026-09-11T10:50:00.604328+00:00",
+      "kind": "usage",
+      "message": "usage prompt=1514 completion=19",
+      "data": {
+        "prompt_tokens": 1514,
+        "completion_tokens": 19
+      }
+    },
+    {
+      "timestamp": "2026-09-11T10:50:00.604360+00:00",
+      "kind": "tool_call",
+      "message": "decision 1/8: tool list_files max_files=10",
+      "data": {
+        "step": 1,
+        "step_limit": 8,
+        "tool": "list_files"
+      }
+    },
+    {
+      "timestamp": "2026-09-11T10:50:00.605981+00:00",
+      "kind": "tool_result",
+      "message": "  -> list_files ok: lib.py test_lib.py",
+      "data": {
+        "tool": "list_files",
+        "success": true,
+        "count": 2,
+        "files": [
+          "lib.py",
+          "test_lib.py"
+        ]
+      }
+    },
+    {
+      "timestamp": "2026-09-11T10:50:02.497337+00:00",
+      "kind": "step_timing",
+      "message": "timing 2/8: final 1891.1ms",
+      "data": {
+        "step": 2,
+        "step_limit": 8,
+        "decision_kind": "final",
+        "duration_ms": 1891.1
+      }
+    },
+    {
+      "timestamp": "2026-09-11T10:50:02.497355+00:00",
+      "kind": "usage",
+      "message": "usage prompt=1565 completion=27",
+      "data": {
+        "prompt_tokens": 1565,
+        "completion_tokens": 27
+      }
+    },
+    {
+      "timestamp": "2026-09-11T10:50:02.497413+00:00",
+      "kind": "final",
+      "message": "decision 2/8: final Librería de funciones útiles. Prueba unitaria para la librería.",
+      "data": {
+        "step": 2,
+        "step_limit": 8
+      }
+    }
+  ]
+}

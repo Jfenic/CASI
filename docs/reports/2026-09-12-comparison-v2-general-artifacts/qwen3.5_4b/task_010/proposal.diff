@@ -1,0 +1,8 @@
+--- a/sorter.py
++++ b/sorter.py
+@@ -2,4 +2,4 @@
+ 
+ 
+ def sort_asc(values: list[int]) -> list[int]:
+-	return sorted(values, reverse=True)
++    return sorted(values, reverse=False)

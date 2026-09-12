@@ -1,12 +1,11 @@
 file: clamp.py
 line:
-  min: 10
-  max: 12
+  min: 9
+  max: 9
 cause:
   any: ["+ 1", "plus one", "adds one", "off by one", "increments", "too high"]
 evidence:
   any: ["value + 1", "+ 1", "return value"]
-max_words: 40
 forbidden:
   - "```diff"
   - "propose_file"

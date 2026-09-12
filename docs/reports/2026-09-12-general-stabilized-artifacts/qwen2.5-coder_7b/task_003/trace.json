@@ -1,0 +1,201 @@
+{
+  "schema_version": 2,
+  "run_id": "146281071f2b4eaba15a3cd68ad2ad8c",
+  "created_at": "2026-09-12T11:47:16.171534+00:00",
+  "execution": {
+    "model": "qwen2.5-coder:7b",
+    "repository": "/tmp/casi-benchmark-f0l5ecw5/healthy_lib",
+    "task": "Search the repository for the excerpt helper and summarize where it is defined and how it behaves.",
+    "started_at": "2026-09-12T11:47:09.167826+00:00",
+    "finished_at": "2026-09-12T11:47:15.924979+00:00",
+    "files_read": [],
+    "tools_called": [
+      "search_code"
+    ],
+    "patches_proposed": 0,
+    "errors": [],
+    "prompt_tokens": 4984,
+    "completion_tokens": 120,
+    "total_duration_ms": 6757.152999999999,
+    "steps": [
+      {
+        "step": 1,
+        "decision_kind": "tool_call",
+        "tool": null,
+        "duration_ms": 1560.61,
+        "success": null
+      },
+      {
+        "step": 1,
+        "decision_kind": "tool_result",
+        "tool": "search_code",
+        "duration_ms": null,
+        "success": true
+      },
+      {
+        "step": 2,
+        "decision_kind": "clarification",
+        "tool": null,
+        "duration_ms": 3345.75,
+        "success": null
+      },
+      {
+        "step": 2,
+        "decision_kind": "clarification",
+        "tool": null,
+        "duration_ms": null,
+        "success": null
+      },
+      {
+        "step": 3,
+        "decision_kind": "final",
+        "tool": null,
+        "duration_ms": 1848.3,
+        "success": null
+      },
+      {
+        "step": 3,
+        "decision_kind": "final",
+        "tool": null,
+        "duration_ms": null,
+        "success": null
+      }
+    ],
+    "test_runs": []
+  },
+  "metrics": {
+    "total_steps": 6,
+    "decision_steps": 3,
+    "tool_calls": 1,
+    "files_read": 0,
+    "patches_proposed": 0,
+    "test_runs": 0,
+    "failed_tools": 0,
+    "prompt_tokens": 4984,
+    "completion_tokens": 120,
+    "total_duration_ms": 6757.152999999999,
+    "step_duration_ms": 2251.5533333333333
+  },
+  "events": [
+    {
+      "timestamp": "2026-09-12T11:47:09.167911+00:00",
+      "kind": "plan",
+      "message": "plan: 1. [general|read] Search the repository for the excerpt helper and summarize where it is defined and how it behaves. — repository tools as needed",
+      "data": {
+        "steps": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-12T11:47:09.167928+00:00",
+      "kind": "orchestrator_step",
+      "message": "orchestrator step 1/1: general (General Repository Agent)",
+      "data": {
+        "step_number": 1,
+        "total_steps": 1,
+        "agent_name": "general",
+        "agent_role": "General Repository Agent",
+        "objective": "unknown"
+      }
+    },
+    {
+      "timestamp": "2026-09-12T11:47:10.729126+00:00",
+      "kind": "step_timing",
+      "message": "timing 1/8: tool_call 1560.6ms",
+      "data": {
+        "step": 1,
+        "step_limit": 8,
+        "decision_kind": "tool_call",
+        "duration_ms": 1560.61
+      }
+    },
+    {
+      "timestamp": "2026-09-12T11:47:10.729138+00:00",
+      "kind": "usage",
+      "message": "usage prompt=1597 completion=25",
+      "data": {
+        "prompt_tokens": 1597,
+        "completion_tokens": 25
+      }
+    },
+    {
+      "timestamp": "2026-09-12T11:47:10.729156+00:00",
+      "kind": "tool_call",
+      "message": "decision 1/8: tool search_code query='helper', max_results=10",
+      "data": {
+        "step": 1,
+        "step_limit": 8,
+        "tool": "search_code"
+      }
+    },
+    {
+      "timestamp": "2026-09-12T11:47:10.730131+00:00",
+      "kind": "tool_result",
+      "message": "  -> search_code ok: ",
+      "data": {
+        "tool": "search_code",
+        "success": true,
+        "count": 0,
+        "results": []
+      }
+    },
+    {
+      "timestamp": "2026-09-12T11:47:14.075942+00:00",
+      "kind": "step_timing",
+      "message": "timing 2/8: clarification 3345.7ms",
+      "data": {
+        "step": 2,
+        "step_limit": 8,
+        "decision_kind": "clarification",
+        "duration_ms": 3345.75
+      }
+    },
+    {
+      "timestamp": "2026-09-12T11:47:14.075956+00:00",
+      "kind": "usage",
+      "message": "usage prompt=1647 completion=63",
+      "data": {
+        "prompt_tokens": 1647,
+        "completion_tokens": 63
+      }
+    },
+    {
+      "timestamp": "2026-09-12T11:47:14.075962+00:00",
+      "kind": "decision",
+      "message": "decision 2/8: clarification",
+      "data": {
+        "step": 2,
+        "step_limit": 8,
+        "decision_kind": "clarification"
+      }
+    },
+    {
+      "timestamp": "2026-09-12T11:47:15.924347+00:00",
+      "kind": "step_timing",
+      "message": "timing 3/8: final 1848.3ms",
+      "data": {
+        "step": 3,
+        "step_limit": 8,
+        "decision_kind": "final",
+        "duration_ms": 1848.3
+      }
+    },
+    {
+      "timestamp": "2026-09-12T11:47:15.924360+00:00",
+      "kind": "usage",
+      "message": "usage prompt=1740 completion=32",
+      "data": {
+        "prompt_tokens": 1740,
+        "completion_tokens": 32
+      }
+    },
+    {
+      "timestamp": "2026-09-12T11:47:15.924368+00:00",
+      "kind": "final",
+      "message": "decision 3/8: final Se solicita buscar el fragmento de código 'helper' en el repositorio.",
+      "data": {
+        "step": 3,
+        "step_limit": 8
+      }
+    }
+  ]
+}

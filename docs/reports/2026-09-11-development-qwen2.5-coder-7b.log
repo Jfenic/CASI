@@ -1,0 +1,79 @@
+[benchmark] Model 'qwen2.5-coder:7b' — 10 task(s)
+
+[benchmark] Task 1/10: dev_001 — pagination
+[benchmark]   model=qwen2.5-coder:7b repo=pagination category=fix max_steps=18
+[benchmark]   instruction: Fix paginate(items, page, page_size) in pagination.py. Pages are one-based; return a new list for...
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=ok | 7.3s | steps=6 | tools=1 | files_read=2 | patch=applied
+[benchmark]   tokens: prompt=1739 completion=101
+
+[benchmark] Task 2/10: dev_002 — boolean_config
+[benchmark]   model=qwen2.5-coder:7b repo=boolean_config category=fix max_steps=18
+[benchmark]   instruction: Fix parse_bool(value, default=False) in config.py. None returns default. Booleans remain unchange...
+[benchmark]   running agent...
+[benchmark]   result: PASS | agent=ok | pytest=ok | 11.8s | steps=6 | tools=1 | files_read=2 | patch=applied
+[benchmark]   tokens: prompt=1676 completion=188
+
+[benchmark] Task 3/10: dev_003 — csv_totals
+[benchmark]   model=qwen2.5-coder:7b repo=csv_totals category=fix max_steps=18
+[benchmark]   instruction: Fix totals(text) in sales.py. Input is CSV with headers product,quantity and standard CSV quoting...
+[benchmark]   running agent...
+[benchmark]   result: FAIL | agent=fail | pytest=fail | 45.7s | steps=23 | tools=3 | files_read=2 | patch=none
+[benchmark]   tokens: prompt=29007 completion=656
+[benchmark]   error: The agent finished without a valid patch. Ask CASI again to call propose_file with the complete corrected file content.
+
+[benchmark] Task 4/10: dev_004 — invoice_rounding
+[benchmark]   model=qwen2.5-coder:7b repo=invoice_rounding category=fix max_steps=18
+[benchmark]   instruction: Fix invoice_total(lines) in billing.py. Each line is (unit_price_string, nonnegative_integer_quan...
+[benchmark]   running agent...
+[benchmark]   result: FAIL | agent=ok | pytest=fail | 22.2s | steps=8 | tools=1 | files_read=2 | patch=applied
+[benchmark]   tokens: prompt=3903 completion=292
+[benchmark]   error: Independent verification failed: F...F. [100%] =================================== FAILURES =================================== _________________________ test_round_lines_before_sum _______________...
+
+[benchmark] Task 5/10: dev_005 — ttl_cache
+[benchmark]   model=qwen2.5-coder:7b repo=ttl_cache category=fix max_steps=18
+[benchmark]   instruction: Fix Cache in cache.py. Cache(clock) uses an injected seconds clock. set(key,value,ttl) expires at...
+[benchmark]   running agent...
+[benchmark]   result: FAIL | agent=ok | pytest=fail | 13.5s | steps=6 | tools=1 | files_read=2 | patch=applied
+[benchmark]   tokens: prompt=1902 completion=185
+[benchmark]   error: Independent verification failed: .F. [100%] =================================== FAILURES =================================== __________________________ test_zero_and_negative_ttl __________________...
+
+[benchmark] Task 6/10: dev_006 — settings_merge
+[benchmark]   model=qwen2.5-coder:7b repo=settings_merge category=fix max_steps=18
+[benchmark]   instruction: Fix merge_settings(defaults, overrides) in settings.py. Recursively merge dictionaries; other ove...
+[benchmark]   running agent...
+[benchmark]   result: FAIL | agent=ok | pytest=fail | 10.7s | steps=6 | tools=1 | files_read=2 | patch=applied
+[benchmark]   tokens: prompt=1813 completion=136
+[benchmark]   error: Independent verification failed: F.. [100%] =================================== FAILURES =================================== _________________________ test_no_aliases_or_mutations _________________...
+
+[benchmark] Task 7/10: dev_007 — jsonl_reader
+[benchmark]   model=qwen2.5-coder:7b repo=jsonl_reader category=create max_steps=18
+[benchmark]   instruction: Create reader.py with read_records(text). Parse JSON Lines into a list of dictionaries; ignore wh...
+[benchmark]   running agent...
+[benchmark]   result: FAIL | agent=ok | pytest=fail | 10.3s | steps=5 | tools=1 | files_read=1 | patch=applied
+[benchmark]   tokens: prompt=1740 completion=109
+[benchmark]   error: Independent verification failed: .FFFFF.. [100%] =================================== FAILURES =================================== ________________________ test_physical_line_number[[1]] ___________...
+
+[benchmark] Task 8/10: dev_008 — dependency_order
+[benchmark]   model=qwen2.5-coder:7b repo=dependency_order category=create max_steps=18
+[benchmark]   instruction: Create dependencies.py with build_order(graph). graph maps string task names to lists of prerequi...
+[benchmark]   running agent...
+[benchmark]   result: FAIL | agent=fail | pytest=fail | 111.3s | steps=32 | tools=2 | files_read=1 | patch=none
+[benchmark]   tokens: prompt=45251 completion=1342
+[benchmark]   error: Patch verification failed after exhausting correction attempts: <stdin>:32: new blank line at EOF. + error: 1 line adds whitespace errors.
+
+[benchmark] Task 9/10: dev_009 — retry_tests
+[benchmark]   model=qwen2.5-coder:7b repo=retry_tests category=create max_steps=18
+[benchmark]   instruction: Create test_retry.py containing pytest tests for retry(operation, attempts=3) in retrying.py. Do ...
+[benchmark]   running agent...
+[benchmark]   result: FAIL | agent=fail | pytest=fail | 120.8s | steps=2 | tools=0 | files_read=1 | patch=none
+[benchmark]   error: Ollama request failed: timed out
+
+[benchmark] Task 10/10: dev_010 — slug_tests
+[benchmark]   model=qwen2.5-coder:7b repo=slug_tests category=create max_steps=18
+[benchmark]   instruction: Create test_slug.py with pytest regression tests for slugify(text) in slug.py, without changing i...
+[benchmark]   running agent...
+[benchmark]   result: FAIL | agent=fail | pytest=fail | 112.1s | steps=22 | tools=2 | files_read=1 | patch=none
+[benchmark]   tokens: prompt=32133 completion=1464
+[benchmark]   error: The agent finished without a valid patch. Ask CASI again to call propose_file with the complete corrected file content.
+

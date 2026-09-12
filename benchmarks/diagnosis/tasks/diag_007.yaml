@@ -1,0 +1,14 @@
+id: diag_007
+name: discount_boundary
+repository: discount_boundary
+category: diagnose
+capability: requirement_mismatch_diagnosis
+difficulty: intermediate
+instruction: >
+  Tests are failing in this repository. Use tools to inspect the failure.
+  Do NOT modify files, call propose_file, apply_patch, or include diffs.
+  Reply with one final JSON response only. Put a JSON object in content with keys
+  file, line, cause, and evidence. Identify why the implementation rejects or
+  accepts totals at the boundary differently from the test expectation.
+response_grader: ../rubrics/diag_007
+max_steps: 10

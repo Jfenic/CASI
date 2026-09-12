@@ -16,6 +16,8 @@ no deben mezclarse, porque la evaluación final es más exigente.
 | dev_008 | Algoritmos | Orden de dependencias, desempates y ciclos | Avanzada |
 | dev_009 | Diseño de tests | Reintentos, llamadas, excepciones y límites | Intermedia |
 | dev_010 | Tests de regresión | Normalización de texto y separadores | Básica |
+| dev_011 | Validación de entradas | parse_version debe lanzar ValueError | Básica |
+| dev_012 | Integración mini-proyecto | Checkout multi-módulo ignora cantidades | Avanzada |
 
 Las dificultades son etiquetas de diseño de esta suite, no una escala externa.
 No requiere servicios externos, dependencias de aplicación, red ni tiempos reales

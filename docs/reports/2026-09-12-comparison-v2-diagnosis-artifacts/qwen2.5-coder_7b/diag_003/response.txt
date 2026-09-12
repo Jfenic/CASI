@@ -1,0 +1,1 @@
+{"file": "sorter.py", "line": 5, "cause": "The 'reverse=True' argument in the 'sorted' function call sorts the list in descending order instead of ascending.", "evidence": "return sorted(values, reverse=True)"}

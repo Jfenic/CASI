@@ -1,0 +1,6 @@
+{
+  "file": "clamp.py",
+  "line": 5,
+  "cause": "Incorrect logic for returning the value within the range",
+  "evidence": "The return statement on line 5 should be `return value` instead of `return value + 1`"
+}

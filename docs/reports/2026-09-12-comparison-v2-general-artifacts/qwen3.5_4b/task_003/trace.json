@@ -1,0 +1,216 @@
+{
+  "schema_version": 2,
+  "run_id": "0626578dd63f47ed94050e0d628538da",
+  "created_at": "2026-09-12T13:01:31.554067+00:00",
+  "execution": {
+    "model": "qwen3.5:4b",
+    "repository": "/tmp/casi-benchmark-371dnq7h/healthy_lib",
+    "task": "Search the repository for the excerpt helper and summarize where it is defined and how it behaves.",
+    "started_at": "2026-09-12T13:01:19.770394+00:00",
+    "finished_at": "2026-09-12T13:01:31.237762+00:00",
+    "files_read": [],
+    "tools_called": [
+      "search_code",
+      "list_files"
+    ],
+    "patches_proposed": 0,
+    "errors": [],
+    "prompt_tokens": 4126,
+    "completion_tokens": 151,
+    "total_duration_ms": 11467.368,
+    "steps": [
+      {
+        "step": 1,
+        "decision_kind": "tool_call",
+        "tool": null,
+        "duration_ms": 2693.29,
+        "success": null
+      },
+      {
+        "step": 1,
+        "decision_kind": "tool_result",
+        "tool": "search_code",
+        "duration_ms": null,
+        "success": true
+      },
+      {
+        "step": 2,
+        "decision_kind": "tool_call",
+        "tool": null,
+        "duration_ms": 2261.99,
+        "success": null
+      },
+      {
+        "step": 2,
+        "decision_kind": "tool_result",
+        "tool": "list_files",
+        "duration_ms": null,
+        "success": true
+      },
+      {
+        "step": 3,
+        "decision_kind": "final",
+        "tool": null,
+        "duration_ms": 6505.67,
+        "success": null
+      },
+      {
+        "step": 3,
+        "decision_kind": "final",
+        "tool": null,
+        "duration_ms": null,
+        "success": null
+      }
+    ],
+    "test_runs": []
+  },
+  "metrics": {
+    "total_steps": 6,
+    "decision_steps": 2,
+    "tool_calls": 2,
+    "files_read": 0,
+    "patches_proposed": 0,
+    "test_runs": 0,
+    "failed_tools": 0,
+    "prompt_tokens": 4126,
+    "completion_tokens": 151,
+    "total_duration_ms": 11467.368,
+    "step_duration_ms": 3820.316666666667
+  },
+  "events": [
+    {
+      "timestamp": "2026-09-12T13:01:19.770498+00:00",
+      "kind": "plan",
+      "message": "plan: 1. [general|read] Search the repository for the excerpt helper and summarize where it is defined and how it behaves. — repository tools as needed",
+      "data": {
+        "steps": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-12T13:01:19.770518+00:00",
+      "kind": "orchestrator_step",
+      "message": "orchestrator step 1/1: general (General Repository Agent)",
+      "data": {
+        "step_number": 1,
+        "total_steps": 1,
+        "agent_name": "general",
+        "agent_role": "General Repository Agent",
+        "objective": "unknown"
+      }
+    },
+    {
+      "timestamp": "2026-09-12T13:01:22.464633+00:00",
+      "kind": "step_timing",
+      "message": "timing 1/8: tool_call 2693.3ms",
+      "data": {
+        "step": 1,
+        "step_limit": 8,
+        "decision_kind": "tool_call",
+        "duration_ms": 2693.29
+      }
+    },
+    {
+      "timestamp": "2026-09-12T13:01:22.464661+00:00",
+      "kind": "usage",
+      "message": "usage prompt=1321 completion=18",
+      "data": {
+        "prompt_tokens": 1321,
+        "completion_tokens": 18
+      }
+    },
+    {
+      "timestamp": "2026-09-12T13:01:22.464694+00:00",
+      "kind": "tool_call",
+      "message": "decision 1/8: tool search_code query='excerpt helper'",
+      "data": {
+        "step": 1,
+        "step_limit": 8,
+        "tool": "search_code"
+      }
+    },
+    {
+      "timestamp": "2026-09-12T13:01:22.466439+00:00",
+      "kind": "tool_result",
+      "message": "  -> search_code ok: ",
+      "data": {
+        "tool": "search_code",
+        "success": true,
+        "count": 0,
+        "results": []
+      }
+    },
+    {
+      "timestamp": "2026-09-12T13:01:24.728515+00:00",
+      "kind": "step_timing",
+      "message": "timing 2/8: tool_call 2262.0ms",
+      "data": {
+        "step": 2,
+        "step_limit": 8,
+        "decision_kind": "tool_call",
+        "duration_ms": 2261.99
+      }
+    },
+    {
+      "timestamp": "2026-09-12T13:01:24.728531+00:00",
+      "kind": "usage",
+      "message": "usage prompt=1360 completion=11",
+      "data": {
+        "prompt_tokens": 1360,
+        "completion_tokens": 11
+      }
+    },
+    {
+      "timestamp": "2026-09-12T13:01:24.728539+00:00",
+      "kind": "tool_call",
+      "message": "decision 2/8: tool list_files",
+      "data": {
+        "step": 2,
+        "step_limit": 8,
+        "tool": "list_files"
+      }
+    },
+    {
+      "timestamp": "2026-09-12T13:01:24.729002+00:00",
+      "kind": "tool_result",
+      "message": "  -> list_files ok: lib.py test_lib.py",
+      "data": {
+        "tool": "list_files",
+        "success": true,
+        "count": 2,
+        "files": [
+          "lib.py",
+          "test_lib.py"
+        ]
+      }
+    },
+    {
+      "timestamp": "2026-09-12T13:01:31.234862+00:00",
+      "kind": "step_timing",
+      "message": "timing 3/8: final 6505.7ms",
+      "data": {
+        "step": 3,
+        "step_limit": 8,
+        "decision_kind": "final",
+        "duration_ms": 6505.67
+      }
+    },
+    {
+      "timestamp": "2026-09-12T13:01:31.235154+00:00",
+      "kind": "usage",
+      "message": "usage prompt=1445 completion=122",
+      "data": {
+        "prompt_tokens": 1445,
+        "completion_tokens": 122
+      }
+    },
+    {
+      "timestamp": "2026-09-12T13:01:31.235211+00:00",
+      "kind": "final",
+      "message": "decision 3/8: final Based on my investigation of the repository: **Repository Structure:** - The repository contains two files: `lib.py` ...",
+      "data": {
+        "step": 3,
+        "step_limit": 8
+      }
+    }
+  ]
+}

@@ -1,0 +1,201 @@
+{
+  "schema_version": 2,
+  "run_id": "fbffbe98b23d41ecb0ece84ae33c1977",
+  "created_at": "2026-09-12T12:17:35.523915+00:00",
+  "execution": {
+    "model": "qwen2.5-coder:7b",
+    "repository": "/tmp/casi-benchmark-u1u2osst/healthy_lib",
+    "task": "Identify the public helper functions exported by the library and describe their inputs and outputs.",
+    "started_at": "2026-09-12T12:17:29.797844+00:00",
+    "finished_at": "2026-09-12T12:17:35.265860+00:00",
+    "files_read": [],
+    "tools_called": [
+      "search_code"
+    ],
+    "patches_proposed": 0,
+    "errors": [],
+    "prompt_tokens": 4973,
+    "completion_tokens": 85,
+    "total_duration_ms": 5468.0160000000005,
+    "steps": [
+      {
+        "step": 1,
+        "decision_kind": "tool_call",
+        "tool": null,
+        "duration_ms": 1442.28,
+        "success": null
+      },
+      {
+        "step": 1,
+        "decision_kind": "tool_result",
+        "tool": "search_code",
+        "duration_ms": null,
+        "success": true
+      },
+      {
+        "step": 2,
+        "decision_kind": "clarification",
+        "tool": null,
+        "duration_ms": 2053.51,
+        "success": null
+      },
+      {
+        "step": 2,
+        "decision_kind": "clarification",
+        "tool": null,
+        "duration_ms": null,
+        "success": null
+      },
+      {
+        "step": 3,
+        "decision_kind": "final",
+        "tool": null,
+        "duration_ms": 1969.99,
+        "success": null
+      },
+      {
+        "step": 3,
+        "decision_kind": "final",
+        "tool": null,
+        "duration_ms": null,
+        "success": null
+      }
+    ],
+    "test_runs": []
+  },
+  "metrics": {
+    "total_steps": 6,
+    "decision_steps": 3,
+    "tool_calls": 1,
+    "files_read": 0,
+    "patches_proposed": 0,
+    "test_runs": 0,
+    "failed_tools": 0,
+    "prompt_tokens": 4973,
+    "completion_tokens": 85,
+    "total_duration_ms": 5468.0160000000005,
+    "step_duration_ms": 1821.926666666667
+  },
+  "events": [
+    {
+      "timestamp": "2026-09-12T12:17:29.797923+00:00",
+      "kind": "plan",
+      "message": "plan: 1. [general|read] Identify the public helper functions exported by the library and describe their inputs and outputs. — repository tools as needed",
+      "data": {
+        "steps": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-12T12:17:29.797939+00:00",
+      "kind": "orchestrator_step",
+      "message": "orchestrator step 1/1: general (General Repository Agent)",
+      "data": {
+        "step_number": 1,
+        "total_steps": 1,
+        "agent_name": "general",
+        "agent_role": "General Repository Agent",
+        "objective": "unknown"
+      }
+    },
+    {
+      "timestamp": "2026-09-12T12:17:31.240989+00:00",
+      "kind": "step_timing",
+      "message": "timing 1/8: tool_call 1442.3ms",
+      "data": {
+        "step": 1,
+        "step_limit": 8,
+        "decision_kind": "tool_call",
+        "duration_ms": 1442.28
+      }
+    },
+    {
+      "timestamp": "2026-09-12T12:17:31.241003+00:00",
+      "kind": "usage",
+      "message": "usage prompt=1596 completion=23",
+      "data": {
+        "prompt_tokens": 1596,
+        "completion_tokens": 23
+      }
+    },
+    {
+      "timestamp": "2026-09-12T12:17:31.241015+00:00",
+      "kind": "tool_call",
+      "message": "decision 1/8: tool search_code query='public helper functions exported by the library'",
+      "data": {
+        "step": 1,
+        "step_limit": 8,
+        "tool": "search_code"
+      }
+    },
+    {
+      "timestamp": "2026-09-12T12:17:31.241591+00:00",
+      "kind": "tool_result",
+      "message": "  -> search_code ok: ",
+      "data": {
+        "tool": "search_code",
+        "success": true,
+        "count": 0,
+        "results": []
+      }
+    },
+    {
+      "timestamp": "2026-09-12T12:17:33.295155+00:00",
+      "kind": "step_timing",
+      "message": "timing 2/8: clarification 2053.5ms",
+      "data": {
+        "step": 2,
+        "step_limit": 8,
+        "decision_kind": "clarification",
+        "duration_ms": 2053.51
+      }
+    },
+    {
+      "timestamp": "2026-09-12T12:17:33.295168+00:00",
+      "kind": "usage",
+      "message": "usage prompt=1644 completion=36",
+      "data": {
+        "prompt_tokens": 1644,
+        "completion_tokens": 36
+      }
+    },
+    {
+      "timestamp": "2026-09-12T12:17:33.295173+00:00",
+      "kind": "decision",
+      "message": "decision 2/8: clarification",
+      "data": {
+        "step": 2,
+        "step_limit": 8,
+        "decision_kind": "clarification"
+      }
+    },
+    {
+      "timestamp": "2026-09-12T12:17:35.265255+00:00",
+      "kind": "step_timing",
+      "message": "timing 3/8: final 1970.0ms",
+      "data": {
+        "step": 3,
+        "step_limit": 8,
+        "decision_kind": "final",
+        "duration_ms": 1969.99
+      }
+    },
+    {
+      "timestamp": "2026-09-12T12:17:35.265288+00:00",
+      "kind": "usage",
+      "message": "usage prompt=1733 completion=26",
+      "data": {
+        "prompt_tokens": 1733,
+        "completion_tokens": 26
+      }
+    },
+    {
+      "timestamp": "2026-09-12T12:17:35.265296+00:00",
+      "kind": "final",
+      "message": "decision 3/8: final Identify the public helper functions exported by the library and describe their inputs and outputs.",
+      "data": {
+        "step": 3,
+        "step_limit": 8
+      }
+    }
+  ]
+}

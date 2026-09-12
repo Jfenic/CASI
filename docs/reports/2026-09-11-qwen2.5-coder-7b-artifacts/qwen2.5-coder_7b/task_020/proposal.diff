@@ -1,0 +1,17 @@
+--- a/lib.py
++++ b/lib.py
+@@ -2,10 +2,10 @@
+ 
+ 
+ def slugify(text: str) -> str:
+-	return text.strip().lower().replace(" ", "-")
++    return text.strip().lower().replace(" ", "-")
+ 
+ 
+ def excerpt(text: str, limit: int = 40) -> str:
+-	if len(text) <= limit:
+-		return text
+-	return text[: limit - 3] + "..."
++    if len(text) <= limit:
++        return text
++    return text[: limit - 3] + "..."

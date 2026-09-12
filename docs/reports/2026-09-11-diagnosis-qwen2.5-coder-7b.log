@@ -1,0 +1,42 @@
+[benchmark] Model 'qwen2.5-coder:7b' — 5 task(s)
+
+[benchmark] Task 1/5: diag_001 — counter_stuck
+[benchmark]   model=qwen2.5-coder:7b repo=counter_stuck category=diagnose max_steps=10
+[benchmark]   instruction: Tests are failing in this repository. Use tools to inspect the failure. Do NOT modify files, call...
+[benchmark]   running agent...
+[benchmark]   result: FAIL | agent=ok | pytest=fail | 40.4s | steps=7 | tools=0 | files_read=2 | patch=none
+[benchmark]   tokens: prompt=3613 completion=90
+[benchmark]   error: Diagnosis grading failed: missing or invalid diagnosis JSON payload
+
+[benchmark] Task 2/5: diag_002 — clamp_extra
+[benchmark]   model=qwen2.5-coder:7b repo=clamp_extra category=diagnose max_steps=10
+[benchmark]   instruction: Tests are failing in this repository. Use tools to inspect the failure. Do NOT modify files, call...
+[benchmark]   running agent...
+[benchmark]   result: FAIL | agent=ok | pytest=fail | 31.6s | steps=7 | tools=0 | files_read=2 | patch=none
+[benchmark]   tokens: prompt=3538 completion=92
+[benchmark]   error: Diagnosis grading failed: missing or invalid diagnosis JSON payload
+
+[benchmark] Task 3/5: diag_003 — sort_desc
+[benchmark]   model=qwen2.5-coder:7b repo=sort_desc category=diagnose max_steps=10
+[benchmark]   instruction: Tests are failing in this repository. Use tools to inspect the failure. Do NOT modify files, call...
+[benchmark]   running agent...
+[benchmark]   result: FAIL | agent=ok | pytest=fail | 12.1s | steps=7 | tools=0 | files_read=2 | patch=none
+[benchmark]   tokens: prompt=3561 completion=106
+[benchmark]   error: Diagnosis grading failed: missing or invalid diagnosis JSON payload
+
+[benchmark] Task 4/5: diag_004 — stats_mean
+[benchmark]   model=qwen2.5-coder:7b repo=stats_mean category=diagnose max_steps=10
+[benchmark]   instruction: Tests are failing in this repository. Use tools to inspect the failure. Do NOT modify files, call...
+[benchmark]   running agent...
+[benchmark]   result: FAIL | agent=ok | pytest=fail | 11.8s | steps=7 | tools=0 | files_read=2 | patch=none
+[benchmark]   tokens: prompt=3553 completion=82
+[benchmark]   error: Diagnosis grading failed: missing or invalid diagnosis JSON payload
+
+[benchmark] Task 5/5: diag_005 — email_dot_only
+[benchmark]   model=qwen2.5-coder:7b repo=email_dot_only category=diagnose max_steps=10
+[benchmark]   instruction: Tests are failing in this repository. Use tools to inspect the failure. Do NOT modify files, call...
+[benchmark]   running agent...
+[benchmark]   result: FAIL | agent=ok | pytest=fail | 10.5s | steps=7 | tools=0 | files_read=2 | patch=none
+[benchmark]   tokens: prompt=3468 completion=95
+[benchmark]   error: Diagnosis grading failed: missing or invalid diagnosis JSON payload
+

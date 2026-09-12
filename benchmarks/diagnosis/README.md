@@ -12,6 +12,9 @@ de la causa raíz. El agente no debe parchear; la respuesta final es un JSON con
 | diag_003 | Análisis | Orden ascendente con `reverse=True` | Básica |
 | diag_004 | Análisis | Media con resta incorrecta | Intermedia |
 | diag_005 | Tests vs código | Email válido solo con punto | Básica |
+| diag_006 | Cadena de llamadas | Media incorrecta en cadena summary → normalize | Intermedia |
+| diag_007 | Contrato / límites | Descuento gold excluye el umbral exacto | Intermedia |
+| diag_008 | Mini-proyecto | Checkout multi-módulo ignora cantidades | Avanzada |
 
 ## Ejecutar con un modelo
 

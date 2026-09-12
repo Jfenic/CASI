@@ -607,7 +607,9 @@ def test_agent_loop_nudges_when_partial_fix_leaves_other_tests_failing(
         max_correction_attempts=0,
         require_tool_confirmation=lambda *_args: True,
         routing_mode="off",
-    ).run("Fix validator so empty email strings are rejected and keep all tests passing")
+    ).run(
+        "Fix validator so empty email strings are rejected and keep all tests passing"
+    )
 
     assert result.success is False
     assert "without a valid patch" in (result.error or "")

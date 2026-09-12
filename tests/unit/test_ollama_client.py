@@ -67,6 +67,8 @@ def test_client_sends_messages_and_parses_native_tool_call(
     assert captured["url"] == "http://ollama.test/api/chat"
     assert captured["payload"]["model"] == "qwen2.5-coder:7b"
     assert captured["payload"]["format"] == "json"
+    assert captured["payload"]["think"] is False
+    assert "tools" in captured["payload"]
     assert captured["payload"]["messages"][0]["role"] == "system"
     assert "qwen2.5-coder:7b" in captured["payload"]["messages"][0]["content"]
     assert "list_files" in captured["payload"]["messages"][0]["content"]
@@ -169,6 +171,43 @@ def test_client_parses_fenced_content_json_tool_call(
 
     assert response.kind == "tool_call"
     assert response.tool_name == "read_file"
+
+
+def test_client_uses_thinking_and_json_tools_for_qwen35(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_urlopen(request: Any, timeout: float) -> FakeHTTPResponse:
+        captured["payload"] = json.loads(request.data)
+        return FakeHTTPResponse(
+            {
+                "message": {
+                    "content": '{"type":"final","content":"Done"}',
+                    "thinking": "Reasoning trace",
+                }
+            }
+        )
+
+    monkeypatch.setattr("casi.llm.ollama_client.urlopen", fake_urlopen)
+    client = OllamaClient(model="qwen3.5:4b", think_mode="auto")
+    response = client.complete(
+        [ChatMessage(role="user", content="Inspect README")],
+        [
+            ToolDefinition(
+                name="read_file",
+                description="Read a file",
+                arguments={"path": {"type": "string", "required": True}},
+            )
+        ],
+    )
+
+    payload = captured["payload"]
+    assert isinstance(payload, dict)
+    assert payload["think"] is True
+    assert "tools" not in payload
+    assert response.kind == "final"
+    assert response.content == "Done"
 
 
 def test_client_rejects_invalid_model_response(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -1,0 +1,20 @@
+--- a/sales.py
++++ b/sales.py
+@@ -3,6 +3,15 @@
+     for line in text.splitlines()[1:]:
+         if not line:
+             continue
+-        product, quantity = line.split(",")
+-        result[product] = int(quantity)
++        fields = line.strip().split(",")
++        if len(fields) != 2:
++            raise ValueError("Invalid CSV format")
++        product = fields[0]
++        try:
++            quantity = int(fields[1])
++        except ValueError:
++            raise ValueError("Invalid integer quantity")
++        if product not in result:
++            result[product] = 0
++        result[product] += quantity
+     return result

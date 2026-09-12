@@ -1,0 +1,41 @@
+--- a/lib.py
++++ b/lib.py
+@@ -1,11 +1,33 @@
+-"""Sample library used for read-only benchmark tasks."""
++'''Sample library used for read-only benchmark tasks.'''
+ 
+ 
+ def slugify(text: str) -> str:
+-	return text.strip().lower().replace(" ", "-")
++    '''Convert text to URL-friendly slug format.
++
++    Strips whitespace, converts to lowercase, and replaces spaces with hyphens.
++
++    Args:
++        text: The input text string.
++
++    Returns:
++        A URL-friendly slug string.
++    '''
++    return text.strip().lower().replace(" ", "-")
+ 
+ 
+ def excerpt(text: str, limit: int = 40) -> str:
+-	if len(text) <= limit:
+-		return text
+-	return text[: limit - 3] + "..."
++    '''Truncate text to specified character limit and append ellipsis.
++
++    If text is shorter than the limit, returns the original text unchanged.
++    Otherwise, returns truncated text ending with "...".
++
++    Args:
++        text: The input text string.
++        limit: Maximum number of characters to include (default: 40).
++
++    Returns:
++        A truncated excerpt of the text or the original if shorter than limit.
++    '''
++    if len(text) <= limit:
++        return text
++    return text[: limit - 3] + "..."

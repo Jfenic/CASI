@@ -1,0 +1,8 @@
+--- a/clamp.py
++++ b/clamp.py
+@@ -8,4 +8,4 @@
+ 		return low
+ 	if value > high:
+ 		return high
+-	return value + 1
++	return value

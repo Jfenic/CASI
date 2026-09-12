@@ -1,0 +1,19 @@
+id: fund_003
+name: euclid_gcd
+repository: euclid_gcd
+category: fix
+capability: discrete_math
+difficulty: basic
+topic: Matemática discreta — algoritmo de Euclides
+instruction: Fix gcd(a, b) in gcd.py so it returns the greatest common divisor using
+  Euclid's algorithm. Negative inputs must be handled via absolute value. Keep
+  existing tests passing. Modify only gcd.py.
+allowed_files:
+- gcd.py
+grader: ../graders/euclid_gcd
+max_steps: 14
+success_command:
+- python3
+- -m
+- pytest
+- -q

@@ -29,6 +29,26 @@ Mapa de habilidades que las suites miden de forma reproducible (sin LLM como jue
 | `requirement_mismatch_diagnosis` | Límites y condiciones del contrato | diag_007 |
 | `mini_project_integration` | Diagnóstico en mini-proyecto multi-módulo (checkout) | diag_008 |
 
+## Fundamentos académicos (`benchmarks/fundamentals`)
+
+| Capacidad | Qué mide | Tareas |
+| --- | --- | --- |
+| `data_structures` | Pilas LIFO, colas FIFO, listas enlazadas | fund_001, fund_004, fund_009 |
+| `search_algorithms` | Búsqueda binaria | fund_002 |
+| `discrete_math` | MCD (Euclides) | fund_003 |
+| `expression_evaluation` | Evaluación postfix / RPN | fund_005 |
+| `trees` | Búsqueda en ABB | fund_006 |
+| `sorting_algorithms` | Merge sort | fund_007 |
+| `number_systems` | Decimal a binario | fund_008 |
+
+## Ciberseguridad (`benchmarks/security`)
+
+| Capacidad | Qué mide | Tareas |
+| --- | --- | --- |
+| `path_traversal_prevention` | Evitar escape de directorio base (LFI) | sec_001 |
+| `timing_attack_mitigation` | Comparación constante de secretos | sec_002 |
+| `injection_prevention` | Consultas SQL parametrizadas | sec_003 |
+
 ## Machine learning (`benchmarks/ml`)
 
 | Capacidad | Qué mide | Tareas |
@@ -48,4 +68,4 @@ casi benchmark --tasks-dir benchmarks/diagnosis/tasks \
   --model qwen3.5:4b --output /tmp/diagnosis.json --format both
 ```
 
-Sustituir `diagnosis` por `development` o `ml`. Los informes agrupan resultados por `capability`.
+Sustituir `diagnosis` por `development`, `fundamentals`, `security` o `ml`. Los informes agrupan resultados por `capability`.

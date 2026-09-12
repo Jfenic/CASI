@@ -1,0 +1,19 @@
+id: fund_007
+name: merge_sort
+repository: merge_sort
+category: fix
+capability: sorting_algorithms
+difficulty: intermediate
+topic: Algoritmos — merge sort
+instruction: Fix merge(left, right) and merge_sort(items) in merge_sort.py so merge
+  combines two sorted lists stably and merge_sort returns a new sorted list without
+  mutating the input. Keep existing tests passing. Modify only merge_sort.py.
+allowed_files:
+- merge_sort.py
+grader: ../graders/merge_sort
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

@@ -1,0 +1,20 @@
+id: fund_005
+name: postfix_eval
+repository: postfix_eval
+category: fix
+capability: expression_evaluation
+difficulty: intermediate
+topic: Compiladores/Algoritmos — evaluación postfix (RPN)
+instruction: Fix eval_postfix(tokens) in postfix.py so it evaluates integer postfix
+  expressions with operators +, -, *, /. Division uses integer floor division.
+  Subtraction must apply as (left operand) - (right operand). Keep existing tests
+  passing. Modify only postfix.py.
+allowed_files:
+- postfix.py
+grader: ../graders/postfix_eval
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

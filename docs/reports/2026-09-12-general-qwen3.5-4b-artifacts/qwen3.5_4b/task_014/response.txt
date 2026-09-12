@@ -1,0 +1,3 @@
+No results were found with the current search query.
+
+Would you like me to list the repository files to locate the "greet" tests, or would you prefer to specify a more specific pattern for your search?

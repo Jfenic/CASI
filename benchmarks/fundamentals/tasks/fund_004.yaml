@@ -1,0 +1,19 @@
+id: fund_004
+name: linked_list
+repository: linked_list
+category: fix
+capability: data_structures
+difficulty: intermediate
+topic: Estructuras de datos — invertir lista enlazada
+instruction: Fix reverse(head) in linked_list.py so it reverses a singly linked
+  list in place and returns the new head. Do not mutate Node.value. Keep existing
+  tests passing. Modify only linked_list.py.
+allowed_files:
+- linked_list.py
+grader: ../graders/linked_list
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

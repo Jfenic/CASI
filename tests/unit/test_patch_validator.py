@@ -204,6 +204,21 @@ def test_apply_patch_rejection_leaves_repository_unchanged(tmp_path: Path) -> No
     assert (repository / "app.py").read_text(encoding="utf-8") == original
 
 
+def test_propose_file_strips_trailing_whitespace_on_lines(tmp_path: Path) -> None:
+    repository = _repository(tmp_path)
+    content = "def updated():\n    return True   \n    \n"
+
+    result = ToolRegistry(repository).execute(
+        "propose_file",
+        {"path": "app.py", "content": content},
+    )
+
+    assert result.success is True
+    validation = validate_patch(repository, result.output)
+    assert validation.valid is True
+    assert "whitespace" not in (validation.error or "").lower()
+
+
 def test_propose_file_strips_numbered_reader_output(tmp_path: Path) -> None:
     repository = _repository(tmp_path)
     numbered_content = "1: return True\n"

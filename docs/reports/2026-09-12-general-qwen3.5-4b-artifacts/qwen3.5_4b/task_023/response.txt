@@ -1,0 +1,14 @@
+--- /dev/null
++++ b/initials.py
+@@ -0,0 +1,11 @@
++def initials(first: str, last: str) -> str:
++    """Return uppercase initials separated by dots."""
++    parts = []
++
++    if first and first.strip():
++        parts.append(first.strip()[0].upper())
++
++    if last and last.strip():
++        parts.append(last.strip()[0].upper())
++
++    return '.'.join(parts) + '.'

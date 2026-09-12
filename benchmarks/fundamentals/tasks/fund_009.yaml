@@ -1,0 +1,20 @@
+id: fund_009
+name: queue_fifo
+repository: queue_fifo
+category: fix
+capability: data_structures
+difficulty: basic
+topic: Estructuras de datos — cola FIFO
+instruction: Fix the Queue class in queue.py so it behaves as a first-in-first-out
+  (FIFO) queue. enqueue adds at the back, dequeue removes from the front, and
+  empty-queue dequeue must raise IndexError. Keep existing tests passing. Modify
+  only queue.py.
+allowed_files:
+- queue.py
+grader: ../graders/queue_fifo
+max_steps: 16
+success_command:
+- python3
+- -m
+- pytest
+- -q

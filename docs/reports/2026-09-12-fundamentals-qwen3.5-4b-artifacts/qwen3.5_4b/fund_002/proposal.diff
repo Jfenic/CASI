@@ -1,0 +1,8 @@
+--- a/binary_search.py
++++ b/binary_search.py
+@@ -13,4 +13,4 @@
+             left = mid + 1
+         else:
+             right = mid - 1
+-    return 0
++    return -1

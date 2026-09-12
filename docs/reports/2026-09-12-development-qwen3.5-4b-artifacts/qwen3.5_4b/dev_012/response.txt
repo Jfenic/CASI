@@ -1,0 +1,9 @@
+--- a/totals.py
++++ b/totals.py
+@@ -7,5 +7,5 @@
+ def subtotal(cart: Cart) -> float:
+     total = 0.0
+     for sku, qty in cart.lines:
+-        total += catalog.get_price(sku)
++        total += catalog.get_price(sku) * qty
+     return total

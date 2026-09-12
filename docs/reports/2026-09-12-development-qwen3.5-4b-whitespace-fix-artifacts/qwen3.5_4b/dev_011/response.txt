@@ -1,0 +1,13 @@
+--- a/version.py
++++ b/version.py
+@@ -4,8 +4,8 @@
+ def parse_version(text: str) -> tuple[int, int, int]:
+     parts = text.split(".")
+     if len(parts) != 3:
+-        return None
++        raise ValueError(f"Expected exactly 3 dot-separated parts, got {len(parts)}")
+     try:
+         return tuple(int(part) for part in parts)
+     except ValueError:
+-        return None
++        raise ValueError(f"All parts must be integers")

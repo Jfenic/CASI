@@ -1,0 +1,14 @@
+El test `test_increment_twice` está fallando porque la implementación del método `increment()` en la clase `Counter` añade 0 en lugar de 1.
+
+```python
+def increment(self) -> None:
+    self._value += 0  # Esto no cambia el valor
+```
+
+Como resultado, aunque se llame `increment()` dos veces, `_value` sigue siendo 0, y el assert que verifica si es igual a 2 siempre fallará.
+
+Para corregirlo, cambia la línea para que añada 1:
+```python
+def increment(self) -> None:
+    self._value += 1
+```

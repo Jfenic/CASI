@@ -1,0 +1,19 @@
+id: fund_002
+name: binary_search
+repository: binary_search
+category: fix
+capability: search_algorithms
+difficulty: basic
+topic: Algoritmos — búsqueda binaria
+instruction: Fix binary_search(items, target) in binary_search.py. It must return
+  the index of target in the sorted list items, or -1 when absent. Keep existing
+  tests passing. Modify only binary_search.py.
+allowed_files:
+- binary_search.py
+grader: ../graders/binary_search
+max_steps: 16
+success_command:
+- python3
+- -m
+- pytest
+- -q

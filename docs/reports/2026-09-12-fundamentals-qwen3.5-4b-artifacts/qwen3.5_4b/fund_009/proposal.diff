@@ -1,0 +1,11 @@
+--- a/queue.py
++++ b/queue.py
+@@ -11,7 +11,7 @@
+     def dequeue(self) -> object:
+         if not self._items:
+             raise IndexError("dequeue from empty queue")
+-        return self._items.pop()
++        return self._items.pop(0)
+ 
+     def is_empty(self) -> bool:
+         return len(self._items) == 0

@@ -1,0 +1,42 @@
+--- a/sales.py
++++ b/sales.py
+@@ -1,8 +1,35 @@
++import csv
++from io import StringIO
++
+ def totals(text):
+     result = {}
+-    for line in text.splitlines()[1:]:
+-        if not line:
++
++    # Convert to CRLF line endings for consistent CSV parsing
++    text = text.replace('\n\r', '\n').replace('\r\n', '\n').replace('\n\n', '\n')
++
++    # Parse CSV content
++    reader = csv.reader(StringIO(text), lineterminator='\n')
++
++    try:
++        header = next(reader)
++    except StopIteration:
++        return {}
++
++    if not header or header[0] != 'product' or header[1] != 'quantity':
++        return {}
++
++    for row in reader:
++        # Skip completely blank rows
++        if not row or row[0].strip() == '' or row[1].strip() == '':
+             continue
+-        product, quantity = line.split(",")
+-        result[product] = int(quantity)
++
++        try:
++            quantity = int(row[1])
++        except ValueError:
++            raise ValueError(f"Invalid integer quantity: {row[1]}")
++
++        # Product name may contain quotes; preserve exactly as CSV parses
++        product_name = row[0]
++        result[product_name] = result.get(product_name, 0) + quantity
++
+     return result

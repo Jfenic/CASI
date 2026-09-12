@@ -1,0 +1,28 @@
+--- a/merge_sort.py
++++ b/merge_sort.py
+@@ -1,5 +1,4 @@
+ """Merge sort merge step — divide-and-conquer sorting classic."""
+-
+ 
+ def merge(left: list[int], right: list[int]) -> list[int]:
+     result: list[int] = []
+@@ -12,12 +11,17 @@
+         else:
+             result.append(right[j])
+             j += 1
++    while i < len(left):
++        result.append(left[i])
++        i += 1
++    while j < len(right):
++        result.append(right[j])
++        j += 1
+     return result
+-
+ 
+ def merge_sort(items: list[int]) -> list[int]:
+     if len(items) <= 1:
+-        return items[:]
++        return items
+     mid = len(items) // 2
+     left = merge_sort(items[:mid])
+     right = merge_sort(items[mid:])

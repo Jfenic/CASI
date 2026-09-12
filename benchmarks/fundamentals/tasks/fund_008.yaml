@@ -1,0 +1,20 @@
+id: fund_008
+name: base_conversion
+repository: base_conversion
+category: fix
+capability: number_systems
+difficulty: basic
+topic: Sistemas — conversión decimal a binario
+instruction: Fix to_binary(n) in conversion.py so it returns the binary representation
+  of a non-negative integer as a string without leading zeros (except "0" for
+  input 0). Negative input must raise ValueError. Keep existing tests passing.
+  Modify only conversion.py.
+allowed_files:
+- conversion.py
+grader: ../graders/base_conversion
+max_steps: 14
+success_command:
+- python3
+- -m
+- pytest
+- -q

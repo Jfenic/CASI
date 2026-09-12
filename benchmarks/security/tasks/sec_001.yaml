@@ -1,0 +1,20 @@
+id: sec_001
+name: path_traversal
+repository: path_traversal
+category: fix
+capability: path_traversal_prevention
+difficulty: intermediate
+topic: Ciberseguridad — directory traversal (LFI)
+instruction: Fix safe_join(base_dir, user_path) in safe_path.py so resolved paths
+  never escape base_dir. Reject path traversal sequences such as ../ and absolute
+  paths outside the base directory with ValueError. Keep existing tests passing.
+  Modify only safe_path.py.
+allowed_files:
+- safe_path.py
+grader: ../graders/path_traversal
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

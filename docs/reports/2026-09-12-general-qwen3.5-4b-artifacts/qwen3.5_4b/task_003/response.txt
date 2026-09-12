@@ -1,0 +1,14 @@
+The **excerpt** helper is defined in **lib.py** (line 8).
+
+### Function signature:
+```python
+def excerpt(text: str, limit: int = 40) -> str:
+```
+
+### Behavior:
+1. If the input text length is less than or equal to the `limit` parameter (default 40), it returns the text unchanged.
+2. If the text is longer than the limit, it truncates the text to `limit - 3` characters and appends an ellipsis (`...`).
+
+### Example:
+- `excerpt("short")` → "short"
+- `excerpt("x" * 50)` → "xxxxxxxxxx..." (17 'x's + "...")

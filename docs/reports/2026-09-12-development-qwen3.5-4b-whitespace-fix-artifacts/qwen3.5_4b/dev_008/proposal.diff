@@ -1,0 +1,75 @@
+--- /dev/null
++++ b/dependencies.py
+@@ -0,0 +1,72 @@
++"""
++Dependency topological sort with lexicographic ordering.
++
++build_order(graph) returns the order in which tasks should be executed,
++where each task comes after its prerequisites, and at each step
++the lexicographically smallest available task is chosen.
++
++Raises ValueError if there is a cycle in the graph.
++"""
++
++from collections import defaultdict
++import heapq
++
++
++def build_order(graph):
++    """
++    Topologically sort tasks using Kahn's algorithm with lex ordering.
++
++    Args:
++        graph: dict mapping task names to lists of prerequisite names
++
++    Returns:
++        list of task names in valid execution order
++
++    Raises:
++        ValueError: if graph contains a cycle (including self-cycle)
++    """
++    # Handle empty input
++    if not graph:
++        return []
++
++    # Collect all unique task names (both sources and prerequisites)
++    tasks = set(graph.keys())
++    for prereqs in graph.values():
++        for p in prereqs:
++            tasks.add(p)
++
++    # Build the dependency structure
++    # prereq_count[t] = number of uncompleted prerequisites for task t
++    prereq_count = {task: 0 for task in tasks}
++    dependents = defaultdict(list)  # task -> list of tasks that depend on it
++
++    for task, prereqs in graph.items():
++        unique_prereqs = set(prereqs)
++        prereq_count[task] = len(unique_prereqs)
++        for prereq in unique_prereqs:
++            dependents[prereq].append(task)
++
++    # Min-heap to maintain lexicographically smallest available task
++    heap = [task for task in tasks if prereq_count[task] == 0]
++    heapq.heapify(heap)
++
++    result = []
++    processed = 0
++
++    while heap:
++        # Get the lexicographically smallest available task
++        current_task = heapq.heappop(heap)
++        result.append(current_task)
++        processed += 1
++
++        # For each task that depends on current_task, reduce its prerequisite count
++        for dependent in dependents[current_task]:
++            prereq_count[dependent] -= 1
++            if prereq_count[dependent] == 0:
++                heapq.heappush(heap, dependent)
++
++    # Detect cycle: should have processed all tasks
++    if processed != len(tasks):
++        raise ValueError("Circular dependency detected")
++
++    return result

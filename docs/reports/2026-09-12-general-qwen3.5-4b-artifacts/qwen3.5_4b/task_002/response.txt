@@ -1,0 +1,13 @@
+El método `slugify` en lib.py transforma texto mediante tres operaciones secuenciales:
+
+1. **strip()**: Elimina espacios en blanco al inicio y final del texto
+2. **lower()**: Convierte todas las letras a minúsculas
+3. **replace(" ", "-")**: Sustituye todos los espacios internos por guiones (-)
+
+**Ejemplo práctico**:
+```
+text = "HéLLO  WÖRLD"
+slugify(text) → "hello-world" (espacios duplicados se mantienen como un solo espacio antes de convertir a -)
+```
+
+El resultado es una cadena 'cleaned' ideal para URLs o identificados únicos en sistemas.

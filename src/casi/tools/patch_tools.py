@@ -33,6 +33,14 @@ def _strip_numbered_reader_output(content: str) -> tuple[str, bool]:
     return cleaned, True
 
 
+def _strip_trailing_line_whitespace(content: str) -> str:
+    """Remove trailing spaces/tabs on each line so git apply accepts the diff."""
+
+    if not content:
+        return content
+    return "\n".join(line.rstrip() for line in content.splitlines())
+
+
 def _new_test_functions(before: str, after: str) -> set[str]:
     """Return test functions newly inserted into a non-test Python module."""
 
@@ -97,6 +105,7 @@ class ProposeFileTool(Tool):
             before_content = target.read_text(encoding="utf-8")
         before = before_content.splitlines(keepends=True)
         content, stripped_numbers = _strip_numbered_reader_output(arguments["content"])
+        content = _strip_trailing_line_whitespace(content)
         is_test_file = relative.name.startswith("test_") or "tests" in relative.parts
         unexpected_tests = (
             set() if is_test_file else _new_test_functions(before_content, content)

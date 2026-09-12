@@ -1,0 +1,8 @@
+--- a/loss.py
++++ b/loss.py
+@@ -9,4 +9,4 @@
+     if not y_true:
+         return 0.0
+     total = sum((truth - pred) ** 2 for truth, pred in zip(y_true, y_pred, strict=True))
+-    return math.sqrt(total / len(y_true))
++    return total / len(y_true)

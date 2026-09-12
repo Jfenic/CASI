@@ -1,0 +1,26 @@
+..............FF...                                                      [100%]
+=================================== FAILURES ===================================
+_______________________________ test_bad_type[0] _______________________________
+
+value = 0
+
+    @pytest.mark.parametrize("value", [0, 1, [], {}])
+    def test_bad_type(value):
+>       with pytest.raises(TypeError):
+E       Failed: DID NOT RAISE TypeError
+
+_benchmark_checks/test_acceptance.py:28: Failed
+_______________________________ test_bad_type[1] _______________________________
+
+value = 1
+
+    @pytest.mark.parametrize("value", [0, 1, [], {}])
+    def test_bad_type(value):
+>       with pytest.raises(TypeError):
+E       Failed: DID NOT RAISE TypeError
+
+_benchmark_checks/test_acceptance.py:28: Failed
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_bad_type[0] - Failed: DID N...
+FAILED _benchmark_checks/test_acceptance.py::test_bad_type[1] - Failed: DID N...
+2 failed, 17 passed in 0.04s

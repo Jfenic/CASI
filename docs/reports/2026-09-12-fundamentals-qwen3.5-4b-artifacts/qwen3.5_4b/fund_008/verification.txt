@@ -1,0 +1,54 @@
+..F.F...                                                                 [100%]
+=================================== FAILURES ===================================
+_____________________________ test_to_binary[2-10] _____________________________
+
+n = 2, expected = '10'
+
+    @pytest.mark.parametrize(
+        "n,expected",
+        [
+            (0, "0"),
+            (1, "1"),
+            (2, "10"),
+            (5, "101"),
+            (8, "1000"),
+            (255, "11111111"),
+        ],
+    )
+    def test_to_binary(n, expected) -> None:
+>       assert to_binary(n) == expected
+E       AssertionError: assert '01' == '10'
+E         
+E         - 10
+E         + 01
+
+_benchmark_checks/test_acceptance.py:18: AssertionError
+____________________________ test_to_binary[8-1000] ____________________________
+
+n = 8, expected = '1000'
+
+    @pytest.mark.parametrize(
+        "n,expected",
+        [
+            (0, "0"),
+            (1, "1"),
+            (2, "10"),
+            (5, "101"),
+            (8, "1000"),
+            (255, "11111111"),
+        ],
+    )
+    def test_to_binary(n, expected) -> None:
+>       assert to_binary(n) == expected
+E       AssertionError: assert '0001' == '1000'
+E         
+E         - 1000
+E         ? -
+E         + 0001
+E         ?    +
+
+_benchmark_checks/test_acceptance.py:18: AssertionError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_to_binary[2-10] - Assertion...
+FAILED _benchmark_checks/test_acceptance.py::test_to_binary[8-1000] - Asserti...
+2 failed, 6 passed in 0.02s

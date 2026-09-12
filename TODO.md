@@ -96,6 +96,30 @@ Lista priorizada de próximos pasos del proyecto.
 - [ ] Ampliar entornos de proyecto a Node.js y otros ecosistemas.
 - [ ] Diseñar interfaz visual sobre la API estable.
 
+## Orquestación multi-agente con presupuesto dinámico (idea — 2026-09-12)
+
+Basado en el benchmark qwen3.5:4b (development 33%): los fallos principales no son
+agotar pasos, sino terminar sin parche, respuestas vacías de Ollama y lógica
+incorrecta. Aun así, descomponer el trabajo y ampliar pasos solo con progreso
+medible podría mejorar tareas multi-archivo y ciclos inspect → fix → verify.
+
+- [ ] **Planner multi-fase:** extender `TaskPlanner.decompose_task()` para tareas
+  `fix`/`create` con fases explícitas (inspect → implement → verify → re-fix opcional),
+  en lugar de un único paso por intent.
+- [ ] **Workers especializados:** agentes separados por fase (Inspector,
+  Implementer, Verifier) con contexto limpio por invocación.
+- [ ] **Supervisor ligero:** evaluar progreso tras cada fase (tests ejecutados,
+  archivos del traceback leídos, parche aplicado, tests mejorados) y decidir
+  continuar, replanificar o abortar.
+- [ ] **Presupuesto dinámico acotado:** conceder bonus de pasos (+N, máx. 1–2
+  extensiones) solo si el supervisor confirma progreso; mantener tope global.
+- [ ] **Reglas de cierre en fix:** nudge duro o handoff al Implementer si hay
+  tests fallando y no hay `propose_file` tras N decisiones.
+- [ ] **Reintentos Ollama:** reintentar cuando el mensaje llega vacío (thinking
+  mode / protocolo JSON).
+- [ ] **Validación:** probar primero en dev_003 y dev_012 antes de activar en
+  todo el loop; comparar development antes/después con qwen3.5:4b.
+
 ## Cierre de cada hito
 
 - [x] Ejecutar la suite completa de pruebas (319 passed, 2 skipped; 2026-09-12).

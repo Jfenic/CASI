@@ -1,1 +1,1 @@
-response too long: 70 words (max 40)
+cause missing expected failure description

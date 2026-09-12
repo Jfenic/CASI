@@ -1,0 +1,20 @@
+id: fund_001
+name: stack_lifo
+repository: stack_lifo
+category: fix
+capability: data_structures
+difficulty: basic
+topic: Estructuras de datos — pila LIFO
+instruction: Fix the Stack class in stack.py so it behaves as a last-in-first-out
+  (LIFO) stack. push must add to the top, pop and peek must read from the top,
+  and empty-stack operations must raise IndexError. Keep existing tests passing.
+  Modify only stack.py.
+allowed_files:
+- stack.py
+grader: ../graders/stack_lifo
+max_steps: 16
+success_command:
+- python3
+- -m
+- pytest
+- -q

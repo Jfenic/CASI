@@ -1,0 +1,145 @@
+FFFFFFF                                                                  [100%]
+=================================== FAILURES ===================================
+______________________________ test_gcd[48-18-6] _______________________________
+
+a = 48, b = 18, expected = 6
+
+    @pytest.mark.parametrize(
+        "a,b,expected",
+        [
+            (48, 18, 6),
+            (14, 15, 1),
+            (0, 7, 7),
+            (12, 0, 12),
+            (270, 192, 6),
+            (-12, 8, 4),
+        ],
+    )
+    def test_gcd(a, b, expected) -> None:
+>       assert gcd(a, b) == expected
+E       assert 0 == 6
+E        +  where 0 = gcd(48, 18)
+
+_benchmark_checks/test_acceptance.py:18: AssertionError
+______________________________ test_gcd[14-15-1] _______________________________
+
+a = 14, b = 15, expected = 1
+
+    @pytest.mark.parametrize(
+        "a,b,expected",
+        [
+            (48, 18, 6),
+            (14, 15, 1),
+            (0, 7, 7),
+            (12, 0, 12),
+            (270, 192, 6),
+            (-12, 8, 4),
+        ],
+    )
+    def test_gcd(a, b, expected) -> None:
+>       assert gcd(a, b) == expected
+E       assert 0 == 1
+E        +  where 0 = gcd(14, 15)
+
+_benchmark_checks/test_acceptance.py:18: AssertionError
+_______________________________ test_gcd[0-7-7] ________________________________
+
+a = 0, b = 7, expected = 7
+
+    @pytest.mark.parametrize(
+        "a,b,expected",
+        [
+            (48, 18, 6),
+            (14, 15, 1),
+            (0, 7, 7),
+            (12, 0, 12),
+            (270, 192, 6),
+            (-12, 8, 4),
+        ],
+    )
+    def test_gcd(a, b, expected) -> None:
+>       assert gcd(a, b) == expected
+E       assert 0 == 7
+E        +  where 0 = gcd(0, 7)
+
+_benchmark_checks/test_acceptance.py:18: AssertionError
+______________________________ test_gcd[12-0-12] _______________________________
+
+a = 12, b = 0, expected = 12
+
+    @pytest.mark.parametrize(
+        "a,b,expected",
+        [
+            (48, 18, 6),
+            (14, 15, 1),
+            (0, 7, 7),
+            (12, 0, 12),
+            (270, 192, 6),
+            (-12, 8, 4),
+        ],
+    )
+    def test_gcd(a, b, expected) -> None:
+>       assert gcd(a, b) == expected
+E       assert 0 == 12
+E        +  where 0 = gcd(12, 0)
+
+_benchmark_checks/test_acceptance.py:18: AssertionError
+_____________________________ test_gcd[270-192-6] ______________________________
+
+a = 270, b = 192, expected = 6
+
+    @pytest.mark.parametrize(
+        "a,b,expected",
+        [
+            (48, 18, 6),
+            (14, 15, 1),
+            (0, 7, 7),
+            (12, 0, 12),
+            (270, 192, 6),
+            (-12, 8, 4),
+        ],
+    )
+    def test_gcd(a, b, expected) -> None:
+>       assert gcd(a, b) == expected
+E       assert 0 == 6
+E        +  where 0 = gcd(270, 192)
+
+_benchmark_checks/test_acceptance.py:18: AssertionError
+______________________________ test_gcd[-12-8-4] _______________________________
+
+a = -12, b = 8, expected = 4
+
+    @pytest.mark.parametrize(
+        "a,b,expected",
+        [
+            (48, 18, 6),
+            (14, 15, 1),
+            (0, 7, 7),
+            (12, 0, 12),
+            (270, 192, 6),
+            (-12, 8, 4),
+        ],
+    )
+    def test_gcd(a, b, expected) -> None:
+>       assert gcd(a, b) == expected
+E       assert 0 == 4
+E        +  where 0 = gcd(-12, 8)
+
+_benchmark_checks/test_acceptance.py:18: AssertionError
+_________________________ test_gcd_of_coprime_numbers __________________________
+
+    def test_gcd_of_coprime_numbers() -> None:
+>       assert gcd(14, 15) == 1
+E       assert 0 == 1
+E        +  where 0 = gcd(14, 15)
+
+test_visible.py:5: AssertionError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_gcd[48-18-6] - assert 0 == 6
+FAILED _benchmark_checks/test_acceptance.py::test_gcd[14-15-1] - assert 0 == 1
+FAILED _benchmark_checks/test_acceptance.py::test_gcd[0-7-7] - assert 0 == 7
+FAILED _benchmark_checks/test_acceptance.py::test_gcd[12-0-12] - assert 0 == 12
+FAILED _benchmark_checks/test_acceptance.py::test_gcd[270-192-6] - assert 0 == 6
+FAILED _benchmark_checks/test_acceptance.py::test_gcd[-12-8-4] - assert 0 == 4
+FAILED test_visible.py::test_gcd_of_coprime_numbers - assert 0 == 1
+7 failed in 0.02s

@@ -1,0 +1,13 @@
+Based on the repository contents, here are the behaviors of each function in math_ops.py:
+
+**1. `add(left: int, right: int) -> int`**
+- Takes two integers as inputs
+- Returns their sum (left + right)
+- Simple addition operation
+
+**2. `divide(left: int, right: int) -> float`**
+- Takes two integers as inputs where `right` is the divisor
+- Returns the quotient as a float (left / right)
+- Note: The test shows divide(1, 0) == 0, which indicates this implementation handles division by zero differently than standard Python behavior (returns 0 instead of raising an exception)
+
+The file also imports these functions in test_math_ops.py for testing their basic functionality.

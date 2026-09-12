@@ -1,0 +1,30 @@
+FF..                                                                     [100%]
+=================================== FAILURES ===================================
+_________________________ test_rejects_parent_segments _________________________
+
+tmp_path = PosixPath('/tmp/pytest-of-unknown/pytest-0/test_rejects_parent_segments0')
+
+    def test_rejects_parent_segments(tmp_path) -> None:
+        base = tmp_path / "public"
+        base.mkdir()
+        secret = tmp_path / "secret.txt"
+        secret.write_text("private")
+>       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE ValueError
+
+_benchmark_checks/test_acceptance.py:11: Failed
+_________________________ test_rejects_absolute_paths __________________________
+
+tmp_path = PosixPath('/tmp/pytest-of-unknown/pytest-0/test_rejects_absolute_paths0')
+
+    def test_rejects_absolute_paths(tmp_path) -> None:
+        base = tmp_path / "public"
+        base.mkdir()
+>       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE ValueError
+
+_benchmark_checks/test_acceptance.py:18: Failed
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_rejects_parent_segments - F...
+FAILED _benchmark_checks/test_acceptance.py::test_rejects_absolute_paths - Fa...
+2 failed, 2 passed in 0.03s

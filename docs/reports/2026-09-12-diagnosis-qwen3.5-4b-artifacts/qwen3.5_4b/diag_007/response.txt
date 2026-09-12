@@ -1,0 +1,6 @@
+{
+  "file": "discount.py",
+  "line": 5,
+  "cause": "The condition `total > 100` uses strict inequality which excludes the boundary case of exactly 100, but gold tier discount should apply at total >= 100",
+  "evidence": "test expects apply_discount(100, 'gold') == 80.0 but implementation only applies 80% when total > 100, so apply_discount(100, 'gold') returns 100 without discount"
+}

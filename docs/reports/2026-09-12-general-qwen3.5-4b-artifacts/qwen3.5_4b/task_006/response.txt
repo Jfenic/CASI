@@ -1,0 +1,17 @@
+--- a/validator.py
++++ b/validator.py
+@@ -6,4 +6,13 @@
+ 
+ 	if not email:
+ 		return False
+-	return "." in email
++
++	# Check for @ character (required for valid email)
++	if "@" not in email:
++		return False
++
++	# Also check for dot presence
++	if "." not in email:
++		return False
++
++	return True

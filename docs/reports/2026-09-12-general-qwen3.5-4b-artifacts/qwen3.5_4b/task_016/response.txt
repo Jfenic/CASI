@@ -1,0 +1,20 @@
+El helper strip_lines está definido en parser.py (líneas 4-5):
+
+**Implementación actual:**
+def strip_lines(lines: list[str]) -> list[str]:
+    return [line for line in lines]
+
+**Comportamiento observado:**
+- Recibe una lista de strings y devuelve una lista nueva con los mismos elementos
+- **No realiza el stripping real**: la función simplemente copia la lista sin modificar cada cadena individualmente
+- La implementación actual es incompleta - debería usar `line.strip()` para eliminar espacios vacíos
+
+**Evidencia del problema:**
+El test en test_parser.py (`test_strips_whitespace`) espera:
+```
+assert strip_lines(["  a  ", " b "]) == ["a", "b"]
+```
+Pero la implementación devuelve `["  a  ", " b "]` sin quitar espacios, lo que haría fallar el test.
+
+**Recomendación:**
+Corregir la función añadiendo `.strip()` a cada línea para cumplir con los requisitos del test.

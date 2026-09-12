@@ -1,0 +1,13 @@
+Based on the repository inspection, no specific email validation logic was found through code search. To better understand the repository structure and locate any email-related functionality, I'd recommend:
+
+1. **Reviewing README or documentation files** for configuration details
+2. **Checking configuration files** like `.env` or `config.json` that might contain validation rules
+3. **Examining API endpoints** if there's an email service implementation
+4. **Looking at utility modules** that handle form data or input validation
+
+Would you like me to:
+- List all repository files to see the project structure?
+- Search for "validation" more broadly?
+- Check specific configuration or utility directories?
+
+This will help locate where email validation rules might be defined.

@@ -1,0 +1,20 @@
+id: sec_003
+name: sql_injection
+repository: sql_injection
+category: fix
+capability: injection_prevention
+difficulty: intermediate
+topic: Ciberseguridad — prevención de SQL injection
+instruction: Fix find_user_id(conn, username) in users.py so user input is passed
+  with parameterized queries instead of string interpolation. A malicious username
+  such as `' OR '1'='1` must not return another user's row. Keep existing tests
+  passing. Modify only users.py.
+allowed_files:
+- users.py
+grader: ../graders/sql_injection
+max_steps: 16
+success_command:
+- python3
+- -m
+- pytest
+- -q

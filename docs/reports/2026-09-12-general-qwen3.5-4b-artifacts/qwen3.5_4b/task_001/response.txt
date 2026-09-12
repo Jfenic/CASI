@@ -1,0 +1,5 @@
+Here are the Python source files in this repository:
+
+1. **lib.py** - Contains core utility functions for text processing, including `slugify()` which converts strings to URL-friendly slugs, and `excerpt()` which generates text excerpts with truncation.
+
+2. **test_lib.py** - Tests for the library module, validating `slugify()` output formatting and `excerpt()` behavior including edge cases like short text and ellipsis placement.

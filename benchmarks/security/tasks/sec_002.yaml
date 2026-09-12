@@ -1,0 +1,19 @@
+id: sec_002
+name: timing_compare
+repository: timing_compare
+category: fix
+capability: timing_attack_mitigation
+difficulty: basic
+topic: Ciberseguridad — comparación resistente a timing attacks
+instruction: Fix verify_token(provided, expected) in auth.py so it compares secret
+  tokens without leaking timing information. Use a constant-time comparison helper
+  from the Python standard library. Keep existing tests passing. Modify only auth.py.
+allowed_files:
+- auth.py
+grader: ../graders/timing_compare
+max_steps: 14
+success_command:
+- python3
+- -m
+- pytest
+- -q

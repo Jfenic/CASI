@@ -1,0 +1,19 @@
+id: fund_006
+name: bst_search
+repository: bst_search
+category: fix
+capability: trees
+difficulty: intermediate
+topic: Árboles — búsqueda en ABB
+instruction: Fix contains(root, target) in bst.py so it searches a binary search
+  tree correctly. Return True when target is present and False otherwise. Keep
+  existing tests passing. Modify only bst.py.
+allowed_files:
+- bst.py
+grader: ../graders/bst_search
+max_steps: 16
+success_command:
+- python3
+- -m
+- pytest
+- -q

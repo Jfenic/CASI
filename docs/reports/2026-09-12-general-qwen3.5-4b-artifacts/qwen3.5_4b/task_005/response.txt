@@ -1,0 +1,3 @@
+To identify the public helper functions and their inputs/outputs, I'll inspect the library code.
+
+Let me read the main library file first.

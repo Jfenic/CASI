@@ -1,0 +1,50 @@
+--- a/billing.py
++++ b/billing.py
+@@ -1,2 +1,46 @@
++"""Invoice calculation module."""
++
++from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
++
++
+ def invoice_total(lines):
+-    return f"{sum(float(price) * quantity for price, quantity in lines):.2f}"
++    """Calculate total invoice amount from lines.
++
++    Each line is (unit_price_string, nonnegative_integer_quantity).
++    Rounds each line amount to two decimals with ROUND_HALF_UP, then sums.
++
++    Args:
++        lines: List of (price_str, quantity) tuples
++
++    Returns:
++        str: Total formatted to exactly two decimals
++
++    Raises:
++        ValueError: If any quantity is negative
++    """
++    if not lines:
++        return "0.00"
++
++    total = Decimal("0")
++    for price_str, quantity in lines:
++        # Validate quantity is non-negative integer
++        try:
++            qty = int(quantity)
++        except (ValueError, TypeError):
++            raise ValueError(f"Invalid quantity: {quantity}")
++
++        if qty < 0:
++            raise ValueError("Quantity cannot be negative")
++
++        # Parse price string to Decimal
++        try:
++            price = Decimal(price_str)
++        except InvalidOperation:
++            raise ValueError(f"Invalid price: {price_str}")
++
++        # Calculate line total and round to 2 decimals with ROUND_HALF_UP
++        line_total = (price * qty).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
++
++        total += line_total
++
++    return f"{total:.2f}"

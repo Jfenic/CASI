@@ -32,6 +32,7 @@ TOPICS: dict[str, str] = {
         "repositorio\n"
         "          serve         Inicia la API HTTP (FastAPI + "
         "Swagger)\n"
+        "          ui            Abre la interfaz visual Streamlit\n"
         "          benchmark     Ejecuta tareas reproducibles y "
         "genera informes\n"
         "          env prepare   Prepara un entorno Docker con "
@@ -52,11 +53,11 @@ TOPICS: dict[str, str] = {
         "          LOCALCODE_AGENT_USE_DOCKER            Usar "
         "sandbox Docker para tests (default: true)\n"
         "          LOCALCODE_AGENT_ALLOW_LOCAL_FALLBACK  "
-        "Permitir fallback local si Docker falla (default: true)\n"
+        "Permitir ejecución local si Docker falta o falla (default: false)\n"
         "          LOCALCODE_AGENT_DOCKER_PIDS_LIMIT     Límite "
         "de procesos del contenedor (default: 64)\n"
         "          LOCALCODE_AGENT_MAX_CORRECTION_ATTEMPTS "
-        "Reintentos tras fallo de tests (default: 2)\n"
+        "Reintentos tras fallo de tests (default: 4)\n"
         "          LOCALCODE_AGENT_DOCKER_IMAGE          Imagen "
         "sandbox (default: casi-sandbox:latest)\n"
         "\n"
@@ -278,6 +279,7 @@ TOPICS: dict[str, str] = {
 
         Endpoints:
           GET  /health
+          GET  /tasks
           POST /tasks
           GET  /tasks/{task_id}
           POST /tasks/{task_id}/approve
@@ -286,6 +288,36 @@ TOPICS: dict[str, str] = {
         Ejemplo:
           casi serve --host 127.0.0.1 --port 8000
           curl http://127.0.0.1:8000/health
+        """
+    ),
+    "ui": dedent(
+        """\
+        casi ui — interfaz visual Streamlit
+
+        Abre una interfaz web para crear tareas, revisar pasos del agente,
+        inspeccionar parches y aprobar o rechazar cambios sobre la API HTTP.
+
+        Requisitos:
+          pip install -e '.[ui]'
+          casi serve   # en otra terminal
+
+        Uso:
+          casi ui [--host HOST] [--port PUERTO] [--api-url URL]
+
+        Opciones:
+          --host HOST      Dirección de Streamlit (default: 127.0.0.1)
+          --port PUERTO    Puerto de Streamlit (default: 8501)
+          --api-url URL    URL base de la API CASI (default: http://127.0.0.1:8000)
+
+        Variables de entorno:
+          CASI_API_URL            URL base de la API
+          CASI_UI_POLL_INTERVAL   Segundos entre actualizaciones (default: 1)
+          CASI_UI_POLL_TIMEOUT    Tiempo máximo de espera (default: 600)
+          CASI_UI_HISTORY_LIMIT   Tareas listadas en el historial (default: 50)
+
+        Ejemplo:
+          casi serve --port 8000
+          casi ui --api-url http://127.0.0.1:8000
         """
     ),
     "benchmark": dedent(
@@ -367,6 +399,9 @@ TOPIC_ALIASES: dict[str, str] = {
     "tests": "test",
     "serve": "serve",
     "api": "serve",
+    "ui": "ui",
+    "web": "ui",
+    "streamlit": "ui",
     "benchmark": "benchmark",
     "benchmarks": "benchmark",
     "env": "env",

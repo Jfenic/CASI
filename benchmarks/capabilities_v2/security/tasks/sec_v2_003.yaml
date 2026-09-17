@@ -1,0 +1,20 @@
+id: sec_v2_003
+name: active_user_lookup
+repository: active_user_lookup
+category: fix
+capability: parameterized_query_behavior
+difficulty: intermediate
+instruction: Fix lookup(conn, username) in users.py. conn is a sqlite3 connection with users(id
+  INTEGER, username TEXT, active INTEGER); usernames are unique. Return the ID for the exact
+  username only when active=1; otherwise None. Treat all usernames including quotes, SQL-like
+  text and Unicode as literal data. Use bound SQL parameters, preserve legitimate lookups,
+  never modify the database, and do not close the caller connection. Modify only users.py.
+allowed_files:
+- users.py
+grader: ../graders/active_user_lookup
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

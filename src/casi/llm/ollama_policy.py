@@ -29,7 +29,7 @@ def resolve_think_enabled(model: str, mode: str) -> bool:
 
 
 def use_json_tool_protocol(*, think_enabled: bool) -> bool:
-    """Return whether tools should be requested via JSON content instead of native calls.
+    """Return whether tools should use JSON content instead of native calls.
 
     Native Ollama tool calls conflict with thinking models: they often emit empty
     content and spurious tool calls even for direct answers.

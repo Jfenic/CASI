@@ -1,0 +1,22 @@
+id: test_001
+name: retry_contract
+repository: retry_contract
+category: create
+capability: test_design
+difficulty: intermediate
+instruction: Create only test_retry.py with deterministic pytest tests for retry(operation,
+  attempts=3) in retrying.py. Do not modify implementation. The default is exactly three total
+  attempts; an explicit positive integer sets the total call limit, including one. Return
+  the first successful value (including None) without extra calls. Retry only RuntimeError;
+  propagate the same final exception object after exhaustion. Other exceptions propagate immediately.
+  Zero or negative attempts raise ValueError before calling operation. Test default and explicit
+  limits, success, exhaustion, validation and exception identity; no sleeps, network or randomness.
+allowed_files:
+- test_retry.py
+grader: ../graders/retry_contract
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

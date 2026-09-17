@@ -115,6 +115,79 @@ def test_get_task_not_found(text_task_client: TestClient) -> None:
     assert response.status_code == 404
 
 
+def test_list_tasks_returns_recent_entries(
+    text_task_client: TestClient, tmp_path: Path
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    first = text_task_client.post(
+        "/tasks",
+        json={"repository": str(repo), "task": "First task"},
+    )
+    second = text_task_client.post(
+        "/tasks",
+        json={"repository": str(repo), "task": "Second task"},
+    )
+    assert first.status_code == 201
+    assert second.status_code == 201
+
+    _wait_for_status(text_task_client, first.json()["id"], TaskStatus.COMPLETED)
+    _wait_for_status(text_task_client, second.json()["id"], TaskStatus.COMPLETED)
+
+    response = text_task_client.get("/tasks", params={"limit": 10})
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload["tasks"]) == 2
+    assert payload["tasks"][0]["task"] == "Second task"
+    assert payload["tasks"][1]["task"] == "First task"
+
+
+def test_list_tasks_rejects_invalid_limit(text_task_client: TestClient) -> None:
+    response = text_task_client.get("/tasks", params={"limit": 0})
+
+    assert response.status_code == 400
+
+
+def test_live_trace_is_published_while_task_runs(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    def runner(
+        _repository: Path,
+        _task: str,
+        _max_steps: int | None,
+        _routing: str,
+        trace=None,
+    ) -> OrchestratorResult:
+        assert trace is not None
+        trace.record("decision 1/3: tool list_files")
+        trace.record("decision 2/3: tool read_file path='module.py'")
+        return OrchestratorResult(success=True, response="Done")
+
+    store = TaskStore(runner=runner)
+    client = TestClient(create_app(task_store=store))
+    create_response = client.post(
+        "/tasks",
+        json={"repository": str(repo), "task": "Inspect"},
+    )
+    task_id = create_response.json()["id"]
+
+    observed_events: list[int] = []
+    deadline = time.time() + 2.0
+    while time.time() < deadline:
+        payload = client.get(f"/tasks/{task_id}").json()
+        observed_events.append(len(payload.get("trace") or []))
+        if payload["status"] == TaskStatus.COMPLETED.value:
+            break
+        time.sleep(0.01)
+
+    final = client.get(f"/tasks/{task_id}").json()
+    assert final["status"] == TaskStatus.COMPLETED.value
+    assert len(final["trace"]) >= 3
+    assert max(observed_events) >= 2
+
+
 def test_patch_approve_and_reject_flow(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()

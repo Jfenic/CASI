@@ -1,0 +1,15 @@
+--- a/preprocessing.py
++++ b/preprocessing.py
+@@ -14,9 +14,11 @@
+             raise ValueError("not fitted")
+         if any(len(row) != len(self.means) for row in rows):
+             raise ValueError("wrong width")
++        if not rows:
++            return []
+         return [
+             [
+-                0.0 if value is None else value
++                value - mean if value is not None else 0.0
+                 for value, mean in zip(row, self.means, strict=True)
+             ]
+             for row in rows

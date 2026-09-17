@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import sys
 from dataclasses import replace
 from pathlib import Path
 
@@ -214,3 +215,44 @@ def test_model_failure_does_not_abort_remaining_tasks(tmp_path, monkeypatch):
     assert not results[0].task_success
     assert results[1].agent_success
     assert not results[1].task_success
+
+
+@pytest.mark.parametrize(
+    ("task_id", "filename", "original_expression", "broken_expression", "failure"),
+    [
+        (
+            "dev_006",
+            "settings.py",
+            "result[key] = deepcopy(value)",
+            "result[key] = value",
+            "test_no_aliases_or_mutations",
+        ),
+        (
+            "dev_007",
+            "reader.py",
+            "enumerate(text.splitlines(), 1)",
+            "enumerate((line for line in text.splitlines() if line.strip()), 1)",
+            "test_physical_line_number",
+        ),
+    ],
+)
+def test_grader_rejects_observed_repairs_that_pass_visible_tests(
+    tmp_path, task_id, filename, original_expression, broken_expression, failure
+):
+    """Preserve the false-positive boundary observed in September 12 model runs."""
+    task = next(task for task in TASKS if task.task_id == task_id)
+    original = SUITE / "repositories" / task.repository
+    candidate = tmp_path / "candidate"
+    shutil.copytree(original, candidate)
+    reference = (SUITE / "solutions" / task.repository / filename).read_text()
+    assert original_expression in reference
+    (candidate / filename).write_text(
+        reference.replace(original_expression, broken_expression)
+    )
+    runner = LocalRunner()
+    visible = runner.run(candidate, [sys.executable, "-m", "pytest", "-q"])
+    assert visible.exit_code == 0, visible.stdout + visible.stderr
+    graded, _ = grade_task(task, original=original, candidate=candidate, runner=runner)
+    assert graded.exit_code == 1, graded.stdout + graded.stderr
+    assert failure in graded.stdout
+    assert not graded.timed_out

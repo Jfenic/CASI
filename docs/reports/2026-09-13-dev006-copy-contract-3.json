@@ -1,0 +1,50 @@
+{
+  "generated_at": "2026-09-13T13:39:43.584946+00:00",
+  "model": "qwen3.5:4b",
+  "metrics": {
+    "tasks": 1,
+    "task_success_rate": 1.0,
+    "agent_success_rate": 1.0,
+    "command_success_rate": 1.0,
+    "patch_validity_rate": 1.0,
+    "average_steps": 8.0,
+    "average_duration_seconds": 23.633265540999673,
+    "average_files_read": 2.0,
+    "average_correction_attempts": 0.0,
+    "total_prompt_tokens": 5174,
+    "total_completion_tokens": 345
+  },
+  "by_capability": {
+    "regression_and_mutability": {
+      "tasks": 1,
+      "passed": 1
+    }
+  },
+  "tasks": [
+    {
+      "task_id": "dev_006",
+      "name": "settings_merge",
+      "repository": "settings_merge",
+      "category": "fix",
+      "model": "qwen3.5:4b",
+      "agent_success": true,
+      "task_success": true,
+      "command_success": true,
+      "patch_valid": true,
+      "patch_applied": true,
+      "steps": 8,
+      "duration_seconds": 23.633265540999673,
+      "files_read": 2,
+      "tool_calls": 1,
+      "prompt_tokens": 5174,
+      "completion_tokens": 345,
+      "correction_attempts": 0,
+      "error": null,
+      "capability": "regression_and_mutability",
+      "difficulty": "intermediate",
+      "verification_output": "...                                                                      [100%]\n3 passed in 0.01s",
+      "verification_runner": "docker",
+      "verification_timed_out": false
+    }
+  ]
+}

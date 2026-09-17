@@ -1,0 +1,23 @@
+id: ml_v2_001
+name: train_only_centering
+repository: train_only_centering
+category: ml
+capability: leakage_free_preprocessing
+difficulty: intermediate
+instruction: Fix Centerer in preprocessing.py. fit(rows) receives a nonempty rectangular matrix
+  with at least one column, containing finite numbers or None. Learn per-column means from
+  non-None training values only (all-missing column mean is 0), return self. transform(rows)
+  subtracts these saved means, imputing None with its training mean (output zero), without
+  learning from the transformed rows. Empty transform input returns []; wrong row width and
+  transform before fit raise ValueError. Invalid training shape raises ValueError. Repeated
+  fit replaces the learned means. Never mutate inputs; each output row is independent. Modify
+  only preprocessing.py.
+allowed_files:
+- preprocessing.py
+grader: ../graders/train_only_centering
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

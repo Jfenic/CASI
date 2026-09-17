@@ -1,0 +1,61 @@
+--- a/sales.py
++++ b/sales.py
+@@ -1,8 +1,54 @@
+ def totals(text):
++    """Sum quantities per product from CSV input.
++
++    Args:
++        text: CSV text with headers 'product,quantity'
++
++    Returns:
++        dict mapping product names to summed integer quantities
++
++    Raises:
++        ValueError: If quantity is not a valid integer
++    """
++    import csv
++    import io
++
+     result = {}
+-    for line in text.splitlines()[1:]:
+-        if not line:
++
++    # Use csv.reader to handle quoted fields, CRLF, multiline fields properly
++    reader = csv.reader(io.StringIO(text))
++
++    try:
++        header = next(reader)  # Skip header row
++    except StopIteration:
++        return {}  # Empty input returns empty dict
++
++    if len(header) < 2:
++        return {}
++
++    for line in reader:
++        # Skip blank rows (empty list after stripping)
++        stripped = [cell.strip() for cell in line]
++        if all(cell == "" for cell in stripped):
+             continue
+-        product, quantity = line.split(",")
+-        result[product] = int(quantity)
++
++        # Extract product and quantity from the first two fields
++        if len(line) < 2:
++            raise ValueError("Each row must have at least product and quantity")
++
++        product = line[0]
++        quantity_str = line[1].strip()
++
++        # Try to parse integer, validate strictness
++        try:
++            quantity = int(quantity_str)
++        except ValueError:
++            raise ValueError(f"Invalid integer quantity: {quantity_str}")
++
++        # Sum quantities per product
++        if product in result:
++            result[product] += quantity
++        else:
++            result[product] = quantity
++
+     return result

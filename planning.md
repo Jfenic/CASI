@@ -1,5 +1,9 @@
 # Fases del proyecto CASI
 
+> **Documentación activa:** [TASKS.md](TASKS.md) (trabajo actual),
+> [ARCHITECTURE.md](ARCHITECTURE.md) (sistema), [AGENTS.md](AGENTS.md) (agentes IA).
+> Este archivo conserva el **histórico de fases** 0–11 como referencia.
+
 ## Estado actual
 
 - Fase 0: completada.
@@ -12,9 +16,12 @@
 - Fase 7: completada; CLI con `ask`/`fix`/`help`, modo verbose, confirmación de parches, `--save-patch` y códigos de salida.
 - Fase 8: completada; API FastAPI con ciclo de vida de tareas, Swagger y aprobación de parches.
 - Fase 9: completada; trazas estructuradas, métricas agregadas, tiempos por paso y logs JSON.
-- Fase 10: implementada; 26 tareas generales, 10 de desarrollo, 5 de ML y 5 de diagnóstico, con informes y artefactos.
-- Verificación (2026-09-12): 319 pruebas aprobadas y 2 omitidas en Python 3.12.3; Docker, Ruff y compilación correctos.
-- Bloque actual: estabilizar la fiabilidad medida con Ollama; diagnóstico mejora de 0/5 a 4/5. Ver [informe](docs/reports/2026-09-12-stabilization.md).
+- Fase 10: implementada; 26 tareas generales, 12 de desarrollo, 6 de ML, 8 de diagnóstico, 9 de fundamentos y 3 de seguridad, con informes y artefactos.
+- Fase 11: implementada; interfaz visual Streamlit modular sobre la API (`casi ui`), con historial, trazas, parches y aprobación humana.
+- Verificación (2026-09-13): 369 pruebas aprobadas y 2 omitidas en Python 3.12.3; Docker, Ruff y compilación correctos.
+- Bloque actual (Fase 12): protocol enforcement por fases — state machine, schema
+  CREATE, repair fallback. Objetivo development **≥9/12**. Ver
+  [reliability/plan.md](docs/features/reliability/plan.md).
 
 El proyecto se desarrollará de forma incremental. Cada fase debe dejar una parte **funcional, probada y documentada** antes de avanzar.
 
@@ -47,7 +54,7 @@ docs/
 
 ## Configuración necesaria
 
-* Python 3.12 o superior.
+* Python 3.11 o superior.
 * Entorno virtual.
 * Pytest.
 * Ruff.
@@ -635,7 +642,7 @@ Return the failure to the model
 Generate a corrected patch
 ```
 
-Inicialmente, permite un máximo de dos intentos de corrección.
+La configuración actual permite cuatro reintentos de corrección por defecto.
 
 ## Criterio de finalización
 
@@ -878,6 +885,25 @@ CASI dispone de al menos 20 tareas reproducibles y genera un informe automático
 
 Facilitar la revisión de pasos, cambios y resultados.
 
+## Implementación
+
+Módulo `src/casi/ui/` con capas separadas:
+
+- `client/` — contrato HTTP (`CasiApiClient`), DTOs y cliente httpx.
+- `services/` — orquestación de tareas y estado de sesión.
+- `views/components/` — componentes Streamlit reutilizables.
+- `views/layout.py` — composición de la página principal.
+
+Comando:
+
+```bash
+pip install -e '.[ui]'
+casi serve --port 8000
+casi ui --api-url http://127.0.0.1:8000
+```
+
+La API expone `GET /tasks` para consultar ejecuciones recientes.
+
 ## Funciones recomendadas
 
 * Seleccionar un repositorio.
@@ -932,4 +958,4 @@ Debe ser capaz de:
 9. Ask for approval before modifying the repository.
 ```
 
-El siguiente bloque de implementación debe concentrarse en la **API FastAPI**, la **observabilidad** y la **evaluación ampliada con más tareas de benchmark**.
+El siguiente bloque (**Fase 12 — fiabilidad**) debe consolidar el éxito frente a las verificaciones independientes del benchmark development (7/12). Ver [TASKS.md](TASKS.md) y [docs/features/reliability/](docs/features/reliability/).

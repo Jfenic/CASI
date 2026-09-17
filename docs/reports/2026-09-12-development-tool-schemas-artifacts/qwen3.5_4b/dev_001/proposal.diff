@@ -1,0 +1,30 @@
+--- a/pagination.py
++++ b/pagination.py
+@@ -1,3 +1,25 @@
+ def paginate(items, page, page_size):
+-    start = page * page_size
+-    return items[start : start + page_size]
++    """
++    Paginate a list of items.
++
++    Args:
++        items: List to paginate (will not be modified)
++        page: One-based page number (1 for first page)
++        page_size: Number of items per page (must be positive)
++
++    Returns:
++        List of items for the requested page, or [] if beyond end.
++
++    Raises:
++        ValueError: If page or page_size is nonpositive
++    """
++    # Validate inputs - must be strictly positive
++    if page <= 0 or page_size <= 0:
++        raise ValueError("page and page_size must be positive")
++
++    # Calculate start index (one-based means first page starts at 0)
++    start = (page - 1) * page_size
++    end = start + page_size
++
++    # Slicing returns empty list if indices are out of bounds
++    return items[start : end]

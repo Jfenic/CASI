@@ -1,0 +1,104 @@
+.....FF..                                                                [100%]
+=================================== FAILURES ===================================
+_____________________ test_non_integer_parts_raise[1.a.3] ______________________
+
+text = '1.a.3'
+
+    def parse_version(text: str) -> tuple[int, int, int]:
+        parts = text.split(".")
+        if len(parts) != 3:
+            raise ValueError("Expected exactly three dot-separated integer parts")
+        try:
+>           return tuple(int(part) for part in parts)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+version.py:9: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+.0 = <list_iterator object at 0x7f304ebb5ea0>
+
+>   return tuple(int(part) for part in parts)
+                 ^^^^^^^^^
+E   ValueError: invalid literal for int() with base 10: 'a'
+
+version.py:9: ValueError
+
+During handling of the above exception, another exception occurred:
+
+text = '1.a.3'
+
+    @pytest.mark.parametrize("text", ["1.a.3", "1.2.x"])
+    def test_non_integer_parts_raise(text: str) -> None:
+        with pytest.raises(ValueError):
+>           parse_version(text)
+
+_benchmark_checks/test_acceptance.py:18: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+text = '1.a.3'
+
+    def parse_version(text: str) -> tuple[int, int, int]:
+        parts = text.split(".")
+        if len(parts) != 3:
+            raise ValueError("Expected exactly three dot-separated integer parts")
+        try:
+            return tuple(int(part) for part in parts)
+        except ValueError:
+>           raise ValueError(f"Invalid version format: {text}") from __import__('errors').set_exc_value(ValueError, None)
+                                                                     ^^^^^^^^^^^^^^^^^^^^
+E           ModuleNotFoundError: No module named 'errors'
+
+version.py:11: ModuleNotFoundError
+_____________________ test_non_integer_parts_raise[1.2.x] ______________________
+
+text = '1.2.x'
+
+    def parse_version(text: str) -> tuple[int, int, int]:
+        parts = text.split(".")
+        if len(parts) != 3:
+            raise ValueError("Expected exactly three dot-separated integer parts")
+        try:
+>           return tuple(int(part) for part in parts)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+version.py:9: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+.0 = <list_iterator object at 0x7f304ebb57e0>
+
+>   return tuple(int(part) for part in parts)
+                 ^^^^^^^^^
+E   ValueError: invalid literal for int() with base 10: 'x'
+
+version.py:9: ValueError
+
+During handling of the above exception, another exception occurred:
+
+text = '1.2.x'
+
+    @pytest.mark.parametrize("text", ["1.a.3", "1.2.x"])
+    def test_non_integer_parts_raise(text: str) -> None:
+        with pytest.raises(ValueError):
+>           parse_version(text)
+
+_benchmark_checks/test_acceptance.py:18: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+text = '1.2.x'
+
+    def parse_version(text: str) -> tuple[int, int, int]:
+        parts = text.split(".")
+        if len(parts) != 3:
+            raise ValueError("Expected exactly three dot-separated integer parts")
+        try:
+            return tuple(int(part) for part in parts)
+        except ValueError:
+>           raise ValueError(f"Invalid version format: {text}") from __import__('errors').set_exc_value(ValueError, None)
+                                                                     ^^^^^^^^^^^^^^^^^^^^
+E           ModuleNotFoundError: No module named 'errors'
+
+version.py:11: ModuleNotFoundError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_non_integer_parts_raise[1.a.3]
+FAILED _benchmark_checks/test_acceptance.py::test_non_integer_parts_raise[1.2.x]
+2 failed, 7 passed in 0.03s

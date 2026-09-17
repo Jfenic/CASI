@@ -1,0 +1,82 @@
+.FFFFFF.                                                                 [100%]
+=================================== FAILURES ===================================
+________________________ test_physical_line_number[[1]] ________________________
+
+bad = '[1]'
+
+    @pytest.mark.parametrize("bad", ["[1]", "null", "true", "3", '"text"', "{bad"])
+    def test_physical_line_number(bad):
+>       with pytest.raises(ValueError, match=r"line 3\b"):
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'line 3\\b'
+E         Actual message: 'Line 1: Expected JSON object, got list'
+
+_benchmark_checks/test_acceptance.py:14: AssertionError
+_______________________ test_physical_line_number[null] ________________________
+
+bad = 'null'
+
+    @pytest.mark.parametrize("bad", ["[1]", "null", "true", "3", '"text"', "{bad"])
+    def test_physical_line_number(bad):
+>       with pytest.raises(ValueError, match=r"line 3\b"):
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'line 3\\b'
+E         Actual message: 'Line 1: Expected JSON object, got NoneType'
+
+_benchmark_checks/test_acceptance.py:14: AssertionError
+_______________________ test_physical_line_number[true] ________________________
+
+bad = 'true'
+
+    @pytest.mark.parametrize("bad", ["[1]", "null", "true", "3", '"text"', "{bad"])
+    def test_physical_line_number(bad):
+>       with pytest.raises(ValueError, match=r"line 3\b"):
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'line 3\\b'
+E         Actual message: 'Line 1: Expected JSON object, got bool'
+
+_benchmark_checks/test_acceptance.py:14: AssertionError
+_________________________ test_physical_line_number[3] _________________________
+
+bad = '3'
+
+    @pytest.mark.parametrize("bad", ["[1]", "null", "true", "3", '"text"', "{bad"])
+    def test_physical_line_number(bad):
+>       with pytest.raises(ValueError, match=r"line 3\b"):
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'line 3\\b'
+E         Actual message: 'Line 1: Expected JSON object, got int'
+
+_benchmark_checks/test_acceptance.py:14: AssertionError
+______________________ test_physical_line_number["text"] _______________________
+
+bad = '"text"'
+
+    @pytest.mark.parametrize("bad", ["[1]", "null", "true", "3", '"text"', "{bad"])
+    def test_physical_line_number(bad):
+>       with pytest.raises(ValueError, match=r"line 3\b"):
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'line 3\\b'
+E         Actual message: 'Line 1: Expected JSON object, got str'
+
+_benchmark_checks/test_acceptance.py:14: AssertionError
+_______________________ test_physical_line_number[{bad] ________________________
+
+bad = '{bad'
+
+    @pytest.mark.parametrize("bad", ["[1]", "null", "true", "3", '"text"', "{bad"])
+    def test_physical_line_number(bad):
+>       with pytest.raises(ValueError, match=r"line 3\b"):
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'line 3\\b'
+E         Actual message: 'Malformed JSON at line 1'
+
+_benchmark_checks/test_acceptance.py:14: AssertionError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_physical_line_number[[1]]
+FAILED _benchmark_checks/test_acceptance.py::test_physical_line_number[null]
+FAILED _benchmark_checks/test_acceptance.py::test_physical_line_number[true]
+FAILED _benchmark_checks/test_acceptance.py::test_physical_line_number[3] - A...
+FAILED _benchmark_checks/test_acceptance.py::test_physical_line_number["text"]
+FAILED _benchmark_checks/test_acceptance.py::test_physical_line_number[{bad]
+6 failed, 2 passed in 0.05s

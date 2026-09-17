@@ -6,6 +6,7 @@ from pathlib import Path
 from casi.config import settings
 from casi.interactive import InteractiveSession
 from casi.llm.base import ChatMessage, LLMResponse, ToolDefinition
+from casi.terminal import TerminalPresenter, Theme
 
 
 class FakeClient:
@@ -457,3 +458,80 @@ def test_interactive_session_saves_last_trace(tmp_path: Path) -> None:
     assert should_exit is False
     assert [event["message"] for event in payload["events"]] == session._last_trace
     assert any("Saved diagnostic trace" in message for message in output)
+
+
+def test_interactive_session_with_terminal_presenter(tmp_path: Path) -> None:
+    commands = iter(["Inspect files", "/exit"])
+    output: list[str] = []
+    theme = Theme(use_color=False, use_unicode=True)
+    presenter = TerminalPresenter(output_fn=output.append, theme=theme)
+
+    session = InteractiveSession(
+        tmp_path,
+        FakeClient(),
+        input_fn=lambda prompt: next(commands),
+        output_fn=output.append,
+        presenter=presenter,
+    )
+
+    exit_code = session.run()
+    assert exit_code == 0
+    assert any("◆ CASI interactive mode" in message for message in output)
+    assert any("◆ Plan" in message for message in output)
+    assert any("◆ Task completed" in message for message in output)
+
+
+def test_interactive_session_handles_diff_command_no_patch(tmp_path: Path) -> None:
+    commands = iter(["/diff", "/exit"])
+    output: list[str] = []
+
+    session = InteractiveSession(
+        tmp_path,
+        FakeClient(),
+        input_fn=lambda prompt: next(commands),
+        output_fn=output.append,
+    )
+    assert session.run() == 0
+    assert any(
+        "No patch generated in this session yet" in message for message in output
+    )
+
+
+def test_interactive_session_handles_diff_command_with_patch(tmp_path: Path) -> None:
+    repository = tmp_path / "repo"
+    repository.mkdir()
+    (repository / "app.py").write_text("value = False\n", encoding="utf-8")
+    (repository / "test_app.py").write_text(
+        "from app import value\n\ndef test_value():\n    assert value is True\n",
+        encoding="utf-8",
+    )
+    commands = iter(["Fix app.py", "n", "/diff", "/exit"])
+    output: list[str] = []
+
+    InteractiveSession(
+        repository,
+        PatchClient(),
+        input_fn=lambda prompt: next(commands),
+        output_fn=output.append,
+    ).run()
+
+    assert any("[diff] Last patch:" in message for message in output)
+
+
+def test_interactive_session_file_mention_hint(tmp_path: Path) -> None:
+    (tmp_path / "target.py").write_text("# target\n", encoding="utf-8")
+    commands = iter(["Inspect @target.py", "/exit"])
+    output: list[str] = []
+    theme = Theme(use_color=False, use_unicode=True)
+    presenter = TerminalPresenter(output_fn=output.append, theme=theme)
+
+    session = InteractiveSession(
+        tmp_path,
+        FakeClient(),
+        input_fn=lambda prompt: next(commands),
+        output_fn=output.append,
+        presenter=presenter,
+    )
+    session.run()
+
+    assert any("Referenced files: target.py" in message for message in output)

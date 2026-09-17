@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 
 from casi.agent.failure_classification import FailureKind, failure_kind_label
 from casi.agent.test_failures import (
     extract_assertion_mismatches,
+    output_reports_failures,
     summarize_test_failures,
 )
 
@@ -24,6 +26,7 @@ _PREFIX_PATCH_CORRECTION = "Provide corrected file content via propose_file"
 _PREFIX_READ_INSTEAD_OF_SEARCH = "search_code results are already available"
 _PREFIX_CORRUPT_PATCH = "The diff format was invalid for git apply"
 _PREFIX_PROPOSE_FILE_FAILURE = "propose_file could not build the patch"
+_PREFIX_LAYOUT_REQUIRED = "Repository layout is not loaded yet"
 _PREFIX_DIAGNOSIS_FORMAT = "Your diagnosis does not satisfy the response contract"
 
 _PROPOSE_FILE_INSTRUCTION = (
@@ -46,6 +49,7 @@ AGENT_NUDGE_PREFIXES = (
     _PREFIX_READ_INSTEAD_OF_SEARCH,
     _PREFIX_CORRUPT_PATCH,
     _PREFIX_PROPOSE_FILE_FAILURE,
+    _PREFIX_LAYOUT_REQUIRED,
     _PREFIX_DIAGNOSIS_FORMAT,
 )
 
@@ -97,10 +101,10 @@ def nudge_for_repository_deferral() -> ResponseNudge:
 
 
 def nudge_for_missing_patch(
-    *, remaining_test_output: str | None = None
+    *, remaining_test_output: str | None = None, task_context: str = ""
 ) -> ResponseNudge:
     detail = ""
-    if remaining_test_output and remaining_test_output.strip():
+    if remaining_test_output and output_reports_failures(remaining_test_output):
         summary = summarize_test_failures(remaining_test_output)
         detail = (
             f" Tests are still failing: {summary}. "
@@ -110,9 +114,13 @@ def nudge_for_missing_patch(
     return ResponseNudge(
         user_message=(
             f"{_PREFIX_MISSING_PATCH} or passing tests.{detail} "
-            "Call read_file on the failing source and test files if you have not "
-            f"loaded them yet, then {_PROPOSE_FILE_INSTRUCTION} "
-            "Do not describe the fix without calling propose_file."
+            f"{_PROPOSE_FILE_INSTRUCTION} "
+            "Use read_file or list_files only when you still need source context."
+            + (
+                "\nPreserve the complete task contract:\n" + task_context
+                if task_context
+                else ""
+            )
         ),
     )
 
@@ -188,8 +196,29 @@ def nudge_for_fix_without_inspection() -> ResponseNudge:
     return ResponseNudge(
         user_message=(
             f"{_PREFIX_FIX_WITHOUT_INSPECTION}. "
-            "Call run_tests first, inspect failures with read_file or search_code, "
-            f"then {_PROPOSE_FILE_INSTRUCTION}"
+            "Inspect the repository with list_files, search_code, or read_file as "
+            "needed, then call propose_file when you know the target path and content."
+        ),
+    )
+
+
+def nudge_for_layout_required() -> ResponseNudge:
+    return ResponseNudge(
+        user_message=(
+            f"{_PREFIX_LAYOUT_REQUIRED}. Call list_files to see which directories "
+            "and files exist before propose_file. Do not assume conventional layouts "
+            f"such as tests/ or src/. Then {_PROPOSE_FILE_INSTRUCTION}"
+        ),
+    )
+
+
+def nudge_after_layout_loaded() -> ResponseNudge:
+    return ResponseNudge(
+        user_message=(
+            f"{PIPELINE_FALLBACK_PREFIX} list_files loaded the repository layout. "
+            "Choose a repository-relative path that matches the listing. Do not "
+            "assume directories such as tests/ or src/ exist unless they appear "
+            f"there. Then {_PROPOSE_FILE_INSTRUCTION}"
         ),
     )
 
@@ -207,9 +236,9 @@ def nudge_for_premature_clarification() -> ResponseNudge:
     return ResponseNudge(
         user_message=(
             f"{_PREFIX_PREMATURE_CLARIFICATION}. Briefly state what you understood "
-            "from the request, then call the first relevant repository tool or return "
-            'a final answer with {"type":"final","content":"..."}. Do not ask the user '
-            "to specify files, areas, or details you can infer or discover with tools."
+            "from the request, then choose the next repository tool yourself or "
+            'return {"type":"final","content":"..."}. '
+            "Do not ask the user for paths or details you can discover with tools."
         ),
     )
 
@@ -307,10 +336,31 @@ _FAILURE_GUIDANCE = {
 }
 
 
-def nudge_for_propose_file_failure(error: str) -> ResponseNudge:
+def nudge_for_propose_file_failure(error: str, *, path: object = None) -> ResponseNudge:
+    example = json.dumps(
+        {
+            "name": "propose_file",
+            "arguments": {
+                "path": path if isinstance(path, str) else "relative/path.py",
+                "content": "<complete replacement file text>",
+            },
+        },
+        ensure_ascii=False,
+    )
+    layout_hint = ""
+    if "parent directory does not exist" in error.lower():
+        layout_hint = (
+            " Call list_files if the layout is not already in the conversation, "
+            "then choose a path under an existing directory or the repository root."
+        )
     return ResponseNudge(
         user_message=(
             f"{_PREFIX_PROPOSE_FILE_FAILURE}: {error} "
-            f"Fix the issue and {_PROPOSE_FILE_INSTRUCTION}"
+            "No valid proposal was produced by this call. "
+            f"Fix the issue and {_PROPOSE_FILE_INSTRUCTION}{layout_hint}\n"
+            f"Next response shape: {example}\n"
+            "Replace the content placeholder with the entire corrected file, "
+            "encoded as a JSON string. Put both path and content inside arguments. "
+            "Do not send a final explanation or omit unchanged parts of the file."
         ),
     )

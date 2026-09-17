@@ -1,0 +1,53 @@
+FF....                                                                   [100%]
+=================================== FAILURES ===================================
+_____________________ test_ready_queue_and_implicit_nodes ______________________
+
+    def test_ready_queue_and_implicit_nodes():
+        graph = {"a": ["b", "b"], "z": [], "d": ["c"]}
+        before = deepcopy(graph)
+>       assert build_order(graph) == ["b", "a", "c", "d", "z"]
+               ^^^^^^^^^^^^^^^^^^
+
+_benchmark_checks/test_acceptance.py:10: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+dependencies.py:32: in build_order
+    available = [t for t in all_tasks if t not in completed and prereq_graph[t].issubset(completed)]
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+.0 = <set_iterator object at 0x7ff18c93f7c0>
+
+>   available = [t for t in all_tasks if t not in completed and prereq_graph[t].issubset(completed)]
+                                                                ^^^^^^^^^^^^^^^
+E   KeyError: 'b'
+
+dependencies.py:32: KeyError
+_________________________________ test_diamond _________________________________
+
+    def test_diamond():
+>       assert build_order({"d": ["b", "c"], "b": ["a"], "c": ["a"]}) == [
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            "a",
+            "b",
+            "c",
+            "d",
+        ]
+
+_benchmark_checks/test_acceptance.py:15: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+dependencies.py:32: in build_order
+    available = [t for t in all_tasks if t not in completed and prereq_graph[t].issubset(completed)]
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+.0 = <set_iterator object at 0x7ff18c31b5c0>
+
+>   available = [t for t in all_tasks if t not in completed and prereq_graph[t].issubset(completed)]
+                                                                ^^^^^^^^^^^^^^^
+E   KeyError: 'a'
+
+dependencies.py:32: KeyError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_ready_queue_and_implicit_nodes
+FAILED _benchmark_checks/test_acceptance.py::test_diamond - KeyError: 'a'
+2 failed, 4 passed in 0.02s

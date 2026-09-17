@@ -1,0 +1,27 @@
+FFssssssss.                                                              [100%]
+=================================== FAILURES ===================================
+________________________________ test_delivery _________________________________
+
+    def test_delivery():
+        root = Path(__file__).resolve().parents[1]
+>       assert (root / TEST_FILE).is_file(), "DELIVERY: requested test file missing"
+E       AssertionError: DELIVERY: requested test file missing
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = (PosixPath('/workspace') / 'test_retry.py').is_file
+
+_benchmark_checks/test_acceptance.py:47: AssertionError
+_________________________ test_correct_implementation __________________________
+
+correct_result = None
+
+    def test_correct_implementation(correct_result):
+>       assert correct_result is not None, "DELIVERY: requested test file missing"
+E       AssertionError: DELIVERY: requested test file missing
+E       assert None is not None
+
+_benchmark_checks/test_acceptance.py:51: AssertionError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_delivery - AssertionError: ...
+FAILED _benchmark_checks/test_acceptance.py::test_correct_implementation - As...
+2 failed, 1 passed, 8 skipped in 0.07s

@@ -1,0 +1,17 @@
+{
+  "exclusive_boundary": {
+    "pricing.py": "def discounted_total(amount, member):\n    if amount < 0:\n        raise ValueError(\"negative amount\")\n    if member and amount > 100:\n        return amount * 0.9\n    return amount\n"
+  },
+  "discount_nonmembers": {
+    "pricing.py": "def discounted_total(amount, member):\n    if amount < 0:\n        raise ValueError(\"negative amount\")\n    if amount >= 100:\n        return amount * 0.9\n    return amount\n"
+  },
+  "discount_below_threshold": {
+    "pricing.py": "def discounted_total(amount, member):\n    if amount < 0:\n        raise ValueError(\"negative amount\")\n    if member:\n        return amount * 0.9\n    return amount\n"
+  },
+  "wrong_percentage": {
+    "pricing.py": "def discounted_total(amount, member):\n    if amount < 0:\n        raise ValueError(\"negative amount\")\n    if member and amount >= 100:\n        return amount * 0.8\n    return amount\n"
+  },
+  "no_negative_validation": {
+    "pricing.py": "def discounted_total(amount, member):\n    if amount < 0:\n        return amount\n    if member and amount >= 100:\n        return amount * 0.9\n    return amount\n"
+  }
+}

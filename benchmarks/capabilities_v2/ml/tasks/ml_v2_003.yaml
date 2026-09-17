@@ -1,0 +1,21 @@
+id: ml_v2_003
+name: causal_windows
+repository: causal_windows
+category: ml
+capability: temporal_feature_extraction
+difficulty: intermediate
+instruction: 'Fix rolling_features(values, window) in features.py. values is a list of finite
+  numbers. window must be a positive integer, excluding bool; otherwise raise ValueError even
+  on empty input. Return a list of (mean, minimum, maximum) tuples for each complete trailing
+  window in chronological order: the first covers values[0:window], the next values[1:window+1].
+  Include the final window; never use future values in an earlier window. Empty input or window
+  larger than input gives []. Do not mutate values. Modify only features.py.'
+allowed_files:
+- features.py
+grader: ../graders/causal_windows
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

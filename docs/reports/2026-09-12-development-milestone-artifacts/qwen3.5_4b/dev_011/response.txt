@@ -1,0 +1,13 @@
+--- a/version.py
++++ b/version.py
+@@ -4,8 +4,8 @@
+ def parse_version(text: str) -> tuple[int, int, int]:
+     parts = text.split(".")
+     if len(parts) != 3:
+-        return None
++        raise ValueError("Invalid number of parts in version string")
+     try:
+         return tuple(int(part) for part in parts)
+     except ValueError:
+-        return None
++        raise ValueError(f"Non-integer part in version string: {text}")

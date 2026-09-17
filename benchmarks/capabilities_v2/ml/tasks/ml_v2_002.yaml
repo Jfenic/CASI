@@ -1,0 +1,21 @@
+id: ml_v2_002
+name: frozen_categories
+repository: frozen_categories
+category: ml
+capability: categorical_feature_extraction
+difficulty: intermediate
+instruction: Fix Encoder in encoding.py. fit(values) accepts a list of strings, learns unique
+  categories in first-seen order and returns self. transform(values) returns one-hot integer
+  rows using only the fitted vocabulary; unknown strings get all zeros and never expand the
+  vocabulary. An empty fitted vocabulary produces an empty row per value; an empty transform
+  input returns []. Before fit, transform raises ValueError. Refit replaces the vocabulary.
+  Do not mutate inputs or share output row lists. Modify only encoding.py.
+allowed_files:
+- encoding.py
+grader: ../graders/frozen_categories
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

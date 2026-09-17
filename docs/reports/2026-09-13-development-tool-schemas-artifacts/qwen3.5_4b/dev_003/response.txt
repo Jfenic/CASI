@@ -1,0 +1,43 @@
+--- a/sales.py
++++ b/sales.py
+@@ -1,8 +1,35 @@
++import csv
++from io import StringIO
++
+ def totals(text):
+     result = {}
+-    for line in text.splitlines()[1:]:
+-        if not line:
+-            continue
+-        product, quantity = line.split(",")
+-        result[product] = int(quantity)
++    reader = csv.reader(StringIO(text))
++    try:
++        next(reader)  # Skip header row
++    except StopIteration:
++        return {}  # Empty input or only headers
++
++    for row in reader:
++        if len(row) < 2:
++            continue  # Invalid row, skip
++        product = row[0]
++        quantity_str = row[1]
++
++        # Handle blank rows (after stripping whitespace)
++        stripped_product = product.strip()
++        stripped_quantity = quantity_str.strip()
++
++        if not product or not stripped_product:
++            continue  # Skip completely blank rows
++
++        try:
++            quantity = int(stripped_quantity)
++        except ValueError:
++            raise ValueError(f"Invalid integer quantity: {quantity_str}")
++
++        # Preserve product name exactly (with internal spaces)
++        if stripped_product not in result:
++            result[stripped_product] = 0
++        result[stripped_product] += quantity
++
+     return result

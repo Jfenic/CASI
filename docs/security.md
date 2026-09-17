@@ -1,7 +1,5 @@
 # Security
 
-# Security
-
 ## Repository boundaries
 
 - Resolve the repository root before handling a request.
@@ -26,6 +24,12 @@ Before applying a patch, validate its syntax, target paths, repository boundarie
 ## Sandbox rules
 
 Docker should be the default for untrusted command execution. Network access, mounted paths, resource limits, and container lifetime must be explicit configuration rather than implicit defaults. The local runner is intended for development only.
+
+Local fallback is disabled by default. An unavailable Docker daemon, missing
+image, or infrastructure failure stops test execution. For trusted repositories,
+`LOCALCODE_AGENT_ALLOW_LOCAL_FALLBACK=true` explicitly allows local fallback;
+`LOCALCODE_AGENT_USE_DOCKER=false` selects local execution directly. Local
+execution has no container network or process isolation.
 
 Project dependency images are prepared in a separate, explicitly approved
 network-enabled build. Dependency installation can execute third-party package

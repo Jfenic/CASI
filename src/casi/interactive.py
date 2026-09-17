@@ -25,6 +25,7 @@ from casi.llm.base import ChatMessage, LLMClient
 from casi.patching.applier import PatchApplicationError, apply_patch
 from casi.patching.extract import extract_patch
 from casi.patching.validator import validate_patch
+from casi.terminal.presenter import TerminalPresenter
 from casi.tools.registry import ToolRegistry
 
 
@@ -40,6 +41,7 @@ class InteractiveSession:
         max_steps: int | None = None,
         input_fn: Callable[[str], str] = input,
         output_fn: Callable[[str], None] = print,
+        presenter: TerminalPresenter | None = None,
     ) -> None:
         self.repository = repository
         self.client = client
@@ -47,6 +49,7 @@ class InteractiveSession:
         self.routing_mode = routing_mode
         self.input_fn = input_fn
         self.output_fn = output_fn
+        self.presenter = presenter
         self.history: list[str] = []
         self.messages: list[ChatMessage] = []
         self._registry = ToolRegistry(
@@ -65,6 +68,11 @@ class InteractiveSession:
         self._session_plan: AgentPlan | None = None
         self._trace_enabled = False
         self._last_trace: list[str] = []
+        self._last_patch: str | None = None
+        if self.presenter is not None and self.input_fn is input:
+            from casi.terminal.line_editor import setup_line_editing
+
+            setup_line_editing(self.repository)
         self._trace = AgentTraceRecorder(
             on_event=lambda message: self._emit(f"[trace] {message}"),
             live=False,
@@ -87,43 +95,69 @@ class InteractiveSession:
         )
 
     def _emit_activity(self, message: str) -> None:
-        self._emit(f"[working] {message}")
+        if self.presenter is not None:
+            self.presenter.agent(message)
+        else:
+            self._emit(f"[working] {message}")
 
     def _emit_step_start(
         self, step: AgentPlanStep, step_number: int, total_steps: int
     ) -> None:
-        self._emit(
-            f"[working] Step {step_number}/{total_steps}: "
-            f"{step.agent_name} ({step.agent_role})"
-        )
+        if self.presenter is not None:
+            self.presenter.step_start(
+                step_number, total_steps, step.agent_name, step.agent_role
+            )
+        else:
+            self._emit(
+                f"[working] Step {step_number}/{total_steps}: "
+                f"{step.agent_name} ({step.agent_role})"
+            )
 
     def _emit_plan(self, plan: AgentPlan) -> None:
         self._session_plan = plan
-        self._emit("[plan]")
-        self._emit(f"[plan] Task: {plan.original_task}")
-        for line in plan.summary_lines():
-            self._emit(line)
-        self._emit(
-            "[working] Executing plan… please wait. Read phases "
-            "start automatically; do not type at CASI> until a "
-            "response appears."
-        )
+        if self.presenter is not None:
+            self.presenter.plan(plan.original_task, plan.summary_lines())
+            self.presenter.hint("Executing plan… please wait.")
+        else:
+            self._emit("[plan]")
+            self._emit(f"[plan] Task: {plan.original_task}")
+            for line in plan.summary_lines():
+                self._emit(line)
+            self._emit(
+                "[working] Executing plan… please wait. Read phases "
+                "start automatically; do not type at CASI> until a "
+                "response appears."
+            )
 
     def run(self) -> int:
         """Start the session and return a process-style exit code."""
 
-        self._emit("CASI interactive mode. Type /help for commands.")
+        if self.presenter is not None:
+            self.presenter.agent("CASI interactive mode. Type /help for commands.")
+        else:
+            self._emit("CASI interactive mode. Type /help for commands.")
 
         while True:
             try:
-                prompt = (
-                    "Answer (/plan, /cancel)> "
-                    if self._awaiting_clarification
-                    else "CASI> "
-                )
+                if self.presenter is not None:
+                    prompt_label = (
+                        "Answer (/plan, /cancel)> "
+                        if self._awaiting_clarification
+                        else "CASI> "
+                    )
+                    prompt = self.presenter.theme.user(prompt_label)
+                else:
+                    prompt = (
+                        "Answer (/plan, /cancel)> "
+                        if self._awaiting_clarification
+                        else "CASI> "
+                    )
                 task = self.input_fn(prompt).strip()
             except (EOFError, KeyboardInterrupt):
-                self._emit("\nSession ended.")
+                if self.presenter is not None:
+                    self.presenter.agent("Session ended.")
+                else:
+                    self._emit("\nSession ended.")
                 return 0
 
             if not task:
@@ -263,6 +297,21 @@ class InteractiveSession:
         self._pending_orchestration = None
         self._emit("[pending] Pending task cancelled. You can enter a new request.")
 
+    def _show_diff(self) -> None:
+        if self._last_patch is None:
+            if self.presenter is not None:
+                self.presenter.hint("No patch generated in this session yet.")
+            else:
+                self._emit("[diff] No patch generated in this session yet.")
+            return
+
+        if self.presenter is not None:
+            self.presenter.agent("Last generated patch:")
+            self.presenter.diff(self._last_patch, max_lines=None)
+        else:
+            self._emit("[diff] Last patch:")
+            self._emit(self._last_patch)
+
     def _save_last_trace(self, path: str) -> None:
         if not path:
             self._emit("[trace] Usage: /save-trace PATH.json")
@@ -281,7 +330,15 @@ class InteractiveSession:
         """Begin a new user task using the multi-agent orchestrator."""
 
         self._trace.clear()
-        self._emit("[working] Planning your request...")
+        if self.presenter is not None:
+            from casi.terminal.completion import extract_file_mentions
+
+            files = extract_file_mentions(task, self.repository)
+            if files:
+                self.presenter.hint(f"Referenced files: {', '.join(files)}")
+            self.presenter.agent("Planning your request...")
+        else:
+            self._emit("[working] Planning your request...")
         result = self._handle_orchestrator_result(self._orchestrator.run(task))
         if result is not None and result.trace:
             self._last_trace = list(result.trace)
@@ -427,6 +484,69 @@ class InteractiveSession:
     def _display_response(self, result: AgentResult) -> None:
         """Display a response and offer approval when it contains a valid diff."""
 
+        if self.presenter is not None:
+            response = result.response
+            if result.patch_verification is not None:
+                self.presenter.test_result(
+                    passed=result.patch_verification.passed,
+                    runner=result.patch_verification.runner,
+                    output=result.patch_verification.output or "",
+                )
+
+            patch = extract_patch(response)
+            if patch is None:
+                if result.requested_code_change:
+                    self.presenter.hint(
+                        "No valid unified diff was returned. "
+                        "Ask CASI again to provide a ```diff patch."
+                    )
+                self.presenter.agent(response)
+                return
+
+            self._last_patch = patch
+            validation = validate_patch(self.repository, patch)
+            if validation.valid:
+                self.presenter.success("Patch is valid")
+            else:
+                self.presenter.error(validation.error or "Invalid patch")
+
+            self.presenter.diff(patch)
+            if not validation.valid:
+                return
+
+            if (
+                result.patch_verification is not None
+                and not result.patch_verification.passed
+            ):
+                self.presenter.error(
+                    "Patch was not applied because its sandbox tests failed. "
+                    "No repository files were changed."
+                )
+                return
+
+            from casi.terminal.diff_view import calculate_diff_stats
+
+            stats = calculate_diff_stats(patch)
+            should_apply, _ = self.presenter.review_patch(
+                patch, stats, input_fn=self.input_fn
+            )
+            if not should_apply:
+                self.presenter.warning("Patch rejected; no files were changed.")
+                return
+
+            try:
+                files = apply_patch(
+                    self.repository,
+                    patch,
+                    approved=True,
+                    dry_run=False,
+                )
+            except PatchApplicationError as exc:
+                self.presenter.error(str(exc))
+                return
+            self.presenter.success(f"Patch applied to: {', '.join(files)}")
+            return
+
         response = result.response
         if result.patch_verification is not None:
             status = "passed" if result.patch_verification.passed else "failed"
@@ -445,6 +565,7 @@ class InteractiveSession:
             self._emit(f"[agent] {response}")
             return
 
+        self._last_patch = patch
         validation = validate_patch(self.repository, patch)
         self._emit(f"[patch] {validation.error or 'Patch is valid'}")
         self._emit(patch)
@@ -498,6 +619,7 @@ class InteractiveSession:
             )
             self._emit(
                 "/help  Show available commands\n"
+                "/diff  Show the last generated patch diff\n"
                 "/history  Show tasks from this session\n"
                 "/context  Show the conversation thread sent to the model\n"
                 "/compact [instrucciones]  Summarize older context "
@@ -514,6 +636,9 @@ class InteractiveSession:
                 "Use /trace on to see each tool call and nudge live. "
                 "Do not type at CASI> until you see [agent] or [question]."
             )
+            return False
+        if name == "/diff":
+            self._show_diff()
             return False
         if name == "/trace":
             argument = remainder.strip().lower()

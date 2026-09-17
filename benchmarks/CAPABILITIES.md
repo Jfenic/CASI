@@ -60,6 +60,17 @@ Mapa de habilidades que las suites miden de forma reproducible (sin LLM como jue
 | `encoding` | One-hot | ml_005 |
 | `loss_computation` | Funciones de pérdida (MSE) | ml_006 |
 
+## Extensión versionada (`benchmarks/capabilities_v2`)
+
+Doce tareas adicionales, con resultados separados de las suites anteriores.
+Enunciados y comandos en el [README de la extensión](capabilities_v2/README.md).
+
+| Área | Capacidades | Tareas |
+| --- | --- | --- |
+| Testing | Reintentos, ASCII, regresiones de límites e integración | test_001–test_004 |
+| Seguridad | Autorización por tenant, rutas de archivos, SQL parametrizado y redacción de secretos | sec_v2_001–sec_v2_004 |
+| ML/features | Preprocesamiento sin fuga, categorías, ventanas causales y estadísticas de señales | ml_v2_001–ml_v2_004 |
+
 ## Cómo ejecutar por suite
 
 ```bash

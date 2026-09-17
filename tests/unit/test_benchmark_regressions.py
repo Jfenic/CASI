@@ -68,13 +68,14 @@ def test_task_017_regression_nudges_when_empty_list_still_fails(tmp_path: Path) 
     ).run("Fix sort_asc so empty lists work and keep all tests passing")
 
     assert result.success is False
-    assert "without a valid patch" in (result.error or "")
+    assert "maximum of" in (result.error or "")
     nudges = [
         message.content
         for message in result.messages
-        if message.role == "user" and "Tests are still failing" in message.content
+        if message.role == "user" and "Protocol violation" in message.content
     ]
     assert nudges
+    assert "ACTION_REQUIRED" in nudges[0]
     inspected = any(
         "sorter.py" in message.content
         for message in result.messages

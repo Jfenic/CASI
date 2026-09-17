@@ -1,0 +1,46 @@
+--- /dev/null
++++ b/dependencies.py
+@@ -0,0 +1,43 @@
++def build_order(graph):
++    """Build task order from dependency graph.
++
++    Args:
++        graph: dict mapping task names to list of prerequisite names
++
++    Returns:
++        List of tasks in topological order
++
++    Raises:
++        ValueError: If there's a cycle in the graph
++    """
++    # Get all tasks (keys and values that are used as prerequisites)
++    all_tasks = set(graph.keys())
++
++    for prereq in graph.values():
++        if isinstance(prereq, list):
++            all_tasks.update(prereq)
++
++    # Build unique prerequisite mapping
++    prereq_graph = {}
++    for task, prereqs in graph.items():
++        unique_prereqs = sorted(set(prereqs))  # sort for determinism but not needed for correctness
++        prereq_graph[task] = set(unique_prereqs)
++
++    # Track completion of tasks
++    completed = set()
++    result = []
++
++    while len(result) < len(all_tasks):
++        # Find all tasks whose prerequisites are satisfied
++        available = [t for t in all_tasks if t not in completed and prereq_graph[t].issubset(completed)]
++
++        if not available:
++            raise ValueError("Cycle detected in dependency graph")
++
++        # Select lexicographically smallest
++        next_task = min(available)
++
++        result.append(next_task)
++        completed.add(next_task)
++
++    return result

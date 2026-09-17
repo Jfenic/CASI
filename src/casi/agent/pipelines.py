@@ -370,10 +370,10 @@ def nudge_after_diagnose_pipeline() -> ResponseNudge:
 def nudge_after_create_pipeline() -> ResponseNudge:
     return ResponseNudge(
         user_message=(
-            f"{PIPELINE_FALLBACK_PREFIX} 'create' loaded the failing tests. "
-            "The missing module does not exist yet. You MUST call propose_file with "
-            "the repository-relative path and complete new file content that satisfies "
-            "the tests. CASI will generate the unified diff; "
+            f"{PIPELINE_FALLBACK_PREFIX} 'create' loaded relevant repository files. "
+            "Use list_files results and the task contract to choose the correct path. "
+            "You MUST call propose_file with the repository-relative path and complete "
+            "new file content. CASI will generate the unified diff; "
             "do not write the diff yourself."
         ),
     )

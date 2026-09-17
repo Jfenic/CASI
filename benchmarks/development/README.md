@@ -1,6 +1,6 @@
 # Desarrollo y verificación de software — suite local v1
 
-Diez tareas deterministas de Python para evaluar CASI junto con un modelo.
+Doce tareas deterministas de Python para evaluar CASI junto con un modelo.
 Esta suite se ejecuta por separado de las 26 tareas iniciales: sus resultados
 no deben mezclarse, porque la evaluación final es más exigente.
 
@@ -89,5 +89,5 @@ verificación independiente. También se comprueba el rechazo de modificaciones
 en pruebas protegidas y de suites que cubren solo el camino feliz. Las soluciones
 son material del evaluador: no se proporcionan como contexto al modelo.
 
-Un resultado sobre diez tareas es una medición exploratoria. No equivale a
+Un resultado sobre esta suite pequeña es una medición exploratoria. No equivale a
 SWE-bench ni estima por sí solo fiabilidad general en repositorios grandes.

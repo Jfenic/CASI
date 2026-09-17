@@ -1,0 +1,33 @@
+--- a/encoding.py
++++ b/encoding.py
+@@ -1,11 +1,25 @@
+ class Encoder:
++    def __init__(self):
++        self.categories = []
++
+     def fit(self, values):
+-        self.categories = sorted(set(values))
++        # Learn unique categories in first-seen order
++        seen = set()
++        for value in values:
++            if value not in seen:
++                seen.add(value)
++                self.categories.append(value)
+         return self
+ 
+     def transform(self, values):
+-        if not hasattr(self, "categories"):
++        # Before fit, raise ValueError
++        if not hasattr(self, "categories") or len(self.categories) == 0:
+             raise ValueError("not fitted")
+-        return [
+-            [int(value == category) for category in self.categories] for value in values
+-        ]
++
++        # Return one-hot integer rows for each value in input
++        # Unknown strings get all zeros (never expand vocabulary)
++        result = []
++        for value in values:
++            row = [1 if val == value else 0 for val in self.categories]
++            result.append(row)
++        return result

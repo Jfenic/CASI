@@ -1,0 +1,19 @@
+.F.                                                                      [100%]
+=================================== FAILURES ===================================
+________________________ test_empty_refit_and_unfitted _________________________
+
+    def test_empty_refit_and_unfitted():
+        with pytest.raises(ValueError):
+            Encoder().transform([])
+        model = Encoder().fit(["a"])
+        model.fit(["b"])
+>       assert model.transform(["a", "b"]) == [[0], [1]]
+E       assert [[1, 0], [0, 1]] == [[0], [1]]
+E         
+E         At index 0 diff: [1, 0] != [0]
+E         Use -v to get more diff
+
+_benchmark_checks/test_acceptance.py:24: AssertionError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_empty_refit_and_unfitted - ...
+1 failed, 2 passed in 0.02s

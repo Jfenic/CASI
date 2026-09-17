@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
+from casi.agent.failure_classification import FailureKind, TestExecutionError
 from casi.config import settings
 from casi.sandbox.docker_runner import DockerRunner
 from casi.sandbox.local_runner import LocalRunner
@@ -31,5 +32,12 @@ def resolve_test_runner(
         )
         if docker_runner.is_available() and docker_runner.image_exists():
             return docker_runner, "docker"
+        if not settings.allow_local_test_fallback:
+            raise TestExecutionError(
+                "Docker sandbox or its image is unavailable. Local fallback is "
+                "disabled; prepare Docker or explicitly opt in with "
+                "LOCALCODE_AGENT_ALLOW_LOCAL_FALLBACK=true for trusted code.",
+                failure_kind=FailureKind.DOCKER,
+            )
 
     return LocalRunner(max_output_chars=settings.max_command_output_chars), "local"

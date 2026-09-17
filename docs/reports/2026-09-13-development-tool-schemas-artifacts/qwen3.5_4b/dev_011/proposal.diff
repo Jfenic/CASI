@@ -1,0 +1,13 @@
+--- a/version.py
++++ b/version.py
+@@ -4,8 +4,8 @@
+ def parse_version(text: str) -> tuple[int, int, int]:
+     parts = text.split(".")
+     if len(parts) != 3:
+-        return None
++        raise ValueError("Expected exactly three dot-separated integer parts")
+     try:
+         return tuple(int(part) for part in parts)
+     except ValueError:
+-        return None
++        raise ValueError(f"Invalid version format: {text}") from __import__('errors').set_exc_value(ValueError, None)

@@ -10,6 +10,7 @@ from typing import Any
 from casi.agent.planner import AgentPlan
 from casi.agent.policies import AGENT_TOOL_NAMES, is_mutation_tool
 from casi.llm.base import ToolDefinition
+from casi.llm.json_schema import json_schema_type
 from casi.tools.base import Tool
 from casi.tools.file_tools import ListFilesTool, ReadFileTool
 from casi.tools.git_tools import GitDiffTool
@@ -53,7 +54,7 @@ class ToolRegistry:
                 description=tool.description,
                 arguments={
                     name: {
-                        "type": self._type_name(spec.type),
+                        "type": json_schema_type(spec.type),
                         "required": spec.required,
                     }
                     for name, spec in tool.argument_schema.items()

@@ -173,7 +173,7 @@ PROFILES: dict[TaskIntent, AgentProfile] = {
         objective=TaskIntent.CREATE,
         name="create",
         role="Module Creation Specialist",
-        mission="Create missing local modules that satisfy the repository tests.",
+        mission="Create requested source or test files satisfying the full task.",
         prompt_instructions=_instructions(
             "You are the module creation specialist.",
             (
@@ -181,6 +181,16 @@ PROFILES: dict[TaskIntent, AgentProfile] = {
                 "Visible tests may cover only part of the requested behavior."
             ),
             "Inspect existing target files before replacing them; create missing ones.",
+            (
+                "Call list_files when you have not seen the repository layout yet; "
+                "choose paths that match the listing instead of assuming tests/ or "
+                "src/ directories exist."
+            ),
+            (
+                "For test-writing tasks, leave implementation unchanged and propose "
+                "the requested test file. Passing existing tests does not complete "
+                "a request to add tests. Cover the full behavior contract."
+            ),
             (
                 "Create the missing file with propose_file using the "
                 "repository-relative path and complete file content."

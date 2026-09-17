@@ -1,0 +1,20 @@
+id: sec_v2_004
+name: secret_redaction
+repository: secret_redaction
+category: fix
+capability: structured_secret_redaction
+difficulty: intermediate
+instruction: 'Fix redact(value) in redaction.py. Input is JSON-like: dictionaries with string
+  keys, lists and scalar strings/numbers/booleans/None. Recursively replace the entire value
+  of keys equal to password, token, secret or authorization (case-insensitive) with "[REDACTED]".
+  Preserve other keys and scalar values exactly, including password_hint and words containing
+  token. Return independent dict/list containers, do not mutate input. Modify only redaction.py.'
+allowed_files:
+- redaction.py
+grader: ../graders/secret_redaction
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

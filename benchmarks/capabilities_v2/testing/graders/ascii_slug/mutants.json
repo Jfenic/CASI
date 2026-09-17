@@ -1,0 +1,20 @@
+{
+  "uppercase": {
+    "slug.py": "import re\n\ndef slugify(text):\n    return re.sub(r\"[^a-z0-9]+\", \"-\", text.strip()).strip(\"-\")\n"
+  },
+  "spaces_only": {
+    "slug.py": "import re\n\ndef slugify(text):\n    return re.sub(r\" +\", \"-\", text.strip().lower()).strip(\"-\")\n"
+  },
+  "edge_hyphens": {
+    "slug.py": "import re\n\ndef slugify(text):\n    return re.sub(r\"[^a-z0-9]+\", \"-\", text.strip().lower())\n"
+  },
+  "no_collapse": {
+    "slug.py": "import re\n\ndef slugify(text):\n    return re.sub(r\"[^a-z0-9]\", \"-\", text.strip().lower()).strip(\"-\")\n"
+  },
+  "drops_digits": {
+    "slug.py": "import re\n\ndef slugify(text):\n    return re.sub(r\"[^a-z]+\", \"-\", text.strip().lower()).strip(\"-\")\n"
+  },
+  "accepts_non_ascii": {
+    "slug.py": "import re\n\n\ndef slugify(text):\n    return re.sub(r\"[^a-z0-9\u00e9]+\", \"-\", text.strip().lower()).strip(\"-\")\n"
+  }
+}

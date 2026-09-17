@@ -1,0 +1,104 @@
+FFFFF......F                                                             [100%]
+=================================== FAILURES ===================================
+________________________ test_sensitive_keys[password] _________________________
+
+key = 'password'
+
+    @pytest.mark.parametrize("key", ["password", "TOKEN", "Secret", "Authorization"])
+    def test_sensitive_keys(key):
+>       assert redact({key: {"nested": ["sensitive"]}}) == {key: "[REDACTED]"}
+E       AssertionError: assert {'password': ...'sensitive']}} == {'password': '[REDACTED]'}
+E         
+E         Differing items:
+E         {'password': {'nested': ['sensitive']}} != {'password': '[REDACTED]'}
+E         Use -v to get more diff
+
+_benchmark_checks/test_acceptance.py:9: AssertionError
+__________________________ test_sensitive_keys[TOKEN] __________________________
+
+key = 'TOKEN'
+
+    @pytest.mark.parametrize("key", ["password", "TOKEN", "Secret", "Authorization"])
+    def test_sensitive_keys(key):
+>       assert redact({key: {"nested": ["sensitive"]}}) == {key: "[REDACTED]"}
+E       AssertionError: assert {'TOKEN': {'n...'sensitive']}} == {'TOKEN': '[REDACTED]'}
+E         
+E         Differing items:
+E         {'TOKEN': {'nested': ['sensitive']}} != {'TOKEN': '[REDACTED]'}
+E         Use -v to get more diff
+
+_benchmark_checks/test_acceptance.py:9: AssertionError
+_________________________ test_sensitive_keys[Secret] __________________________
+
+key = 'Secret'
+
+    @pytest.mark.parametrize("key", ["password", "TOKEN", "Secret", "Authorization"])
+    def test_sensitive_keys(key):
+>       assert redact({key: {"nested": ["sensitive"]}}) == {key: "[REDACTED]"}
+E       AssertionError: assert {'Secret': {'...'sensitive']}} == {'Secret': '[REDACTED]'}
+E         
+E         Differing items:
+E         {'Secret': {'nested': ['sensitive']}} != {'Secret': '[REDACTED]'}
+E         Use -v to get more diff
+
+_benchmark_checks/test_acceptance.py:9: AssertionError
+______________________ test_sensitive_keys[Authorization] ______________________
+
+key = 'Authorization'
+
+    @pytest.mark.parametrize("key", ["password", "TOKEN", "Secret", "Authorization"])
+    def test_sensitive_keys(key):
+>       assert redact({key: {"nested": ["sensitive"]}}) == {key: "[REDACTED]"}
+E       AssertionError: assert {'Authorizati...'sensitive']}} == {'Authorizati... '[REDACTED]'}
+E         
+E         Differing items:
+E         {'Authorization': {'nested': ['sensitive']}} != {'Authorization': '[REDACTED]'}
+E         Use -v to get more diff
+
+_benchmark_checks/test_acceptance.py:9: AssertionError
+__________________________ test_nested_and_safe_data ___________________________
+
+    def test_nested_and_safe_data():
+        value = {
+            "users": [{"Token": "abc", "name": "Ana"}],
+            "password_hint": "pet",
+            "tokenizer": True,
+            "note": "token is a word",
+            "n": None,
+        }
+        before = deepcopy(value)
+        result = redact(value)
+>       assert result == {
+            "users": [{"Token": "[REDACTED]", "name": "Ana"}],
+            "password_hint": "pet",
+            "tokenizer": True,
+            "note": "token is a word",
+            "n": None,
+        }
+E       AssertionError: assert {'users': [{'... a word', ...} == {'users': [{'... a word', ...}
+E         
+E         Omitting 4 identical items, use -vv to show
+E         Differing items:
+E         {'users': [{'Token': 'abc', 'name': 'Ana'}]} != {'users': [{'Token': '[REDACTED]', 'name': 'Ana'}]}
+E         Use -v to get more diff
+
+_benchmark_checks/test_acceptance.py:22: AssertionError
+________________________________ test_password _________________________________
+
+    def test_password():
+>       assert redact({"password": "hidden"}) == {"password": "[REDACTED]"}
+E       AssertionError: assert {'password': 'hidden'} == {'password': '[REDACTED]'}
+E         
+E         Differing items:
+E         {'password': 'hidden'} != {'password': '[REDACTED]'}
+E         Use -v to get more diff
+
+test_visible.py:5: AssertionError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_sensitive_keys[password] - ...
+FAILED _benchmark_checks/test_acceptance.py::test_sensitive_keys[TOKEN] - Ass...
+FAILED _benchmark_checks/test_acceptance.py::test_sensitive_keys[Secret] - As...
+FAILED _benchmark_checks/test_acceptance.py::test_sensitive_keys[Authorization]
+FAILED _benchmark_checks/test_acceptance.py::test_nested_and_safe_data - Asse...
+FAILED test_visible.py::test_password - AssertionError: assert {'password': '...
+6 failed, 6 passed in 0.04s

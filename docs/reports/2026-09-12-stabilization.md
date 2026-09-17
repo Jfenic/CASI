@@ -63,7 +63,11 @@ La primera medición tras corregir únicamente el formato de diagnóstico dio
 fue 4/5; las cinco respuestas cumplieron el formato. Se conserva también el
 [informe intermedio](2026-09-12-diagnosis-qwen2.5-coder-7b.md).
 
-<!-- benchmark-results -->
+El resumen agregado de general, desarrollo y ML no quedó incorporado en este
+informe. No debe interpretarse como una medición completa de esas suites.
+El resultado de diagnóstico 4/5 está en el
+[informe específico](2026-09-12-diagnosis-stabilized.md); los demás resultados
+históricos deben consultarse en sus archivos individuales.
 
 ## Reproducción
 

@@ -1,0 +1,69 @@
+--- /dev/null
++++ b/dependencies.py
+@@ -0,0 +1,66 @@
++"""
++Dependency order builder.
++
++Provides topological sort with lexicographically smallest selection at each step.
++"""
++from collections import defaultdict
++import heapq
++
++
++def build_order(graph):
++    """
++    Build dependency order using topological sort.
++
++    Args:
++        graph: dict mapping task names to list of prerequisite task names
++
++    Returns:
++        List of tasks in valid build order (each task after all prerequisites)
++
++    Raises:
++        ValueError: If there's a cycle in the dependency graph
++
++    Requirements:
++        - Each task appears exactly once
++        - Tasks appear only as prerequisites are included
++        - At every step, select lexicographically smallest available task
++        - Duplicate prerequisites count once
++        - Empty input returns []
++        - Graph is not modified
++    """
++    # Collect all tasks (keys + prereqs)
++    all_tasks = set(graph.keys())
++    for prereq_list in graph.values():
++        all_tasks.update(prereq_list)
++
++    # Build dependency graph and compute in-degrees
++    adj = defaultdict(list)  # task -> list of tasks that depend on it
++    in_degree = {task: 0 for task in all_tasks}
++
++    # Deduplicate prerequisites per task (set conversion)
++    for task, prereqs in graph.items():
++        unique_prereqs = set(prereqs)
++        for prereq in unique_prereqs:
++            adj[prereq].append(task)  # prereq -> task (task depends on prereq)
++            in_degree[task] += 1
++
++    # Initialize min-heap with all tasks having no prerequisites
++    heap = [task for task, degree in in_degree.items() if degree == 0]
++    heapq.heapify(heap)
++
++    result = []
++
++    while heap:
++        current = heapq.heappop(heap)  # Lexicographically smallest
++        result.append(current)
++
++        for dependent in adj[current]:
++            in_degree[dependent] -= 1
++            if in_degree[dependent] == 0:
++                heapq.heappush(heap, dependent)
++
++    # Check for cycle - must have processed all tasks
++    if len(result) != len(all_tasks):
++        raise ValueError("Cycle detected in dependency graph")
++
++    return result

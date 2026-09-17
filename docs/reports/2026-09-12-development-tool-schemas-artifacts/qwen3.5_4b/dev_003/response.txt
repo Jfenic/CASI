@@ -1,0 +1,66 @@
+--- a/sales.py
++++ b/sales.py
+@@ -1,8 +1,58 @@
++import csv
++from io import StringIO
++
+ def totals(text):
++    """Parse CSV and sum quantities per product.
++
++    Input is CSV with headers product,quantity and standard CSV quoting.
++    Sum integer quantities per product, including negative adjustments;
++    preserve product names exactly. Ignore completely blank rows.
++    Header-only input returns {}. Invalid integer quantities raise ValueError.
++    Support quoted commas, quoted multiline product names and CRLF.
++    """
+     result = {}
+-    for line in text.splitlines()[1:]:
+-        if not line:
+-            continue
+-        product, quantity = line.split(",")
+-        result[product] = int(quantity)
++
++    lines = text.strip().splitlines()
++
++    # Handle header-only input
++    if len(lines) < 2:
++        return {}
++
++    try:
++        # Use csv.reader to handle quoted fields, multiline values, CRLF
++        reader = csv.reader(StringIO(text))
++
++        # Read header to find product column (index 0)
++        headers = next(reader, None)
++        if headers is None or len(headers) < 2:
++            return {}
++
++        # Process data rows
++        for row in reader:
++            # Skip completely blank rows (empty list after CSV parsing handles this)
++            if not row or all(cell.strip() == '' for cell in row):
++                continue
++
++            # Get product name and quantity - take first two non-empty fields
++            if len(row) < 2:
++                continue
++
++            product = row[0].strip()
++            quantity_str = row[1].strip()
++
++            # Skip empty product names
++            if not product:
++                continue
++
++            # Validate integer and sum
++            try:
++                qty = int(quantity_str)
++            except ValueError:
++                raise ValueError(f"Invalid integer quantity for '{product}': {quantity_str}")
++
++            result[product] = result.get(product, 0) + qty
++
++    except csv.Error as e:
++        raise ValueError(f"CSV parsing error: {e}")
++
+     return result

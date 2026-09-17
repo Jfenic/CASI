@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
+from casi.agent.factory import AgentFactory
 from casi.agent.intent import (
+    TaskIntent,
     derive_search_queries,
     extract_search_targets,
     task_requests_code_change,
@@ -68,6 +72,123 @@ def test_agent_loop_excludes_mutation_tools_from_definitions(tmp_path: Path) -> 
     tool_names = {tool.name for tool in client.calls[0][1]}
     assert "apply_patch" not in tool_names
     assert "read_file" in tool_names
+
+
+def test_create_retries_action_schema_after_failed_propose_file(tmp_path: Path) -> None:
+    (tmp_path / "main.py").write_text("value = 1\n", encoding="utf-8")
+
+    class ActionClient:
+        def __init__(self) -> None:
+            self.action_calls = 0
+
+        def complete_action(self, messages, action) -> LLMResponse:
+            self.action_calls += 1
+            if self.action_calls == 1:
+                return LLMResponse.tool_call(
+                    "propose_file",
+                    {"path": "test_main.py", "content": "def broken(:\n"},
+                )
+            return LLMResponse.tool_call(
+                "propose_file",
+                {
+                    "path": "test_main.py",
+                    "content": "def test_value() -> None:\n    assert True\n",
+                },
+            )
+
+        def complete(self, messages, tools) -> LLMResponse:
+            raise AssertionError("CREATE should use complete_action")
+
+    client = ActionClient()
+    agent = AgentFactory.create(
+        TaskIntent.CREATE,
+        client=client,
+        repository=tmp_path,
+        require_tool_confirmation=lambda *_args: True,
+        routing_mode="off",
+        max_correction_attempts=0,
+    )
+
+    result = agent.run("Create test_main.py")
+
+    assert client.action_calls == 2
+    assert result.success is True
+
+
+def test_create_task_uses_propose_file_action_schema(tmp_path: Path) -> None:
+    (tmp_path / "slug.py").write_text(
+        "def slugify(text: str) -> str:\n    return text\n",
+        encoding="utf-8",
+    )
+
+    class ActionClient:
+        def __init__(self) -> None:
+            self.used_action_schema = False
+
+        def complete_action(self, messages, action) -> LLMResponse:
+            self.used_action_schema = True
+            return LLMResponse.tool_call(
+                "propose_file",
+                {
+                    "path": "test_slug.py",
+                    "content": (
+                        "from slug import slugify\n\n"
+                        "def test_slugify() -> None:\n"
+                        "    assert slugify('hello') == 'hello'\n"
+                    ),
+                },
+            )
+
+        def complete(self, messages, tools) -> LLMResponse:
+            raise AssertionError("CREATE should use complete_action")
+
+    client = ActionClient()
+    agent = AgentFactory.create(
+        TaskIntent.CREATE,
+        client=client,
+        repository=tmp_path,
+        require_tool_confirmation=lambda *_args: True,
+        routing_mode="off",
+        max_correction_attempts=0,
+    )
+
+    result = agent.run("Write test_slug.py with tests for slugify")
+
+    assert client.used_action_schema is True
+    assert result.success is True
+    assert result.requested_code_change is True
+
+
+def test_mutation_workflow_rejects_premature_final_with_structural_retry(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "module.py").write_text("value = 1\n", encoding="utf-8")
+    (tmp_path / "test_module.py").write_text(
+        "from module import value\n\ndef test_value():\n    assert value == 2\n",
+        encoding="utf-8",
+    )
+    client = FakeClient(
+        [
+            LLMResponse.final("Voy a corregir el módulo ahora."),
+            LLMResponse.tool_call(
+                "propose_file",
+                {"path": "module.py", "content": "value = 2\n"},
+            ),
+        ]
+    )
+
+    result = AgentLoop(
+        client,
+        ToolRegistry(tmp_path),
+        max_correction_attempts=0,
+        require_tool_confirmation=lambda *_args: True,
+        routing_mode="off",
+    ).run("corrige el código")
+
+    assert result.success is True
+    assert len(client.calls) == 2
+    retry_messages = client.calls[1][0]
+    assert any("Protocol violation" in message.content for message in retry_messages)
 
 
 def test_fix_agent_hides_patch_validator_and_limits_tools_after_context(
@@ -407,7 +528,8 @@ def test_agent_loop_nudges_for_patch_when_fix_request_has_no_diff(
     assert result.success is True
     assert result.requested_code_change is True
     assert extract_patch(result.response) is not None
-    assert client.calls[2][0][-1].content.startswith("The user requested a code change")
+    retry_messages = client.calls[2][0]
+    assert any("Protocol violation" in message.content for message in retry_messages)
 
 
 def test_task_requests_code_change_detects_pass_tests_prompt() -> None:
@@ -542,20 +664,41 @@ def test_agent_loop_redirects_repeat_search_code_to_read_file(tmp_path: Path) ->
     assert len(search_tool_results) == 0
 
 
-def test_agent_loop_nudges_when_propose_file_fails(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("bad_arguments", "expected_error"),
+    [
+        (
+            {"path": "module.py", "content": "value = 1\n"},
+            "does not change the file",
+        ),
+        ({"path": "module.py"}, "Missing required argument: content"),
+    ],
+)
+def test_agent_loop_nudges_when_propose_file_fails(
+    tmp_path: Path, bad_arguments: dict[str, object], expected_error: str
+) -> None:
     (tmp_path / "module.py").write_text("value = 1\n", encoding="utf-8")
     (tmp_path / "test_module.py").write_text(
         "from module import value\n\ndef test_value():\n    assert value == 2\n",
         encoding="utf-8",
     )
     patch = "--- a/module.py\n+++ b/module.py\n@@ -1 +1 @@\n-value = 1\n+value = 2\n"
-    client = FakeClient(
+
+    class RecoveryClient(FakeClient):
+        recovery_calls = 0
+
+        def complete_tool_call(self, messages, tools):
+            self.recovery_calls += 1
+            assert any(tool.name == "propose_file" for tool in tools)
+            return self.complete(messages, tools)
+
+    client = RecoveryClient(
         [
             LLMResponse.tool_call("run_tests", {}),
             LLMResponse.tool_call("read_file", {"path": "module.py"}),
             LLMResponse.tool_call(
                 "propose_file",
-                {"path": "module.py", "content": "value = 1\n"},
+                bad_arguments,
             ),
             LLMResponse.tool_call(
                 "propose_file",
@@ -577,7 +720,13 @@ def test_agent_loop_nudges_when_propose_file_fails(tmp_path: Path) -> None:
     assert client.calls[3][0][-1].content.startswith(
         "propose_file could not build the patch"
     )
-    assert "does not change the file" in client.calls[3][0][-1].content
+    recovery = client.calls[3][0][-1].content
+    assert expected_error in recovery
+    assert '"path": "module.py", "content":' in recovery
+    assert result.patch_verification is not None
+    assert result.patch_verification.passed
+    assert (tmp_path / "module.py").read_text() == "value = 1\n"
+    assert client.recovery_calls == 0
 
 
 def test_agent_loop_nudges_when_partial_fix_leaves_other_tests_failing(
@@ -612,14 +761,14 @@ def test_agent_loop_nudges_when_partial_fix_leaves_other_tests_failing(
     )
 
     assert result.success is False
-    assert "without a valid patch" in (result.error or "")
-    nudges = [
+    assert "maximum of 12 steps" in (result.error or "")
+    protocol_nudges = [
         message.content
         for message in result.messages
-        if message.role == "user" and "Tests are still failing" in message.content
+        if message.role == "user" and "Protocol violation" in message.content
     ]
-    assert nudges
-    assert "test_rejects_missing_at_symbol" in nudges[0]
+    assert protocol_nudges
+    assert "ACTION_REQUIRED" in protocol_nudges[0]
 
 
 def test_agent_loop_reuses_execute_permission_after_first_confirmation(

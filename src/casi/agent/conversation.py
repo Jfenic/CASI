@@ -371,6 +371,11 @@ class Conversation:
         output = "\n".join(output_lines).strip()
         return ToolResult(success=success, output=output, error=error)
 
+    def layout_known(self) -> bool:
+        """Return whether the conversation includes a repository file listing."""
+
+        return self.tool_was_used("list_files")
+
     def repository_inspected(self) -> bool:
         tool_names = (
             "search_code",
@@ -397,6 +402,12 @@ class Conversation:
         """Return whether propose_file was invoked during this conversation."""
 
         return self.tool_was_used("propose_file")
+
+    def propose_file_succeeded(self) -> bool:
+        """Return whether the latest propose_file call succeeded."""
+
+        result = self.last_tool_result("propose_file")
+        return result is not None and result.success
 
     def missing_named_file_reads(self, context: str) -> list[str]:
         """Return named files from context that have not been read yet."""

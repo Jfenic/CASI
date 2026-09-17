@@ -137,6 +137,19 @@ class TaskStore:
                 return None
             return _copy_record(record)
 
+    def list_recent(self, *, limit: int = 50) -> list[TaskRecord]:
+        """Return the most recently updated tasks, newest first."""
+
+        if limit < 1:
+            raise ValueError("limit must be at least 1")
+        with self._lock:
+            records = sorted(
+                self._tasks.values(),
+                key=lambda item: item.updated_at,
+                reverse=True,
+            )
+            return [_copy_record(record) for record in records[:limit]]
+
     def approve(self, task_id: str) -> TaskRecord:
         with self._lock:
             record = self._tasks.get(task_id)
@@ -190,9 +203,20 @@ class TaskStore:
             record.status = TaskStatus.RUNNING
             record.updated_at = datetime.now(tz=UTC)
 
+        trace_box: dict[str, AgentTraceRecorder | None] = {"trace": None}
+
+        def _on_trace_event(_message: str) -> None:
+            current = trace_box["trace"]
+            if current is not None:
+                self._publish_trace(task_id, current)
+
+        trace = AgentTraceRecorder(live=True, on_event=_on_trace_event)
+        trace_box["trace"] = trace
+        trace.set_context(repository=record.repository, task=record.task)
+        trace.record("Preparando agente y conectando con el modelo...")
+        self._publish_trace(task_id, trace)
+
         try:
-            trace = AgentTraceRecorder()
-            trace.set_context(repository=record.repository, task=record.task)
             result = self._runner(
                 Path(record.repository),
                 record.task,
@@ -258,6 +282,16 @@ class TaskStore:
                 return
 
             record.status = TaskStatus.AWAITING_APPROVAL
+
+    def _publish_trace(self, task_id: str, trace: AgentTraceRecorder) -> None:
+        """Expose in-progress trace events to polling clients."""
+
+        with self._lock:
+            record = self._tasks.get(task_id)
+            if record is None:
+                return
+            record.trace = list(trace.events)
+            record.updated_at = datetime.now(tz=UTC)
 
 
 class TaskStateError(ValueError):

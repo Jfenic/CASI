@@ -1,0 +1,23 @@
+id: test_004
+name: checkout_integration
+repository: checkout_integration
+category: create
+capability: integration_test_design
+difficulty: intermediate
+instruction: Create only test_checkout.py for checkout(stock, prices, sku, quantity) in orders.py,
+  which calls inventory.reserve. Do not modify implementation. Stock maps SKUs to nonnegative
+  integer counts; prices maps SKUs to nonnegative numbers; quantity is an integer. Success
+  returns price*quantity and decreases only the selected stock count by quantity, allowing
+  exact exhaustion. Zero/negative quantity or insufficient stock raise ValueError; missing
+  SKU in either mapping raises KeyError. Every failure leaves stock unchanged; prices never
+  change. Test integrated behavior using fresh dictionaries, multiple quantities and unrelated
+  SKUs, without mocking reserve.
+allowed_files:
+- test_checkout.py
+grader: ../graders/checkout_integration
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

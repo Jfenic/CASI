@@ -1,0 +1,21 @@
+id: sec_v2_001
+name: tenant_documents
+repository: tenant_documents
+category: fix
+capability: tenant_authorization
+difficulty: intermediate
+instruction: Fix get_document(documents, tenant_id, user_id, document_id) in access.py. documents
+  is keyed by document ID; each value has tenant_id, owner_id, public (boolean), and arbitrary
+  nested data. Only allow matching tenants AND either the owner or a public document. Public
+  never grants cross-tenant access. Denied access raises PermissionError; missing IDs raise
+  KeyError. Return an independent deep copy on success; never mutate documents. Modify only
+  access.py.
+allowed_files:
+- access.py
+grader: ../graders/tenant_documents
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

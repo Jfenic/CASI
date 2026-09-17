@@ -185,3 +185,51 @@ def test_agent_loop_preserves_correction_attempts_when_retries_exhausted(
     assert result.patch_verification.passed is False
     assert result.patch_verification.correction_attempts == 2
     assert "A.L." in result.patch_verification.output
+
+
+def test_verify_patch_response_softens_for_create_without_tests(tmp_path: Path) -> None:
+    from casi.agent.conversation import Conversation
+    from casi.agent.intent import TaskIntent
+    from casi.agent.patch_verify import verify_patch_response
+
+    patch = (
+        "--- /dev/null\n+++ b/module.py\n@@ -0,0 +1,2 @@\n+def foo():\n+    return 42\n"
+    )
+    content = f"Proposed patch:\n```diff\n{patch}```"
+
+    registry = ToolRegistry(tmp_path)
+    conversation = Conversation([], registry)
+    verification, should_retry = verify_patch_response(
+        conversation,
+        content,
+        correction_attempts=0,
+        max_correction_attempts=2,
+        intent=TaskIntent.CREATE,
+    )
+
+    assert should_retry is False
+    assert verification is not None
+    assert verification.passed is True
+
+
+def test_agent_loop_succeeds_on_create_when_no_test_suite(tmp_path: Path) -> None:
+    client = CorrectionClient(
+        [
+            LLMResponse.tool_call("list_files", {}),
+            LLMResponse.tool_call(
+                "propose_file",
+                {"path": "module.py", "content": "def foo():\n    return 42\n"},
+            ),
+        ]
+    )
+
+    result = AgentLoop(
+        client,
+        ToolRegistry(tmp_path),
+        max_correction_attempts=2,
+        routing_mode="off",
+    ).run("Create module.py with foo() returning 42")
+
+    assert result.success is True
+    assert result.patch_verification is not None
+    assert result.patch_verification.passed is True

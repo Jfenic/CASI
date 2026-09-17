@@ -1,0 +1,21 @@
+id: test_003
+name: discount_boundary
+repository: discount_boundary
+category: create
+capability: boundary_regression_tests
+difficulty: intermediate
+instruction: Create only test_discount.py for discounted_total(amount, member) in pricing.py.
+  Inputs are finite nonnegative numeric amounts and a boolean member flag; negative amounts
+  raise ValueError. Members get 10 percent off at amount >= 100, including exactly 100. Below
+  100 or for nonmembers return the unchanged amount. Cover zero, the exact boundary, both
+  sides, both membership states and negative input. Use approximate comparisons for fractional
+  results. Leave implementation unchanged.
+allowed_files:
+- test_discount.py
+grader: ../graders/discount_boundary
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

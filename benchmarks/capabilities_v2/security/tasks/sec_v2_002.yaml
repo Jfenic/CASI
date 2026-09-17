@@ -1,0 +1,21 @@
+id: sec_v2_002
+name: archive_destination
+repository: archive_destination
+category: fix
+capability: archive_path_validation
+difficulty: intermediate
+instruction: Fix destination(base, member) in archive.py. base is an existing directory, member
+  is a string interpreted as a POSIX archive path. Accept nested relative names, spaces and
+  dots within names. Reject empty names, absolute paths, any .. path component and any path
+  resolving outside base (including symlink escapes) with ValueError. Return the resolved
+  pathlib.Path inside base; do not create or modify files. Paths whose first component merely
+  shares the base directory name are not necessarily inside it. Modify only archive.py.
+allowed_files:
+- archive.py
+grader: ../graders/archive_destination
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

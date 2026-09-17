@@ -1,0 +1,33 @@
+--- /dev/null
++++ b/reader.py
+@@ -0,0 +1,30 @@
++import json
++
++def read_records(text):
++    """Parse JSON Lines into a list of dictionaries."""
++    records = []
++    line_number = 0
++
++    for line in text.split('\n'):
++        line_number += 1
++
++        # Strip whitespace to check if it's blank
++        stripped = line.strip()
++
++        # Skip whitespace-only lines
++        if not stripped:
++            continue
++
++        # Try to parse as JSON
++        try:
++            obj = json.loads(stripped)
++        except json.JSONDecodeError:
++            raise ValueError(f"line {line_number}: Invalid JSON")
++
++        # Check if it's a dictionary/object
++        if not isinstance(obj, dict):
++            raise ValueError(f"line {line_number}: Expected JSON object")
++
++        records.append(obj)
++
++    return records

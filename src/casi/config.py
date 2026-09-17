@@ -49,7 +49,7 @@ class Settings:
     ).lower() in {"1", "true", "yes"}
     allow_local_test_fallback: bool = os.getenv(
         "LOCALCODE_AGENT_ALLOW_LOCAL_FALLBACK",
-        "true",
+        "false",
     ).lower() in {"1", "true", "yes"}
     docker_pids_limit: int = int(os.getenv("LOCALCODE_AGENT_DOCKER_PIDS_LIMIT", "64"))
     max_correction_attempts: int = int(

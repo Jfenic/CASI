@@ -1,6 +1,32 @@
 # CASI - TODO
 
+> **Trabajo activo:** ver [TASKS.md](TASKS.md).
+> Este archivo conserva el **histórico de hitos** completados.
+
 Lista priorizada de próximos pasos del proyecto.
+
+## Cierre documental y evaluación (2026-09-13)
+
+- [x] Revisar los cambios locales de aislamiento, protocolo Ollama y recordatorios.
+- [x] Actualizar arquitectura, bucle del agente, evaluación, decisiones y changelog.
+- [x] Añadir regresiones: parches que pasan tests visibles pero fallan por alias mutables o líneas JSONL.
+- [x] Ejecutar la suite completa: 369 passed, 2 skipped, 2 warnings; Docker y API incluidos.
+- [x] Cerrar la evaluación posterior al arreglo de esquemas: 7/12; [informe y fallos](docs/reports/2026-09-13-milestone-closure.md).
+- [ ] Recuperar llamadas sin `content` y finalizar las tareas de creación de tests; medir sin cambiar rúbricas.
+- [ ] Resolver incumplimientos de contrato: TTL cero y excepciones de versiones sin imports inventados.
+
+## Hito de aislamiento y fiabilidad (2026-09-12)
+
+- [x] Desactivar fallback local por defecto y respetar la opción cuando faltan Docker o su imagen.
+- [x] Cubrir ausencia de Docker, imagen ausente, opt-in y ejecución local explícita.
+- [x] Recuperar Ruff y alinear Makefile con CI; conservar el bug intencional del fixture checkout.
+- [x] No presentar tests aprobados como fallos en los recordatorios de propuesta.
+- [x] Conservar contrato y ruta solicitada al insistir en crear el archivo.
+- [x] Reintentar decisiones vacías de Ollama como máximo dos veces; acumular tokens al recuperarse.
+- [x] Incluir los esquemas de herramientas y sus argumentos requeridos en el protocolo JSON de modelos thinking.
+- [x] Verificar suite completa: 366 passed, 2 skipped; Docker y API incluidos.
+- [x] Medir desarrollo con qwen3.5:4b y registrar fallos residuales sin cambiar rúbricas (cierre 2026-09-13: 7/12).
+- [ ] Revisar y versionar este hito. Detalles en el [informe](docs/reports/2026-09-12-isolation-reliability.md).
 
 ## Estabilización (2026-09-12)
 
@@ -24,7 +50,7 @@ Lista priorizada de próximos pasos del proyecto.
 - [x] Añadir comando `casi test`.
 - [x] Añadir cargador de benchmarks, métricas e informes básicos.
 - [x] Conectar `DockerRunner` al flujo del agente para `run_tests` (fallback a local).
-- [x] Implementar ciclo de corrección patch → tests → retry (máx. 2 intentos).
+- [x] Implementar ciclo de corrección patch → tests → retry (máx. 4 reintentos por defecto).
 - [x] Mejorar flujo de clarificaciones: búsqueda automática tras aclarar y `/exit` en Q&A.
 - [x] Usar directorio temporal local para pytest (`.pytest-tmp/`).
 - [x] Preparar imágenes Docker cacheadas para dependencias Python y ejecutar tests posteriores sin red.
@@ -41,7 +67,7 @@ Lista priorizada de próximos pasos del proyecto.
 - [x] **P2:** completar trazas de estrategia y permisos entre planificador, especialistas y presentador.
 - [x] **P3:** revisar y publicar los cambios tras cerrar la estabilización.
 - [x] **P3:** convertir fallos documentados en regresiones y mejorar fiabilidad CREATE/fix (`task_017`, `task_023`, suite de desarrollo).
-- [ ] **P4:** ampliar ecosistemas y diseñar la interfaz visual.
+- [ ] **P4:** ampliar ecosistemas (Node.js, etc.). Interfaz visual: ver [docs/features/ui/spec.md](docs/features/ui/spec.md) (implementada).
 
 ## Prioridad inmediata
 
@@ -93,8 +119,8 @@ Lista priorizada de próximos pasos del proyecto.
 ## Después de estabilizar el núcleo
 
 - [x] Exponer API FastAPI con aprobación de parches y consulta de estado.
+- [x] Diseñar interfaz visual sobre la API estable (Streamlit modular, `casi ui`).
 - [ ] Ampliar entornos de proyecto a Node.js y otros ecosistemas.
-- [ ] Diseñar interfaz visual sobre la API estable.
 
 ## Orquestación multi-agente con presupuesto dinámico (idea — 2026-09-12)
 
@@ -115,14 +141,20 @@ medible podría mejorar tareas multi-archivo y ciclos inspect → fix → verify
   extensiones) solo si el supervisor confirma progreso; mantener tope global.
 - [ ] **Reglas de cierre en fix:** nudge duro o handoff al Implementer si hay
   tests fallando y no hay `propose_file` tras N decisiones.
-- [ ] **Reintentos Ollama:** reintentar cuando el mensaje llega vacío (thinking
+- [x] **Reintentos Ollama:** reintentar cuando el mensaje llega vacío (thinking
   mode / protocolo JSON).
 - [ ] **Validación:** probar primero en dev_003 y dev_012 antes de activar en
   todo el loop; comparar development antes/después con qwen3.5:4b.
 
-## Cierre de cada hito
+## Fase 11 — Interfaz visual (2026-09-14)
 
-- [x] Ejecutar la suite completa de pruebas (319 passed, 2 skipped; 2026-09-12).
+- [x] Extender la API con `GET /tasks` para historial reciente.
+- [x] Cliente HTTP modular (`client/`), servicios (`services/`) y vistas (`views/`).
+- [x] Componentes: formulario, historial, trazas, parche, métricas y aprobación.
+- [x] Comando `casi ui` y dependencias opcionales `.[ui]`.
+- [ ] Medir la interfaz con tareas reales y Ollama en un flujo de dos terminales.
+
+- [x] Ejecutar la suite completa de pruebas (369 passed, 2 skipped; 2026-09-13).
 - [x] Ejecutar `python3 -m compileall -q src tests`.
 - [x] Ejecutar `git diff --check`.
 - [x] Actualizar `README.md`, `planning.md` y `docs/implementation-tracker.md`.

@@ -46,10 +46,11 @@ SYSTEM_PROMPT = (
     "- Never use other JSON keys such as response, "
     "assistant, message, answer, or tool_response for final "
     "answers.\n"
-    "- After tool results are present in the conversation, "
-    "summarize them in a final answer. Do not refuse "
-    "repository questions when tool output is already "
-    "available.\n"
+    "- For read-only questions, summarize tool results in a final answer. "
+    "For code or test changes, inspection results are context, not completion: "
+    "continue to propose_file with the complete replacement content. "
+    "A rejected tool call has not completed the requested change; correct its "
+    "arguments and call the tool again instead of explaining the intended fix.\n"
     "- Prefer acting over asking. When the request is "
     "reasonably clear, briefly state what you understood and "
     "proceed with the appropriate tool.\n"
@@ -87,6 +88,10 @@ SYSTEM_PROMPT = (
     "inspect the repository first, then call run_tests if "
     "needed, then call propose_file with complete file "
     "content.\n"
+    "- Before propose_file on a new or uncertain path, call "
+    "list_files when the repository layout is not already in "
+    "the conversation. Do not assume conventional directories "
+    "such as tests/ or src/ exist unless tool results show them.\n"
     "- When propose_file is available, you MUST call it with "
     "the repository-relative path and complete corrected "
     "file content. Do not write a unified diff yourself and "
@@ -98,10 +103,27 @@ SYSTEM_PROMPT = (
     "- The user's task is the full behavior contract. Visible tests may be "
     "incomplete: implement all stated validation, boundary conditions, return "
     "types, ordering, and input immutability requirements.\n"
+    "- Check type requirements before coercion: equality is not a type check. "
+    "When independent results are required, avoid sharing nested mutable "
+    "values with any input, including values introduced by overrides.\n"
+    "- For an independent deep-copy contract, not mutating inputs during the "
+    "call is insufficient: later mutations of the result must also leave inputs "
+    "unchanged. Use copy.deepcopy for retained and replacement values, including "
+    "keys present in only one input. Recursing through dictionaries does not "
+    "copy lists or their nested objects. Check every return/assignment branch.\n"
+    "- For test-writing tasks, propose the requested test file even when "
+    "existing tests pass. Cover each contract clause with deterministic "
+    "assertions, including call counts and exception propagation where relevant.\n"
     "- For repairs, change implementation files. Do not weaken tests to make "
     "a broken implementation pass. Only change tests when the user requests it.\n"
     "- Keep production modules independent of test modules: never copy test "
     "functions or import tests into the implementation.\n"
+    "- Distinguish strictly between zero and negative values when specified "
+    "separately in the contract (for example, zero expires immediately while "
+    "negative raises ValueError).\n"
+    "- Use only standard Python built-ins and existing repository modules: "
+    "never invent imports or modules (such as 'errors'). To clear exception "
+    "context, use 'raise ... from None'.\n"
     "- Never describe a tool call as plain text.\n"
     "\n"
     "Examples:\n"
@@ -123,7 +145,38 @@ SYSTEM_PROMPT = (
     '{"name":"search_code","arguments":{"query":"foo_bar"}}\n'
     '- User: "Haz que pasen los tests" -> '
     '{"name":"run_tests","arguments":{}}\n'
+    "- After inspecting counter.py, replace its contents -> "
+    '{"name":"propose_file","arguments":{"path":"counter.py",'
+    '"content":"def increment(value):\\n    return value + 1\\n"}}\n'
 )
+
+
+CREATE_ACTION_PROMPT = (
+    "You are CASI running on Ollama model {model_name}.\n"
+    "The repository has been inspected. You must create or replace one file now.\n"
+    "\n"
+    "Return ONLY a JSON object with exactly these keys:\n"
+    '\t{"path": "repository-relative/path.py", "content": "complete file text"}\n'
+    "\n"
+    "Rules:\n"
+    "- path must be repository-relative and must match the task contract.\n"
+    "- content must be the full corrected file, not a diff and not a summary.\n"
+    "- Do not return type, final, name, arguments, or any other keys.\n"
+    "- Do not describe the change in prose.\n"
+)
+
+
+def build_create_action_prompt(
+    model_name: str,
+    *,
+    role_instructions: str = "",
+) -> str:
+    """Build a phase-B prompt that allows only ProposeFileAction output."""
+
+    prompt = CREATE_ACTION_PROMPT.replace("{model_name}", model_name)
+    if role_instructions.strip():
+        prompt = f"{prompt}\nSpecialist role:\n{role_instructions.strip()}\n"
+    return prompt
 
 
 def build_system_prompt(

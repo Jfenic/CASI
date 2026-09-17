@@ -1,7 +1,11 @@
 import pytest
 
-from casi.llm.base import LLMResponse
-from casi.llm.parser import parse_response
+from casi.llm.base import LLMResponse, ToolDefinition
+from casi.llm.parser import (
+    extract_tool_call_payload,
+    normalize_response,
+    parse_response,
+)
 
 
 def test_parse_final_response() -> None:
@@ -86,3 +90,117 @@ def test_parse_tool_call_without_type_field() -> None:
 def test_parse_rejects_invalid_response(raw_response: str) -> None:
     with pytest.raises(ValueError):
         parse_response(raw_response)
+
+
+def test_normalize_response_coerces_final_wrapped_tool_call() -> None:
+    from casi.llm.parser import normalize_response
+
+    response = normalize_response(
+        LLMResponse.final(
+            '{"type":"final","content":"{\\"name\\":\\"propose_file\\",'
+            '\\"arguments\\":{\\"path\\":\\"test_slug.py\\",\\"content\\":\\"x\\"}}"}'
+        )
+    )
+
+    assert response.kind == "tool_call"
+    assert response.tool_name == "propose_file"
+    assert response.arguments["path"] == "test_slug.py"
+
+
+def test_normalize_response_leaves_genuine_final_unchanged() -> None:
+    response = normalize_response(LLMResponse.final("All done."))
+
+    assert response.kind == "final"
+    assert response.content == "All done."
+
+
+def test_normalize_response_leaves_clarification_unchanged() -> None:
+    response = normalize_response(
+        LLMResponse.clarification("Which file?", ["Inspect repo"])
+    )
+
+    assert response.kind == "clarification"
+    assert response.content == "Which file?"
+
+
+def test_normalize_response_leaves_invalid_embedded_json_unchanged() -> None:
+    response = normalize_response(LLMResponse.final('{"type":"final","content":""}'))
+
+    assert response.kind == "final"
+
+
+def test_normalize_response_rejects_unknown_tool_when_tools_provided() -> None:
+    response = normalize_response(
+        LLMResponse.final('{"name":"unknown_tool","arguments":{"path":"README.md"}}'),
+        allowed_tools=[
+            ToolDefinition(
+                name="read_file",
+                description="Read a file",
+                arguments={"path": {"type": "string", "required": True}},
+            )
+        ],
+    )
+
+    assert response.kind == "final"
+
+
+def test_normalize_response_rejects_invalid_arguments_when_tools_provided() -> None:
+    response = normalize_response(
+        LLMResponse.final('{"name":"propose_file","arguments":{"path":"x.py"}}'),
+        allowed_tools=[
+            ToolDefinition(
+                name="propose_file",
+                description="Propose a file",
+                arguments={
+                    "path": {"type": "string", "required": True},
+                    "content": {"type": "string", "required": True},
+                },
+            )
+        ],
+    )
+
+    assert response.kind == "final"
+
+
+def test_normalize_response_accepts_valid_tool_when_tools_provided() -> None:
+    response = normalize_response(
+        LLMResponse.final(
+            '{"name":"propose_file","arguments":'
+            '{"path":"test_slug.py","content":"x = 1\\n"}}'
+        ),
+        allowed_tools=[
+            ToolDefinition(
+                name="propose_file",
+                description="Propose a file",
+                arguments={
+                    "path": {"type": "string", "required": True},
+                    "content": {"type": "string", "required": True},
+                },
+            )
+        ],
+    )
+
+    assert response.kind == "tool_call"
+    assert response.tool_name == "propose_file"
+    assert response.arguments["content"] == "x = 1\n"
+
+
+def test_extract_tool_call_payload_rejects_multiple_actions() -> None:
+    payload = extract_tool_call_payload(
+        '[{"name":"read_file","arguments":{"path":"a.py"}},'
+        '{"name":"read_file","arguments":{"path":"b.py"}}]'
+    )
+
+    assert payload is None
+
+
+def test_extract_tool_call_payload_handles_tool_call_type_wrapper() -> None:
+    payload = extract_tool_call_payload(
+        '{"type":"tool_call","name":"propose_file",'
+        '"arguments":{"path":"x.py","content":"y"}}'
+    )
+
+    assert payload == {
+        "name": "propose_file",
+        "arguments": {"path": "x.py", "content": "y"},
+    }

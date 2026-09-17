@@ -1,0 +1,26 @@
+{
+  "no_retry": {
+    "retrying.py": "def retry(operation, attempts=3):\n    if attempts < 1:\n        raise ValueError(\"attempts must be positive\")\n    return operation()\n"
+  },
+  "swallow_error": {
+    "retrying.py": "def retry(operation, attempts=3):\n    if attempts < 1:\n        raise ValueError(\"attempts must be positive\")\n    for index in range(attempts):\n        try:\n            return operation()\n        except RuntimeError:\n            if index == attempts - 1:\n                return None\n"
+  },
+  "extra_attempt": {
+    "retrying.py": "def retry(operation, attempts=3):\n    if attempts < 1:\n        raise ValueError(\"attempts must be positive\")\n    for index in range(attempts + 1):\n        try:\n            return operation()\n        except RuntimeError:\n            if index == attempts:\n                raise\n"
+  },
+  "catch_all": {
+    "retrying.py": "def retry(operation, attempts=3):\n    if attempts < 1:\n        raise ValueError(\"attempts must be positive\")\n    for index in range(attempts):\n        try:\n            return operation()\n        except Exception:\n            if index == attempts - 1:\n                raise\n"
+  },
+  "no_validation": {
+    "retrying.py": "def retry(operation, attempts=3):\n    for index in range(attempts):\n        try:\n            return operation()\n        except RuntimeError:\n            if index == attempts - 1:\n                raise\n"
+  },
+  "wrong_default": {
+    "retrying.py": "def retry(operation, attempts=2):\n    if attempts < 1:\n        raise ValueError(\"attempts must be positive\")\n    for index in range(attempts):\n        try:\n            return operation()\n        except RuntimeError:\n            if index == attempts - 1:\n                raise\n"
+  },
+  "single_attempt_swallowed": {
+    "retrying.py": "def retry(operation, attempts=3):\n    if attempts == 1:\n        return None\n    if attempts < 1:\n        raise ValueError(\"attempts must be positive\")\n    for index in range(attempts):\n        try:\n            return operation()\n        except RuntimeError:\n            if index == attempts - 1:\n                raise\n"
+  },
+  "replaces_exception": {
+    "retrying.py": "def retry(operation, attempts=3):\n    if attempts < 1:\n        raise ValueError(\"attempts must be positive\")\n    for index in range(attempts):\n        try:\n            return operation()\n        except RuntimeError:\n            if index == attempts - 1:\n                raise RuntimeError(\"replacement\")\n"
+  }
+}

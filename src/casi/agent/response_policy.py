@@ -12,7 +12,7 @@ from casi.agent.intent import (
 from casi.agent.nudges import (
     ResponseNudge,
     nudge_for_diagnosis_format,
-    nudge_for_fix_without_inspection,
+    nudge_for_layout_required,
     nudge_for_malformed_json,
     nudge_for_missing_patch,
     nudge_for_repository_deferral,
@@ -48,6 +48,7 @@ class ResponsePolicy:
         intent: TaskIntent,
         retries: RetryBudget,
         repository_inspected: bool,
+        layout_known: bool,
         continuing_after_clarification: bool,
         mutation_workflow: bool = False,
         remaining_test_output: str | None = None,
@@ -68,12 +69,12 @@ class ResponsePolicy:
         if (
             (is_mutation_intent(intent) or mutation_workflow)
             and not continuing_after_clarification
-            and not repository_inspected
+            and not layout_known
             and extract_patch(content) is None
             and retries.deferral_nudges < retries.max_deferral
         ):
             retries.deferral_nudges += 1
-            return nudge_for_fix_without_inspection()
+            return nudge_for_layout_required()
 
         if (
             mutation_workflow
@@ -115,6 +116,7 @@ class ResponsePolicy:
             retries.patch_nudges += 1
             return nudge_for_missing_patch(
                 remaining_test_output=remaining_test_output,
+                task_context=task_context,
             )
 
         return None

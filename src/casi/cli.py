@@ -24,6 +24,7 @@ from casi.sandbox.project_environment import (
     prepare_project_environment,
 )
 from casi.sandbox.test_execution import run_repository_pytest
+from casi.terminal import TerminalPresenter
 
 
 def _add_agent_task_parser(
@@ -149,6 +150,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=settings.agent_routing_mode,
         help="Repository routing mode: assist, strict, or off.",
     )
+    interactive_parser.add_argument(
+        "--plain",
+        action="store_true",
+        help="Disable colors and glyphs, using plain ASCII terminal output.",
+    )
 
     test_parser = subparsers.add_parser(
         "test",
@@ -206,6 +212,27 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=8000,
         help="Port for the API server.",
+    )
+
+    ui_parser = subparsers.add_parser(
+        "ui",
+        help="Start the CASI Streamlit visual interface.",
+    )
+    ui_parser.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="Bind address for the Streamlit server.",
+    )
+    ui_parser.add_argument(
+        "--port",
+        type=int,
+        default=8501,
+        help="Port for the Streamlit server.",
+    )
+    ui_parser.add_argument(
+        "--api-url",
+        default=None,
+        help="CASI API base URL (default: http://127.0.0.1:8000).",
     )
 
     benchmark_parser = subparsers.add_parser(
@@ -371,13 +398,19 @@ def _run_agent(
 
 
 def _run_interactive(
-    repository: str | Path, max_steps: int | None, routing: str
+    repository: str | Path,
+    max_steps: int | None,
+    routing: str,
+    *,
+    plain: bool = False,
 ) -> int:
+    presenter = None if plain else TerminalPresenter()
     session = InteractiveSession(
         repository,
         OllamaClient(),
         max_steps=max_steps,
         routing_mode=routing,
+        presenter=presenter,
     )
     return session.run()
 
@@ -418,6 +451,38 @@ def _run_serve(host: str, port: int) -> int:
     from casi.api.app import create_app
 
     uvicorn.run(create_app(), host=host, port=port)
+    return 0
+
+
+def _run_ui(host: str, port: int, api_url: str | None) -> int:
+    """Start the Streamlit visual interface."""
+
+    try:
+        from streamlit.web import cli as streamlit_cli
+    except ImportError as exc:
+        raise CasiError(
+            "The visual interface requires optional dependencies. "
+            "Install them with: pip install -e '.[ui]'"
+        ) from exc
+
+    import os
+
+    if api_url:
+        os.environ["CASI_API_URL"] = api_url.rstrip("/")
+
+    app_path = Path(__file__).resolve().parent / "ui" / "app.py"
+    sys.argv = [
+        "streamlit",
+        "run",
+        str(app_path),
+        "--server.address",
+        host,
+        "--server.port",
+        str(port),
+        "--browser.gatherUsageStats",
+        "false",
+    ]
+    streamlit_cli.main()
     return 0
 
 
@@ -572,7 +637,12 @@ def main(argv: list[str] | None = None) -> int:
             )
 
         if args.command == "interactive":
-            return _run_interactive(args.repo, args.max_steps, args.routing)
+            return _run_interactive(
+                args.repo,
+                args.max_steps,
+                args.routing,
+                plain=getattr(args, "plain", False),
+            )
 
         if args.command == "test":
             return _run_test(args.repo, args.timeout)
@@ -586,6 +656,9 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "serve":
             return _run_serve(args.host, args.port)
+
+        if args.command == "ui":
+            return _run_ui(args.host, args.port, args.api_url)
 
         if args.command == "benchmark":
             return _run_benchmark(

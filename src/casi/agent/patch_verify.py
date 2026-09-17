@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from casi.agent.conversation import Conversation
+from casi.agent.create_workflow import repository_has_test_files
 from casi.agent.failure_classification import (
     FailureKind,
     classify_patch_validation_error,
@@ -58,6 +59,7 @@ def verify_patch_response(
     *,
     correction_attempts: int,
     max_correction_attempts: int,
+    intent: object | None = None,
     on_retry: Callable[[str], None] | None = None,
 ) -> tuple[PatchVerification | None, bool]:
     """Run patched tests on a final response or ask the model to retry."""
@@ -105,8 +107,22 @@ def verify_patch_response(
     output = test_result.stdout
     if test_result.stderr:
         output = f"{output}\n{test_result.stderr}".strip()
-    passed = test_result.exit_code == 0 and not test_result.timed_out
-    failure_kind = None if passed else classify_test_result(test_result, runner)
+    has_test_suite = repository_has_test_files(conversation.registry.repository_path)
+    no_tests_collected = test_result.exit_code == 5 and (
+        "no tests ran" in output.lower() or "collected 0 items" in output.lower()
+    )
+    is_create = getattr(intent, "value", intent) == "create"
+    if (
+        is_create
+        and not has_test_suite
+        and no_tests_collected
+        and not test_result.timed_out
+    ):
+        passed = True
+        failure_kind = None
+    else:
+        passed = test_result.exit_code == 0 and not test_result.timed_out
+        failure_kind = None if passed else classify_test_result(test_result, runner)
     return _request_patch_correction(
         conversation,
         content,

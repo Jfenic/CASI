@@ -1,0 +1,15 @@
+--- a/billing.py
++++ b/billing.py
+@@ -1,2 +1,11 @@
++from decimal import Decimal, ROUND_HALF_UP
++
+ def invoice_total(lines):
+-    return f"{sum(float(price) * quantity for price, quantity in lines):.2f}"
++    total = Decimal("0")
++    for price_str, quantity in lines:
++        if quantity < 0:
++            raise ValueError(f"Negative quantity: {quantity}")
++        line_amount = Decimal(price_str) * Decimal(quantity)
++        rounded_line = line_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
++        total += rounded_line
++    return f"{total:.2f}"

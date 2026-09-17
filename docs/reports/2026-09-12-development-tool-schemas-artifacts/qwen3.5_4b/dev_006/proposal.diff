@@ -1,0 +1,36 @@
+--- a/settings.py
++++ b/settings.py
+@@ -1,4 +1,31 @@
++import copy
++
++
+ def merge_settings(defaults, overrides):
+-    result = defaults.copy()
+-    result.update(overrides)
++    """
++    Recursively merge dictionaries.
++    - Nested dictionaries are merged recursively
++    - All other values (including None and lists) from overrides replace defaults
++    - Returns an independent deep copy; mutating result won't change inputs
++
++    Args:
++        defaults: Default settings dictionary
++        overrides: Override settings dictionary
++
++    Returns:
++        Merged settings dictionary with deep copy
++    """
++    # Create a deep copy of defaults as the starting point
++    result = copy.deepcopy(defaults)
++
++    for key, value in overrides.items():
++        if (key in result and
++            isinstance(result[key], dict) and
++            isinstance(value, dict)):
++            # Recursively merge nested dictionaries
++            result[key] = merge_settings(result[key], value)
++        else:
++            # Replace all other values (including None, lists, etc.)
++            result[key] = value
++
+     return result

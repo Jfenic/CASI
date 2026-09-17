@@ -1,8 +1,8 @@
 """Build a checkout receipt from a cart."""
 
-from cart import Cart
 import tax as tax_module
 import totals
+from cart import Cart
 
 
 def build_receipt(cart: Cart) -> dict[str, float]:

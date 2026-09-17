@@ -1,0 +1,20 @@
+{
+  "ignores_quantity": {
+    "orders.py": "from inventory import reserve\n\ndef checkout(stock, prices, sku, quantity):\n    price = prices[sku]\n    reserve(stock, sku, quantity)\n    return price\n"
+  },
+  "reserves_one": {
+    "orders.py": "from inventory import reserve\n\ndef checkout(stock, prices, sku, quantity):\n    price = prices[sku]\n    reserve(stock, sku, 1)\n    return price * quantity\n"
+  },
+  "rejects_exact_stock": {
+    "inventory.py": "def reserve(stock, sku, quantity):\n    if quantity <= 0:\n        raise ValueError(\"quantity must be positive\")\n    if sku not in stock:\n        raise KeyError(sku)\n    if stock[sku] <= quantity:\n        raise ValueError(\"insufficient stock\")\n    stock[sku] -= quantity\n"
+  },
+  "allows_zero": {
+    "inventory.py": "def reserve(stock, sku, quantity):\n    if quantity < 0:\n        raise ValueError(\"quantity must be positive\")\n    if sku not in stock:\n        raise KeyError(sku)\n    if stock[sku] < quantity:\n        raise ValueError(\"insufficient stock\")\n    stock[sku] -= quantity\n"
+  },
+  "mutates_on_failure": {
+    "inventory.py": "def reserve(stock, sku, quantity):\n    if quantity <= 0:\n        raise ValueError(\"quantity must be positive\")\n    if sku not in stock:\n        raise KeyError(sku)\n    if stock[sku] < quantity:\n        stock[sku] = 0\n        raise ValueError(\"insufficient stock\")\n    stock[sku] -= quantity\n"
+  },
+  "mutates_prices": {
+    "orders.py": "from inventory import reserve\n\ndef checkout(stock, prices, sku, quantity):\n    price = prices[sku]\n    reserve(stock, sku, quantity)\n    prices[sku] = 0\n    return price * quantity\n"
+  }
+}

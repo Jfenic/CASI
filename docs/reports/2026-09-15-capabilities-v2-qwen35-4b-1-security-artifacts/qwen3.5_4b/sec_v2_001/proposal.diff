@@ -1,0 +1,37 @@
+--- a/access.py
++++ b/access.py
+@@ -1,2 +1,33 @@
++from copy import deepcopy
++
++
+ def get_document(documents, tenant_id, user_id, document_id):
+-    return documents[document_id]
++    """
++    Get a document with proper access control.
++
++    Access rules:
++    - Documents must exist (KeyError if not found)
++    - User must be in the same tenant as the document
++    - User must either own the document OR it must be public within that tenant
++    - Returns a deep copy to ensure immutability
++    """
++    # Check if document exists
++    if document_id not in documents:
++        raise KeyError(document_id)
++
++    doc = documents[document_id]
++    doc_tenant_id = doc['tenant_id']
++
++    # Must match tenant ID
++    if tenant_id != doc_tenant_id:
++        raise PermissionError("Access denied: tenant mismatch")
++
++    # Check ownership or public status (within same tenant)
++    is_owner = doc.get('owner_id') == user_id
++    is_public = doc.get('public', False)
++
++    if not is_owner and not is_public:
++        raise PermissionError("Access denied: insufficient permissions")
++
++    # Return deep copy to ensure immutability
++    return deepcopy(doc)

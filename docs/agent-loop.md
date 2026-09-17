@@ -1,146 +1,61 @@
 # How the AgentLoop Works
 
-`AgentLoop` coordinates the conversation between CASI, the LLM, and the registered tools. Its responsibility is to interpret each model response, execute only permitted actions, and return tool results to the conversation context.
+`AgentLoop` coordinates model decisions and registered tools. CLI and API use it
+through task planning and specialized profiles. It has bounded model steps,
+file reads, repeated calls, format retries and patch correction attempts.
 
-## General flow
+## Task and context
 
-```text
-User task
-    |
-    v
-Add task to history
-    |
-    v
-Expose safe tools
-    |
-    v
-Model returns a response
-    |
-    +--> final: finish the task
-    |
-    +--> tool_call: check permissions and execute a tool
-                                      |
-                                      v
-                              Return result to history
-                                      |
-                                      v
-                              Next model decision
-```
+The loop rejects an empty task, preserves conversation history, determines intent
+and loads relevant repository context. Repair pipelines run tests and read relevant
+source and test files; diagnosis loads evidence without proposing changes.
+The task contract remains part of creation and repair guidance even when visible
+tests cover only some requirements. Latest patch-test failures guide corrections.
 
-## 1. Starting a task
+Interactive sessions preserve context until `/clear`. `/context` and `/compact`
+inspect or summarize history; automatic compaction is bounded by configuration.
+Planning and profiles guide work; task permissions accumulate as the model needs
+READ, EXECUTE or MUTATE capabilities.
 
-The `run(task)` method rejects empty tasks and adds the task to the history as a user message. The history can be provided externally to preserve context across multiple tasks in an interactive session.
+## Decisions and tools
 
-Before contacting the model, the history is compacted with `compact_if_needed()`. When the message count exceeds `max_context_messages`, CASI shows the active thread, asks whether to summarize older messages, and accepts optional instructions about what to preserve. In non-interactive mode it summarizes automatically. Use `/context` and `/compact` in interactive mode to inspect or trigger summarization manually.
+The model receives agent-safe tool definitions and returns a final response,
+clarification or tool call. The registry checks names and arguments and the
+executor enforces authorization. Tool results return to conversation history.
+The loop may narrow available tools after context has been loaded to stop repeated
+searches. `apply_patch` is never agent-callable.
 
-## 2. Available tools
+`propose_file(path, content)` builds a unified diff from complete file content.
+It does not write the original repository. A successful proposal enters patch
+verification rather than simply returning an unverified success.
 
-The loop asks the registry only for tools marked as safe for the agent:
+## Completion and retries
 
-```python
-tools = self.registry.definitions(agent_safe=True)
-```
+- Read tasks may complete with a grounded final answer.
+- Diagnosis requires structured `file`, `line`, `cause` and `evidence`; invalid
+  responses receive bounded format nudges and ultimately fail.
+- Change tasks cannot complete successfully without a required valid patch.
+  Premature answers receive bounded nudges to inspect or propose the change.
+- Patch verification checks syntax, paths and applicability, then runs tests on
+  a temporary copy. Failures return their latest output and classification to
+  the model, with up to four correction attempts by default.
+- Empty Ollama decisions are retried inside the client at most twice. This does
+  not increase model-step limits, but each request has its own timeout. Exhausted
+  empty-response retries propagate an error; their token usage is not retained
+  in the current error contract.
+- Exceeding step or retry limits returns failure with the available trace.
 
-The model receives their names, descriptions, and argument schemas. The model cannot execute arbitrary functions outside `ToolRegistry`.
+Tool authorization and human approval of a concrete patch are separate. The CLI
+or API presents a verified proposal for approval before modifying the repository.
+Passing repository tests is evidence about those tests; the independent benchmark
+may still reject the proposal for unmet requirements.
 
-## 3. Model decision
+## Observability
 
-On each iteration, `client.complete()` receives:
+`AgentResult` carries status, response, error, clarification, messages, step count,
+patch verification and trace information. Structured traces record model decisions,
+pipeline reads, tools, rejected calls, nudges, timings and reported token usage.
+The execution summary exposes aggregate metrics to CLI logs and API responses.
 
-- the message history;
-- the permitted tools.
-
-The model can return:
-
-- `final`: a response for the user;
-- `clarification`: a precise question and optional short plan when the request is ambiguous;
-- `tool_call`: a tool name and its arguments.
-
-The loop allows at most `max_steps` decisions. This prevents infinite loops and limits the cost of an execution.
-
-## 4. Final response
-
-When the model returns `kind="final"`, CASI:
-
-1. adds the response to the history as an `assistant` message;
-2. applies the context limit again;
-3. returns a successful `AgentResult`.
-
-The final response does not execute tools.
-
-## 5. Clarification and planning
-
-When the task is ambiguous, the model can pause with a structured clarification:
-
-```json
-{
-    "type": "clarification",
-    "question": "Which validation behavior should change?",
-    "plan": ["Locate the validator", "Propose a focused patch", "Run tests"]
-}
-```
-
-The interactive session displays the plan and asks the user to answer the question. The answer is added to the same conversation context, and the loop resumes. Once the request is clear, the model must call the first relevant tool instead of returning a generic tutorial or an additional plan.
-
-## 6. Tool call
-
-When the model returns `kind="tool_call"`, the loop delegates execution to `execute_tool()`.
-
-This centralized executor handles:
-
-- checking that the tool exists;
-- validating arguments;
-- requesting confirmation for sensitive tools;
-- converting failures into a structured `ToolResult`.
-
-After executing the tool, the loop stores two messages:
-
-1. The assistant decision, including the tool name and arguments.
-2. The tool result, including success, output, and error information.
-
-This allows the model to make its next decision using real repository information.
-
-## 7. Permission confirmation
-
-Tools that can modify files must not approve themselves. The loop can receive a callback:
-
-```python
-require_tool_confirmation(tool_name, arguments) -> bool
-```
-
-This callback acts as the permission boundary. The interactive session can ask the user for confirmation and return `True` only after explicit approval.
-
-In particular, `apply_patch` must remain in `dry_run` mode unless approval exists and a real application was explicitly requested.
-
-## 8. Step limit
-
-If the model does not produce a final response before reaching `max_steps`, the loop returns a failed `AgentResult` with a limit-reached message. Execution does not continue indefinitely.
-
-## Result
-
-`AgentResult` contains:
-
-- `success`: whether the task completed successfully;
-- `response`: the model's final response;
-- `error`: the failure reason, if any;
-- `steps`: the number of decisions made;
-- `messages`: the history available for inspection or continuation.
-
-## Conceptual example
-
-```text
-User: Where is email validation implemented?
-
-Model -> search_code({"query": "validate_email"})
-CASI  -> executes search_code
-CASI  -> returns matches to the history
-
-Model -> read_file({"path": "src/users.py"})
-CASI  -> executes read_file
-CASI  -> returns file contents to the history
-
-Model -> final response
-CASI  -> displays the explanation to the user
-```
-
-The loop is intentionally bounded: the model makes decisions, but CASI controls which tools exist, which arguments are valid, which actions require permission, and when execution must stop.
+See [architecture](architecture.md), [security](security.md) and
+[evaluation](evaluation.md) for the surrounding contracts.

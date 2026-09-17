@@ -1,0 +1,53 @@
+--- a/sales.py
++++ b/sales.py
+@@ -1,8 +1,46 @@
++import csv
++import io
++
+ def totals(text):
++    """
++    Sum integer quantities per product from CSV input.
++
++    - Input: CSV with headers 'product','quantity' and standard quoting
++    - Ignores blank rows, handles CRLF and quoted multiline product names
++    - Returns {} for header-only input
++    - Raises ValueError on invalid integer quantities
++    """
++    reader = csv.reader(io.StringIO(text))
++
++    try:
++        headers = next(reader)
++    except StopIteration:
++        return {}
++
++    if len(headers) < 2 or 'product' not in headers or 'quantity' not in headers:
++        raise ValueError("Invalid CSV: missing product and quantity headers")
++
+     result = {}
+-    for line in text.splitlines()[1:]:
+-        if not line:
++    for row in reader:
++        # Handle completely blank rows
++        if row is None or len(row) == 0:
+             continue
+-        product, quantity = line.split(",")
+-        result[product] = int(quantity)
++        # Skip rows that are essentially blank (all cells empty)
++        if all(cell.strip() == '' for cell in row):
++            continue
++
++        product = row[headers.index('product')]
++        quantity_idx = headers.index('quantity')
++
++        if quantity_idx >= len(row):
++            raise ValueError("Invalid CSV: missing quantity data")
++
++        try:
++            qty = int(row[quantity_idx])
++        except ValueError:
++            raise ValueError(f"Invalid integer quantity: {row[quantity_idx]}")
++
++        # Accumulate quantities (support negative adjustments)
++        result[product] = result.get(product, 0) + qty
++
+     return result

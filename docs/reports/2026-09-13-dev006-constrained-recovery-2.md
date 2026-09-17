@@ -1,0 +1,51 @@
+# CASI Benchmark Report — qwen3.5:4b
+
+## Summary
+
+| Metric | Value |
+| --- | ---: |
+| tasks | 1 |
+| task_success_rate | 0.00% |
+| agent_success_rate | 100.00% |
+| command_success_rate | 0.00% |
+| patch_validity_rate | 100.00% |
+| average_steps | 6.00 |
+| average_duration_seconds | 18.49 |
+| average_files_read | 2.00 |
+| average_correction_attempts | 0.00 |
+| total_prompt_tokens | 2682 |
+| total_completion_tokens | 297 |
+
+## Capabilities
+
+| Capability | Passed / total |
+| --- | ---: |
+| regression_and_mutability | 0 / 1 |
+
+## Tasks
+
+- `dev_006` (fix): **fail** — 6 steps, 18.49s
+  - error: Independent verification failed: F..                                                                      [100%]
+=================================== FAILURES ===================================
+_________________________ test_no_aliases_or_mutations _________________________
+
+    def test_no_aliases_or_mutations():
+        defaults = {"db": {"ports": [1], "flags": {"a": True}}, "extra": [{"x": 1}]}
+        overrides = {"db": {"name": "main"}, "custom": [{"y": 2}]}
+        before = (deepcopy(defaults), deepcopy(overrides))
+        result = merge_settings(defaults, overrides)
+        assert (defaults, overrides) == before
+        result["db"]["ports"].append(2)
+        result["db"]["flags"]["a"] = False
+        result["extra"][0]["x"] = 3
+        result["custom"][0]["y"] = 4
+>       assert (defaults, overrides) == before
+E       AssertionError: assert ({'db': {'por...: [{'y': 4}]}) == ({'db': {'por...: [{'y': 2}]})
+E         
+E         At index 0 diff: {'db': {'ports': [1, 2], 'flags': {'a': False}}, 'extra': [{'x': 3}]} != {'db': {'ports': [1], 'flags': {'a': True}}, 'extra': [{'x': 1}]}
+E         Use -v to get more diff
+
+_benchmark_checks/test_acceptance.py:16: AssertionError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_no_aliases_or_mutations - A...
+1 failed, 2 passed in 0.02s

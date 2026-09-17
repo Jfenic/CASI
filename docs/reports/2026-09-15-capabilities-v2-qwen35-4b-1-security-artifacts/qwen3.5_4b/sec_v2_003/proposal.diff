@@ -1,0 +1,10 @@
+--- a/users.py
++++ b/users.py
+@@ -1,5 +1,6 @@
+ def lookup(conn, username):
+     row = conn.execute(
+-        f"SELECT id FROM users WHERE username = '{username}' AND active = 1"
++        "SELECT id FROM users WHERE username = ? AND active = 1",
++        (username,)
+     ).fetchone()
+     return row[0] if row else None

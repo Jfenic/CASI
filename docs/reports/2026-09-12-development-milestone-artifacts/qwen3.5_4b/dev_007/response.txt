@@ -1,0 +1,41 @@
+--- /dev/null
++++ b/reader.py
+@@ -0,0 +1,38 @@
++"""JSON Lines parser module."""
++
++import json
++
++
++def read_records(text):
++    """Parse JSON Lines format into a list of dictionaries.
++
++    - Ignores whitespace-only lines (blank lines count in line numbering but don't create records)
++    - Each non-blank line must be a valid JSON object (dict)
++    - Malformed JSON or non-object JSON values raise ValueError with message containing "line N"
++    - Line numbers start at 1 and include blank lines
++    - Processes all lines, not stopping after the first valid record
++    """
++    records = []
++    line_num = 0
++
++    for i, line in enumerate(text.splitlines(), start=1):
++        # Check if line is whitespace-only
++        stripped = line.strip()
++
++        # Skip blank/whitespace lines but track them in line numbering
++        if not stripped:
++            continue
++
++        # Try to parse as JSON
++        try:
++            value = json.loads(stripped)
++        except json.JSONDecodeError:
++            raise ValueError(f"Malformed JSON at line {line_num + 1}")
++
++        # Check if it's a dict (object)
++        if not isinstance(value, dict):
++            raise ValueError(f"Line {line_num + 1}: Expected JSON object, got {type(value).__name__}")
++
++        records.append(value)
++
++    return records

@@ -1,0 +1,14 @@
+--- a/features.py
++++ b/features.py
+@@ -1,8 +1,9 @@
+ def rolling_features(values, window):
+     if isinstance(window, bool) or not isinstance(window, int) or window < 1:
+         raise ValueError("positive integer window required")
++
+     result = []
+-    for end in range(window, len(values)):
+-        segment = values[end - window : end]
++    for i in range(len(values) - window + 1):
++        segment = values[i:i+window]
+         result.append((sum(segment) / window, min(segment), max(segment)))
+     return result

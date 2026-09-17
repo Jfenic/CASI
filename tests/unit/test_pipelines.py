@@ -161,9 +161,7 @@ def test_fix_pipeline_follows_transitive_local_imports(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     (tmp_path / "test_receipt.py").write_text(
-        "from receipt import build\n\n"
-        "def test_build():\n"
-        "    assert build() == 2\n",
+        "from receipt import build\n\ndef test_build():\n    assert build() == 2\n",
         encoding="utf-8",
     )
     calls: list[tuple[str, dict[str, object]]] = []

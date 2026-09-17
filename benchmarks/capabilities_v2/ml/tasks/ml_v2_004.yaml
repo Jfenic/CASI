@@ -1,0 +1,21 @@
+id: ml_v2_004
+name: signal_statistics
+repository: signal_statistics
+category: ml
+capability: signal_feature_extraction
+difficulty: intermediate
+instruction: Fix describe_signal(values) in signal_features.py for a nonempty list of finite
+  numbers. Return a dict with exactly mean, rms, variance and zero_crossing_rate. Mean is
+  sum/n; RMS is sqrt(sum(x*x)/n); variance is population variance sum((x-mean)**2)/n. Count
+  only adjacent pairs with product < 0 as zero crossings (zero itself does not count); divide
+  by n-1. For a singleton the crossing rate and variance are zero. Empty input raises ValueError.
+  Do not mutate input. Modify only signal_features.py.
+allowed_files:
+- signal_features.py
+grader: ../graders/signal_statistics
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

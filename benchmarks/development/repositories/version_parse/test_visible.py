@@ -1,5 +1,4 @@
 import pytest
-
 from version import parse_version
 
 

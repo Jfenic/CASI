@@ -1,0 +1,28 @@
+--- a/settings.py
++++ b/settings.py
+@@ -1,4 +1,23 @@
+ def merge_settings(defaults, overrides):
+-    result = defaults.copy()
+-    result.update(overrides)
++    result = {}
++
++    # Collect all keys from both dictionaries
++    all_keys = set(defaults.keys()) | set(overrides.keys())
++
++    for key in all_keys:
++        if key in defaults and key in overrides:
++            # Both have this key - recursively merge if both are dicts
++            default_value = defaults[key]
++            override_value = overrides[key]
++
++            if isinstance(default_value, dict) and isinstance(override_value, dict):
++                result[key] = merge_settings(default_value, override_value)
++            else:
++                # Override wins for non-dict values (including None and lists)
++                result[key] = override_value
++        elif key in defaults:
++            result[key] = defaults[key]
++        else:
++            result[key] = overrides[key]
++
+     return result

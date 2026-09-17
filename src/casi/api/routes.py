@@ -11,7 +11,9 @@ from casi.api.schemas import (
     CreateTaskRequest,
     ErrorResponse,
     HealthResponse,
+    TaskListResponse,
     TaskResponse,
+    TaskSummaryResponse,
 )
 from casi.api.tasks import TaskStateError, TaskStore
 from casi.exceptions import CasiError
@@ -53,6 +55,27 @@ def create_task(
             detail=str(exc),
         ) from exc
     return TaskResponse.from_record(record)
+
+
+@router.get(
+    "/tasks",
+    response_model=TaskListResponse,
+    responses={400: {"model": ErrorResponse}},
+    tags=["tasks"],
+)
+def list_tasks(
+    store: Annotated[TaskStore, Depends(get_task_store)],
+    limit: int = 50,
+) -> TaskListResponse:
+    if limit < 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="limit must be at least 1.",
+        )
+    records = store.list_recent(limit=limit)
+    return TaskListResponse(
+        tasks=[TaskSummaryResponse.from_record(record) for record in records]
+    )
 
 
 @router.get(

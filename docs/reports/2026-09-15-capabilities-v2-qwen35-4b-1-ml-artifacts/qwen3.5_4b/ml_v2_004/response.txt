@@ -1,0 +1,16 @@
+--- a/signal_features.py
++++ b/signal_features.py
+@@ -3,10 +3,11 @@
+         raise ValueError("empty signal")
+     count = len(values)
+     mean = sum(values) / count
+-    rms = abs(mean)
++    rms = (sum(x * x for x in values) / count) ** 0.5
+     variance = sum((value - mean) ** 2 for value in values) / count
+     crossings = sum(
+-        left * right < 0 for left, right in zip(values, values[1:], strict=False)
++        values[i] * values[i+1] < 0
++        for i in range(count - 1)
+     )
+     rate = crossings / (count - 1) if count > 1 else 0.0
+     return {"mean": mean, "rms": rms, "variance": variance, "zero_crossing_rate": rate}

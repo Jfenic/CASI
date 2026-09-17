@@ -74,5 +74,29 @@ class TaskResponse(BaseModel):
         )
 
 
+class TaskSummaryResponse(BaseModel):
+    id: str
+    repository: str
+    task: str
+    status: TaskStatus
+    created_at: datetime
+    updated_at: datetime
+
+    @classmethod
+    def from_record(cls, record: TaskRecord) -> TaskSummaryResponse:
+        return cls(
+            id=record.id,
+            repository=record.repository,
+            task=record.task,
+            status=record.status,
+            created_at=record.created_at,
+            updated_at=record.updated_at,
+        )
+
+
+class TaskListResponse(BaseModel):
+    tasks: list[TaskSummaryResponse] = Field(default_factory=list)
+
+
 class ErrorResponse(BaseModel):
     detail: str

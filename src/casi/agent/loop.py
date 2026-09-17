@@ -11,20 +11,23 @@ from casi.agent.conversation import (
     ContextCompactPrompt,
     Conversation,
 )
+from casi.agent.create_workflow import repository_has_test_files
 from casi.agent.guardrails import read_file_usage, should_block_read_file
 from casi.agent.intent import (
     RoutingMode,
     TaskIntent,
     build_task_context,
-    classify_intent,
     extract_search_targets,
     intent_supports_pipeline,
     is_mutation_intent,
     parse_routing_mode,
+    resolve_task_intent,
     should_defer_clarification,
     task_requests_code_change,
 )
 from casi.agent.nudges import (
+    nudge_after_layout_loaded,
+    nudge_for_layout_required,
     nudge_for_missing_local_modules,
     nudge_for_premature_clarification,
     nudge_for_propose_file_failure,
@@ -33,6 +36,14 @@ from casi.agent.nudges import (
     nudge_for_repeated_read_file,
 )
 from casi.agent.patch_verify import verify_patch_response
+from casi.agent.phases import (
+    AgentPhase,
+    PhaseContext,
+    final_allowed,
+    nudge_for_protocol_violation,
+    resolve_phase,
+    should_use_create_action_schema,
+)
 from casi.agent.pipelines import (
     nudge_after_create_pipeline,
     nudge_after_diagnose_pipeline,
@@ -51,8 +62,10 @@ from casi.agent.test_failures import output_reports_failures
 from casi.agent.tool_confirmation import build_task_tool_confirmation
 from casi.agent.trace import AgentTraceRecorder
 from casi.config import settings
+from casi.exceptions import LLMError
 from casi.llm.base import ChatMessage, LLMClient, LLMResponse, ToolDefinition
 from casi.llm.diagnosis import diagnosis_response_error
+from casi.llm.parser import normalize_response
 from casi.patching.extract import extract_patch
 from casi.tools.registry import ToolRegistry
 from casi.tools.result import ToolResult
@@ -79,6 +92,7 @@ class _ActiveTask:
     patch_verification: PatchVerification | None = None
     continuing_after_clarification: bool = False
     next_step: int = 1
+    proposal_rejected: bool = False
 
 
 class AgentLoop:
@@ -252,6 +266,10 @@ class AgentLoop:
                 if tool.name not in {"validate_patch", "propose_file", "apply_patch"}
             ]
         if mutation_workflow or is_mutation_intent(intent):
+            if intent is TaskIntent.CREATE and not self.conversation.tool_was_used(
+                "propose_file"
+            ):
+                return [tool for tool in tools if tool.name != "validate_patch"]
             if (
                 self.conversation.tool_was_used("run_tests")
                 and self.conversation.read_file_paths()
@@ -318,6 +336,7 @@ class AgentLoop:
             self._run_pipeline(intent, task_context, active.retries)
 
         if self._in_mutation_workflow(active):
+            self._ensure_layout_context()
             self.conversation.append(
                 "user",
                 "Implement the complete task contract below, including requirements "
@@ -379,14 +398,47 @@ class AgentLoop:
                 tools,
                 mutation_workflow=mutation_workflow,
             )
+            phase = resolve_phase(
+                PhaseContext(
+                    intent=active.intent,
+                    mutation_workflow=mutation_workflow,
+                    mutation_submitted=self.conversation.propose_file_succeeded(),
+                    task_requests_mutation=task_requests_code_change(
+                        active.task_context
+                    ),
+                )
+            )
+            if self.trace is not None:
+                self.trace.record(
+                    f"agent phase={phase.value}",
+                    kind="phase",
+                    data={"phase": phase.value},
+                )
+
             self._notify_activity(
                 f"Thinking with {self._model_label()} (decision {step}/{step_limit})..."
             )
             started = time.perf_counter()
-            response = self.client.complete(
-                active_messages,
-                step_tools,
-            )
+            try:
+                response = self._request_model_decision(
+                    active_messages,
+                    step_tools,
+                    phase=phase,
+                    active=active,
+                )
+            except LLMError as exc:
+                duration_ms = (time.perf_counter() - started) * 1000
+                if self.trace is not None:
+                    self.trace.record_step_timing(
+                        step, step_limit, "error", duration_ms
+                    )
+                    self.trace.record_nudge(f"empty model response: {exc}")
+                self.conversation.append(
+                    "user",
+                    "Protocol violation: the model returned no usable content. "
+                    "Retry with the required structured action for this phase.",
+                )
+                continue
             duration_ms = (time.perf_counter() - started) * 1000
             if self.trace is not None:
                 self.trace.record_step_timing(
@@ -396,6 +448,13 @@ class AgentLoop:
                     prompt_tokens=response.prompt_tokens,
                     completion_tokens=response.completion_tokens,
                 )
+
+            if response.kind == "final" and mutation_workflow:
+                normalized = normalize_response(response, allowed_tools=step_tools)
+                if normalized.kind == "tool_call":
+                    if self.trace is not None:
+                        self.trace.record("recovered_embedded_tool_call")
+                    response = normalized
 
             if response.kind == "tool_call":
                 tool_name = response.tool_name or "unknown"
@@ -409,6 +468,13 @@ class AgentLoop:
                 if tool_name == "propose_file" and any(
                     tool.name == tool_name for tool in step_tools
                 ):
+                    if mutation_workflow and not self.conversation.layout_known():
+                        self._redirect_propose_file_without_layout(
+                            response,
+                            step=step,
+                            step_limit=step_limit,
+                        )
+                        continue
                     result = self.conversation.execute_tool(
                         tool_name, response.arguments
                     )
@@ -420,12 +486,15 @@ class AgentLoop:
                             metadata=result.metadata,
                         )
                     if not result.success:
+                        active.proposal_rejected = True
                         error = result.error or "propose_file failed"
                         self.conversation.append_nudge(
                             Conversation.format_tool_call(
                                 tool_name, response.arguments
                             ),
-                            nudge_for_propose_file_failure(error).user_message,
+                            nudge_for_propose_file_failure(
+                                error, path=response.arguments.get("path")
+                            ).user_message,
                         )
                         if self.trace is not None:
                             self.trace.record_nudge(
@@ -505,12 +574,20 @@ class AgentLoop:
             if self.trace is not None:
                 self.trace.record_final_preview(step, step_limit, response.content)
 
+            if not final_allowed(phase) and extract_patch(response.content) is None:
+                violation = nudge_for_protocol_violation(phase)
+                if self.trace is not None:
+                    self.trace.record_nudge(f"protocol violation: {phase.value}")
+                self.conversation.append_nudge(response.content, violation)
+                continue
+
             nudge = self.response_policy.evaluate_nudge(
                 response.content,
                 task_context=active.task_context,
                 intent=active.intent,
                 retries=active.retries,
                 repository_inspected=self.conversation.repository_inspected(),
+                layout_known=self.conversation.layout_known(),
                 continuing_after_clarification=active.continuing_after_clarification,
                 mutation_workflow=mutation_workflow,
                 remaining_test_output=self._last_test_output(),
@@ -556,6 +633,7 @@ class AgentLoop:
                 response.content,
                 correction_attempts=active.correction_attempts,
                 max_correction_attempts=self.max_correction_attempts,
+                intent=active.intent if active is not None else None,
                 on_retry=lambda reason: (
                     self.trace.record_nudge(reason) if self.trace is not None else None
                 ),
@@ -640,10 +718,38 @@ class AgentLoop:
             ),
         )
 
+    def _request_model_decision(
+        self,
+        active_messages: list[ChatMessage],
+        step_tools: list[ToolDefinition],
+        *,
+        phase: AgentPhase,
+        active: _ActiveTask,
+    ) -> LLMResponse:
+        """Call the LLM using CREATE action schema or the normal tool protocol."""
+
+        if should_use_create_action_schema(
+            intent=active.intent,
+            layout_known=self.conversation.layout_known(),
+            propose_file_succeeded=self.conversation.propose_file_succeeded(),
+            patch_verification=active.patch_verification,
+        ):
+            complete_action = getattr(self.client, "complete_action", None)
+            if complete_action is not None:
+                if self.trace is not None:
+                    self.trace.record(
+                        "model call: ProposeFileAction schema",
+                        kind="action_schema",
+                    )
+                from casi.llm.actions import ProposeFileAction
+
+                return complete_action(active_messages, ProposeFileAction)
+        return self.client.complete(active_messages, step_tools)
+
     def _resolve_intent(self, task_context: str) -> TaskIntent:
         if self.profile is not None:
             return self.profile.objective
-        return classify_intent(task_context)
+        return resolve_task_intent(task_context)
 
     def _step_limit_for_intent(
         self,
@@ -804,7 +910,14 @@ class AgentLoop:
     ) -> None:
         """Run tests and load repair context before the first model decision."""
 
+        active = self._active_task
+        if active is not None and active.intent is TaskIntent.CREATE:
+            if not repository_has_test_files(self.registry.repository_path):
+                self._ensure_layout_context()
+                return
+
         if self.conversation.tool_was_used("run_tests"):
+            self._ensure_layout_context()
             return
 
         self._notify_activity("Running tests before code-change work...")
@@ -823,6 +936,7 @@ class AgentLoop:
 
         test_output = result.output or result.error or ""
         if not test_output.strip():
+            self._ensure_layout_context()
             return
 
         missing_modules = run_fix_pipeline(
@@ -831,6 +945,7 @@ class AgentLoop:
             repository_path=self.registry.repository_path,
             test_output=test_output,
         )
+        self._ensure_layout_context()
         if missing_modules:
             nudge = nudge_for_missing_local_modules(missing_modules)
         elif (
@@ -843,6 +958,55 @@ class AgentLoop:
             nudge = nudge_after_fix_pipeline()
         retries.pipeline_fallbacks += 1
         self.conversation.append("user", nudge.user_message)
+
+    def _ensure_layout_context(self) -> None:
+        """Load repository layout before mutation work when it is still unknown."""
+
+        if self.conversation.layout_known():
+            return
+        self._notify_activity("Listing repository layout...")
+        result = self.conversation.execute_tool(
+            "list_files",
+            {},
+            require_confirmation=False,
+        )
+        if self.trace is not None:
+            self.trace.record_tool_result(
+                "list_files",
+                success=result.success,
+                output=result.output or result.error or "",
+                metadata=result.metadata,
+            )
+
+    def _redirect_propose_file_without_layout(
+        self,
+        response: LLMResponse,
+        *,
+        step: int,
+        step_limit: int,
+    ) -> None:
+        """Load layout and ask the model to retry propose_file with a valid path."""
+
+        self._ensure_layout_context()
+        nudge = (
+            nudge_after_layout_loaded()
+            if self.conversation.layout_known()
+            else nudge_for_layout_required()
+        )
+        if self.trace is not None:
+            self.trace.record_nudge(nudge.user_message)
+            self.trace.record_tool_result(
+                "propose_file",
+                success=False,
+                output="Repository layout must be loaded before propose_file.",
+            )
+        self.conversation.append_nudge(
+            Conversation.format_tool_call(
+                response.tool_name,
+                response.arguments,
+            ),
+            nudge.user_message,
+        )
 
     def _handle_tool_call(
         self,
@@ -859,7 +1023,9 @@ class AgentLoop:
         tool_name = response.tool_name or ""
         self._notify_activity(f"Running tool `{tool_name}`...")
         if self._should_redirect_search_to_read(
-            tool_name, mutation_workflow=mutation_workflow
+            tool_name,
+            mutation_workflow=mutation_workflow,
+            intent=intent,
         ):
             paths = self.conversation.unread_search_code_paths()
             nudge = nudge_for_read_file_instead_of_search(
@@ -997,8 +1163,13 @@ class AgentLoop:
         tool_name: str,
         *,
         mutation_workflow: bool,
+        intent: TaskIntent,
     ) -> bool:
         if tool_name != "search_code":
+            return False
+        if intent is TaskIntent.CREATE and not self.conversation.tool_was_used(
+            "propose_file"
+        ):
             return False
         if not mutation_workflow and not self.conversation.tool_was_used("run_tests"):
             return False
@@ -1010,7 +1181,7 @@ class AgentLoop:
             if message.role == "assistant"
             and message.content.startswith("Called tool=search_code")
         )
-        return search_calls >= 1
+        return search_calls >= 2
 
     def _handle_clarification(
         self,

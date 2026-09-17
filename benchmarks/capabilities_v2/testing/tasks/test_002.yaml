@@ -1,0 +1,21 @@
+id: test_002
+name: ascii_slug
+repository: ascii_slug
+category: create
+capability: regression_test_design
+difficulty: intermediate
+instruction: "Create only test_slug.py with pytest tests for slugify(text) in slug.py. Do\
+  \ not change implementation. Lowercase first, retain only ASCII a-z and 0-9, replace each\
+  \ consecutive run of all other characters with one hyphen, then trim boundary hyphens. Empty\
+  \ or punctuation-only input returns an empty string. Test uppercase, digits, underscores,\
+  \ repeated punctuation, tabs/newlines, boundary separators, empty input and non-ASCII characters:\
+  \ caf\xE9 -> caf, a\xE9b -> a-b, \u4E2D\u6587 -> empty string. No transliteration."
+allowed_files:
+- test_slug.py
+grader: ../graders/ascii_slug
+max_steps: 18
+success_command:
+- python3
+- -m
+- pytest
+- -q

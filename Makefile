@@ -4,7 +4,8 @@ test:
 	pytest
 
 lint:
-	python -m compileall src tests
+	ruff check src tests benchmarks/development benchmarks/capabilities_v2
+	ruff format --check src tests benchmarks/development benchmarks/capabilities_v2
 
 format:
-	python -m black src tests
+	ruff format src tests benchmarks/development benchmarks/capabilities_v2

@@ -1,0 +1,33 @@
+--- a/config.py
++++ b/config.py
+@@ -1,4 +1,29 @@
+ def parse_bool(value, default=False):
++    """
++    Parse a boolean value from input.
++
++    - None returns default
++    - True/False remain unchanged
++    - Strings are stripped and case-insensitive
++    - true/1/yes/on → True
++    - false/0/no/off → False
++    - Other strings raise ValueError
++    - Non-string non-bool values raise TypeError
++    """
+     if value is None:
+         return default
+-    return bool(value)
++
++    if isinstance(value, bool):
++        return value
++
++    if not isinstance(value, str):
++        raise TypeError(f"Expected bool or str, got {type(value).__name__}")
++
++    stripped = value.strip().lower()
++
++    if stripped in ('true', '1', 'yes', 'on'):
++        return True
++    elif stripped in ('false', '0', 'no', 'off'):
++        return False
++    else:
++        raise ValueError(f"Invalid boolean value: '{value}'")

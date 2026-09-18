@@ -1,0 +1,74 @@
+F.....                                                                   [100%]
+=================================== FAILURES ===================================
+_____________________ test_ready_queue_and_implicit_nodes ______________________
+
+    def test_ready_queue_and_implicit_nodes():
+        graph = {"a": ["b", "b"], "z": [], "d": ["c"]}
+        before = deepcopy(graph)
+>       assert build_order(graph) == ["b", "a", "c", "d", "z"]
+               ^^^^^^^^^^^^^^^^^^
+
+_benchmark_checks/test_acceptance.py:10: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+graph = {'a': ['b', 'b'], 'z': [], 'd': ['c']}
+
+    def build_order(graph):
+        """
+        Perform topological sort with lexicographic ordering at each step.
+    
+        Args:
+            graph: dict mapping task names to lists of prerequisite tasks
+    
+        Returns:
+            List of tasks in topological order
+    
+        Raises:
+            ValueError: If there's a cycle in the dependency graph
+        """
+        # Build the set of all nodes (including only prerequisites)
+        all_nodes = set(graph.keys())
+        for prereq in graph.values():
+            all_nodes.update(prereq)
+    
+        # Build adjacency list and in-degree count
+        adj = defaultdict(set)
+        in_degree = defaultdict(int)
+    
+        # Initialize all nodes with in-degree 0, then process edges
+        for node in all_nodes:
+            in_degree[node] = 0
+    
+        # For each task, add edges from its prerequisites to it
+        for task, prereqs in graph.items():
+            in_degree[task] += len(prereqs)
+            for prereq in set(prereqs):  # Unique prerequisites
+                adj[prereq].add(task)
+    
+        # Get all tasks with in-degree 0 (no unmet prerequisites)
+        available = sorted([n for n, d in in_degree.items() if d == 0])
+        result = []
+        processed = set()
+    
+        while available:
+            current = available.pop(0)  # Pick lexicographically smallest first
+            result.append(current)
+            processed.add(current)
+    
+            # Find all tasks that depend on current and update in-degree
+            for task in sorted(adj.get(current, [])):
+                in_degree[task] -= 1
+                if in_degree[task] == 0:
+                    available.append(task)
+    
+            available.sort()
+    
+        # Check for cycles - any remaining nodes weren't processed
+        if len(result) < len(all_nodes):
+>           raise ValueError("Cycle detected in dependency graph")
+E           ValueError: Cycle detected in dependency graph
+
+dependencies.py:55: ValueError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_ready_queue_and_implicit_nodes
+1 failed, 5 passed in 0.03s

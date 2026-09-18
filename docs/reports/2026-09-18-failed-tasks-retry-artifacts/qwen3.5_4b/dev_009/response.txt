@@ -1,0 +1,150 @@
+--- /dev/null
++++ b/test_retry.py
+@@ -0,0 +1,147 @@
++"""Tests for retrying.py retry() functionality."""
++import pytest
++from retrying import retry
++
++
++def test_returns_first_result_without_retries():
++    """Test that first successful result is returned without extra calls."""
++    call_count = 0
++    def operation():
++        nonlocal call_count
++        call_count += 1
++        return 'success'
++
++    result = retry(operation, attempts=3)
++    assert result == 'success'
++    assert call_count == 1
++
++
++def test_retries_on_runtime_error_then_succeeds():
++    """Test that RuntimeError is retried and returns on success."""
++    call_count = 0
++    def operation():
++        nonlocal call_count
++        call_count += 1
++        if call_count < 3:
++            raise RuntimeError('temporary error')
++        return 'success'
++
++    result = retry(operation, attempts=3)
++    assert result == 'success'
++    assert call_count == 3
++
++
++def test_retries_all_attempts_then_raises_runtime_error():
++    """Test that final RuntimeError is propagated after all attempts."""
++    call_count = 0
++    def operation():
++        nonlocal call_count
++        call_count += 1
++        raise RuntimeError('permanently failed')
++
++    with pytest.raises(RuntimeError) as exc_info:
++        retry(operation, attempts=3)
++
++    assert call_count == 3
++    assert str(exc_info.value) == 'permanently failed'
++
++
++def test_attempts_equal_one():
++    """Test boundary case when attempts = 1."""
++    call_count = 0
++    def operation():
++        nonlocal call_count
++        call_count += 1
++        return 'success'
++
++    result = retry(operation, attempts=1)
++    assert result == 'success'
++    assert call_count == 1
++
++
++def test_value_error_when_attempts_less_than_one():
++    """Test that ValueError is raised before calling operation."""
++    def operation():
++        raise RuntimeError('should not be called')
++
++    with pytest.raises(ValueError) as exc_info:
++        retry(operation, attempts=0)
++
++    assert exc_info.value.args[0] == 'attempts must be positive'
++
++
++def test_value_error_when_attempts_negative():
++    """Test that ValueError is raised for negative attempts."""
++    def operation():
++        raise RuntimeError('should not be called')
++
++    with pytest.raises(ValueError) as exc_info:
++        retry(operation, attempts=-1)
++
++    assert exc_info.value.args[0] == 'attempts must be positive'
++
++
++def test_other_exceptions_propagate_immediately():
++    """Test that non-RuntimeError exceptions propagate without retry."""
++    call_count = 0
++    def operation():
++        nonlocal call_count
++        call_count += 1
++        raise ValueError('value error')
++
++    with pytest.raises(ValueError) as exc_info:
++        retry(operation, attempts=3)
++
++    assert call_count == 1
++    assert str(exc_info.value) == 'value error'
++
++
++def test_other_exception_type_propagates():
++    """Test that different exception types propagate immediately."""
++    def operation():
++        raise TypeError('type error')
++
++    with pytest.raises(TypeError):
++        retry(operation, attempts=3)
++
++
++def test_operation_with_multiple_runtime_errors_then_success():
++    """Test multiple RuntimeErrors followed by success within attempts limit."""
++    call_count = 0
++    def operation():
++        nonlocal call_count
++        call_count += 1
++        if call_count <= 2:
++            raise RuntimeError(f'error {call_count}')
++        return 'success'
++
++    result = retry(operation, attempts=5)
++    assert result == 'success'
++    assert call_count == 3  # 2 failures + 1 success
++
++
++def test_operation_with_runtime_error_at_last_attempt():
++    """Test RuntimeError exactly at the last attempt."""
++    call_count = 0
++    def operation():
++        nonlocal call_count
++        call_count += 1
++        if call_count < 3:
++            raise RuntimeError(f'error {call_count}')
++        else:
++            raise RuntimeError('final error')
++
++    with pytest.raises(RuntimeError) as exc_info:
++        retry(operation, attempts=3)
++
++    assert call_count == 3
++    assert str(exc_info.value) == 'final error'
++
++
++def test_operation_returns_none_successfully():
++    """Test that None result is returned without retries."""
++    def operation():
++        return None
++
++    result = retry(operation, attempts=3)
++    assert result is None

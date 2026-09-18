@@ -359,7 +359,8 @@ def nudge_after_fix_pipeline() -> ResponseNudge:
             "Use the read_file results already in the conversation. You MUST call "
             "propose_file with the repository-relative source path and the complete "
             "corrected file content. CASI will generate the unified diff; do not "
-            "write the diff yourself."
+            "write the diff yourself. Ensure your fix satisfies all explicit task "
+            "specifications, types, and edge cases, not just visible tests."
         ),
     )
 
@@ -385,7 +386,8 @@ def nudge_after_create_pipeline() -> ResponseNudge:
             "Use list_files results and the task contract to choose the correct path. "
             "You MUST call propose_file with the repository-relative path and complete "
             "new file content. CASI will generate the unified diff; "
-            "do not write the diff yourself."
+            "do not write the diff yourself. For test-writing tasks, emit tests "
+            "covering happy paths, boundary conditions, and expected exceptions."
         ),
     )
 

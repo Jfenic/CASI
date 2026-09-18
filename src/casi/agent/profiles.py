@@ -219,6 +219,12 @@ PROFILES: dict[TaskIntent, AgentProfile] = {
             "You are the fix specialist.",
             "Call run_tests first and inspect failing files.",
             (
+                "Existing repository tests may only test minimal or happy-path "
+                "cases. You MUST review the entire task specification: handle all "
+                "explicit contracts, input types, edge cases, exceptions, and "
+                "validation even if absent from visible tests."
+            ),
+            (
                 "After files are loaded, you MUST call propose_file with "
                 "the path and complete corrected file content."
             ),
@@ -277,8 +283,9 @@ PROFILES: dict[TaskIntent, AgentProfile] = {
             ),
             (
                 "For test-writing tasks, leave implementation unchanged and propose "
-                "the requested test file. Passing existing tests does not complete "
-                "a request to add tests. Cover the full behavior contract."
+                "the requested test file early. Do not spend steps repeatedly "
+                "searching once files are read. Cover happy path, edge cases, and "
+                "exceptions with pytest.raises."
             ),
             (
                 "Create the missing file with propose_file using the "
@@ -311,13 +318,18 @@ PROFILES: dict[TaskIntent, AgentProfile] = {
             ),
             "Call run_tests to verify existing test status before proposing new tests.",
             (
+                "Prioritize proposing test files early with propose_file once the "
+                "target code is inspected. Do not waste steps in repeated searches."
+            ),
+            (
                 "Propose test files using propose_file, strictly targeted to test "
                 "directories (such as tests/)."
             ),
             "Do not modify production code in src/ or the main package.",
             (
-                "Write deterministic assertions covering boundary conditions, "
-                "type contracts, and exception handling."
+                "Write deterministic assertions covering nominal behavior, "
+                "boundary conditions, type contracts, and exceptions with "
+                "pytest.raises."
             ),
             (
                 "Do not hand-write a diff when propose_file is available "
@@ -453,7 +465,9 @@ PROFILES: dict[TaskIntent, AgentProfile] = {
             ),
             (
                 "When files must change, call propose_file with the "
-                "repository-relative path and complete file content."
+                "repository-relative path and complete file content. "
+                "Ensure changes satisfy all explicit requirements and edge cases, "
+                "not just existing visible tests."
             ),
             (
                 "Do not ask the user for source code, file paths, or "

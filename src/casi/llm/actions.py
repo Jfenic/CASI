@@ -34,7 +34,7 @@ class ProposeFileAction:
     def from_json(cls, text: str) -> ProposeFileAction:
         """Parse and validate model output for a propose_file action."""
 
-        payload: Any = json.loads(text.strip())
+        payload: Any = json.loads(text.strip(), strict=False)
         if not isinstance(payload, dict):
             raise ValueError("Action payload must be a JSON object")
 

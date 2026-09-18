@@ -204,3 +204,21 @@ def test_extract_tool_call_payload_handles_tool_call_type_wrapper() -> None:
         "name": "propose_file",
         "arguments": {"path": "x.py", "content": "y"},
     }
+
+
+def test_parse_response_tolerates_literal_newlines_in_strings() -> None:
+    raw = '{"type":"final","content":"line 1\nline 2"}'
+    response = parse_response(raw)
+    assert response.kind == "final"
+    assert response.content == "line 1\nline 2"
+
+
+def test_extract_tool_call_payload_tolerates_literal_newlines() -> None:
+    raw = (
+        '{"name":"propose_file","arguments":'
+        '{"path":"sales.py","content":"import csv\ndef totals():\n    pass"}}'
+    )
+    payload = extract_tool_call_payload(raw)
+    assert payload is not None
+    assert payload["name"] == "propose_file"
+    assert "import csv\ndef totals():" in str(payload["arguments"]["content"])

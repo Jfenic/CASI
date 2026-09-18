@@ -38,7 +38,7 @@ def parse_response(raw_response: str) -> LLMResponse:
     """Parse a JSON response containing a final answer or tool call."""
 
     try:
-        payload: Any = json.loads(raw_response)
+        payload: Any = json.loads(raw_response, strict=False)
     except json.JSONDecodeError as exc:
         raise ValueError("LLM response must be valid JSON") from exc
 
@@ -115,7 +115,7 @@ def extract_tool_call_payload(text: str) -> dict[str, object] | None:
         return None
 
     try:
-        payload: Any = json.loads(content)
+        payload: Any = json.loads(content, strict=False)
     except json.JSONDecodeError:
         return None
 

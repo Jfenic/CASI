@@ -17,7 +17,7 @@ def extract_diagnosis_payload(response: str) -> dict[str, object] | None:
         if block is not None:
             text = block.group(1)
         try:
-            payload = json.loads(text)
+            payload = json.loads(text, strict=False)
         except json.JSONDecodeError:
             return None
         if not isinstance(payload, dict):

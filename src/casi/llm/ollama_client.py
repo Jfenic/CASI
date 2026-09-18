@@ -411,7 +411,7 @@ class OllamaClient:
                 content = content[4:].strip()
 
         try:
-            payload: Any = json.loads(content)
+            payload: Any = json.loads(content, strict=False)
         except json.JSONDecodeError:
             return None
 
@@ -436,7 +436,7 @@ class OllamaClient:
         arguments = function.get("arguments", {})
         if isinstance(arguments, str):
             try:
-                arguments = json.loads(arguments)
+                arguments = json.loads(arguments, strict=False)
             except json.JSONDecodeError as exc:
                 raise LLMError("Ollama tool arguments are invalid JSON") from exc
         if not isinstance(name, str) or not isinstance(arguments, dict):

@@ -11,12 +11,11 @@ All 5 phases of the Multi-Agent Orchestration feature and the Error Sanitization
  
 ### Summary of Accomplishments
 
-1. **Error Sanitization & Context Bounding (`test_failures.py`, `nudges.py`, `conversation.py`, `ollama_client.py`):**
+1. **Error Sanitization, Context Bounding & Permissive JSON (`test_failures.py`, `nudges.py`, `conversation.py`, `ollama_client.py`, `parser.py`):**
    - Configurable error length conditions (`max_error_output_chars: 1500`, `max_message_chars: 6000`).
    - Strategy-based truncation (`tail`, `head_tail`, `head`, `auto`, `summary`) that preserves critical assertion diffs and test summary blocks while removing hundreds of lines of noise.
-   - Bounded conversation messages sent to Ollama to prevent empty response generation loops.
-   - Prevented runaway stacking of duplicate protocol violation user nudges.
-   - Development benchmark score on `qwen3.5:4b` increased from 5/12 to **10/12 (83.33%)** (`dev_008` and `dev_010` recovered).
+   - Enabled permissive control characters (`strict=False`) in JSON parser across `parser.py`, `actions.py`, `diagnosis.py`, `ollama_client.py` to allow literal newlines in LLM code proposals.
+   - Development benchmark score on `qwen3.5:4b` increased from 5/12 to **11/12 (91.67%)** (`dev_003`, `dev_008`, and `dev_010` recovered).
 
 2. **Anti-Overfitting & Early Test Action Guidance (`pipelines.py`, `profiles.py`):**
    - Palanca 1: Added explicit guidance in FIX pipeline to verify contract types and edge cases beyond visible repo tests.

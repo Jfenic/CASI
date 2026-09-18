@@ -1,0 +1,47 @@
+--- a/sales.py
++++ b/sales.py
+@@ -1,8 +1,40 @@
++import csv
++from io import StringIO
++
+ def totals(text):
+     result = {}
+-    for line in text.splitlines()[1:]:
+-        if not line:
++
++    # Split into lines for CSV parsing
++    reader = csv.reader(StringIO(text))
++
++    try:
++        header = next(reader)
++        if header == []:  # Empty file or only whitespace
++            return {}
++
++        # Find product and quantity columns (1-based, 0-based in Python list)
++        product_col = header.index("product")
++        quantity_col = header.index("quantity")
++    except (ValueError, StopIteration):
++        # Invalid header structure - return empty dict
++        return {}
++
++    for row in reader:
++        # Skip completely blank rows
++        if not row or all(cell.strip() == "" for cell in row):
+             continue
+-        product, quantity = line.split(",")
+-        result[product] = int(quantity)
++
++        # Ensure we have enough columns
++        if len(row) <= max(product_col, quantity_col):
++            continue
++
++        product = row[product_col]
++        try:
++            quantity = int(row[quantity_col])
++        except ValueError:
++            raise ValueError(f"Invalid integer quantity for product '{product}'")
++
++        # Accumulate sum per product
++        result[product] = result.get(product, 0) + quantity
++
+     return result

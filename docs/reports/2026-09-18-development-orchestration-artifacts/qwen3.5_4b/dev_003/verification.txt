@@ -1,0 +1,18 @@
+.F...                                                                    [100%]
+=================================== FAILURES ===================================
+____________________________ test_multiline_product ____________________________
+
+    def test_multiline_product():
+>       assert totals('product,quantity\n"two\nlines",4\n') == {"two\nlines": 4}
+E       AssertionError: assert {'twolines': 4} == {'two\nlines': 4}
+E         
+E         Left contains 1 more item:
+E         {'twolines': 4}
+E         Right contains 1 more item:
+E         {'two\nlines': 4}
+E         Use -v to get more diff
+
+_benchmark_checks/test_acceptance.py:11: AssertionError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_multiline_product - Asserti...
+1 failed, 4 passed in 0.02s

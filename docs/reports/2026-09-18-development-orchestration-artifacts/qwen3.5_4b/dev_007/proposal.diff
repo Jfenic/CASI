@@ -1,0 +1,36 @@
+--- /dev/null
++++ b/reader.py
+@@ -0,0 +1,33 @@
++import json
++
++def read_records(text):
++    """Parse JSON Lines into a list of dictionaries.
++
++    Ignores whitespace-only lines. Each non-blank line must be a valid
++    JSON object. Malformed JSON or non-object values raise ValueError
++    with message containing 'line N'. Physical line numbers start at 1
++    and blank lines are counted.
++    """
++    records = []
++    lines = text.split('\n')
++
++    for line_number, line in enumerate(lines, 1):
++        stripped = line.strip()
++
++        # Skip whitespace-only lines
++        if not stripped:
++            continue
++
++        # Try to parse as JSON
++        try:
++            record = json.loads(stripped)
++        except ValueError:
++            raise ValueError(f"line {line_number}: Invalid JSON")
++
++        # Check if it's a dictionary/object (JSON object must be dict)
++        if not isinstance(record, dict):
++            raise ValueError(f"line {line_number}: Expected object, got {type(record).__name__}")
++
++        records.append(record)
++
++    return records

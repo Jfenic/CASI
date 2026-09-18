@@ -1,0 +1,67 @@
+--- /dev/null
++++ b/dependencies.py
+@@ -0,0 +1,64 @@
++"""Task dependency ordering with lexicographic selection."""
++import heapq
++from collections import defaultdict
++
++
++def build_order(graph):
++    """Return tasks in topological order, selecting lexicographically smallest available at each step.
++
++    Args:
++        graph: dict mapping task name -> list of prerequisites
++
++    Returns:
++        List of tasks in build order
++
++    Raises:
++        ValueError: If there is a cycle in the dependency graph
++    """
++    if not graph:
++        return []
++
++    # Collect all tasks (both as keys and as prerequisite values)
++    all_tasks = set(graph.keys())
++    for prereq_list in graph.values():
++        all_tasks.update(prereq_list)
++
++    n = len(all_tasks)
++
++    # Track in-degree: number of unprocessed prerequisites
++    in_degree = {task: 0 for task in all_tasks}
++
++    # Build adjacency list: reverse dependencies (who depends on this task)
++    dependents = defaultdict(set)  # task -> set of tasks that depend on it
++
++    for task, prereqs in graph.items():
++        for prereq in prereqs:
++            if prereq not in all_tasks:
++                raise ValueError(f"Unknown prerequisite {prereq}")
++            in_degree[task] += 1
++            dependents[prereq].add(task)
++
++    # Min-heap to store tasks whose prerequisites are satisfied
++    # Always picks lexicographically smallest
++    heap = [task for task, deg in in_degree.items() if deg == 0]
++    heapq.heapify(heap)
++
++    result = []
++    processed_count = 0
++
++    while heap:
++        task = heapq.heappop(heap)
++        result.append(task)
++        processed_count += 1
++
++        # Update dependents: decrement their in-degree
++        for dependent in dependents[task]:
++            in_degree[dependent] -= 1
++            if in_degree[dependent] == 0:
++                heapq.heappush(heap, dependent)
++
++    # Check for cycle: all tasks must have been processed
++    if processed_count < n:
++        raise ValueError("Cycle detected in dependency graph")
++
++    return result

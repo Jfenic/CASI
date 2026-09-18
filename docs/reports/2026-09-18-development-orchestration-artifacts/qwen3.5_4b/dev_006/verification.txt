@@ -1,0 +1,32 @@
+F.F                                                                      [100%]
+=================================== FAILURES ===================================
+_________________________ test_no_aliases_or_mutations _________________________
+
+    def test_no_aliases_or_mutations():
+        defaults = {"db": {"ports": [1], "flags": {"a": True}}, "extra": [{"x": 1}]}
+        overrides = {"db": {"name": "main"}, "custom": [{"y": 2}]}
+        before = (deepcopy(defaults), deepcopy(overrides))
+        result = merge_settings(defaults, overrides)
+        assert (defaults, overrides) == before
+>       result["db"]["ports"].append(2)
+        ^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'ports'
+
+_benchmark_checks/test_acceptance.py:12: KeyError
+_____________________________ test_recursive_merge _____________________________
+
+    def test_recursive_merge():
+>       assert merge_settings(
+            {"db": {"host": "local", "port": 10}}, {"db": {"port": 20}}
+        ) == {"db": {"host": "local", "port": 20}}
+E       AssertionError: assert {'db': {'port': 20}} == {'db': {'host..., 'port': 20}}
+E         
+E         Differing items:
+E         {'db': {'port': 20}} != {'db': {'host': 'local', 'port': 20}}
+E         Use -v to get more diff
+
+test_visible.py:5: AssertionError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_no_aliases_or_mutations - K...
+FAILED test_visible.py::test_recursive_merge - AssertionError: assert {'db': ...
+2 failed, 1 passed in 0.03s

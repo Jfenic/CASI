@@ -1,0 +1,42 @@
+--- a/config.py
++++ b/config.py
+@@ -1,4 +1,38 @@
+ def parse_bool(value, default=False):
++    """Parse boolean value from various input types.
++
++    None returns default.
++    Booleans remain unchanged.
++    Strings are stripped and case-insensitive:
++    - true/1/yes/on → True
++    - false/0/no/off → False
++    - Other strings raise ValueError
++    Non-string non-bool values raise TypeError.
++    """
++    # Handle None - return default
+     if value is None:
+         return default
+-    return bool(value)
++
++    # Handle boolean types - return unchanged
++    if isinstance(value, bool):
++        return value
++
++    # Check if value can be converted to string
++    try:
++        str_value = str(value)
++    except TypeError:
++        raise TypeError(f"Cannot convert {type(value).__name__} to string for boolean parsing")
++
++    # Strip whitespace and convert to lowercase
++    str_value = str_value.strip().lower()
++
++    # Check for True values
++    if str_value in ("true", "1", "yes", "on"):
++        return True
++
++    # Check for False values
++    if str_value in ("false", "0", "no", "off"):
++        return False
++
++    # Any unrecognized string value raises ValueError
++    raise ValueError(f"Invalid boolean representation: '{str_value}'")

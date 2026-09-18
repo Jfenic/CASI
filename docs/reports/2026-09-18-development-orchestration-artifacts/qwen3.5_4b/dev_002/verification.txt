@@ -1,0 +1,138 @@
+..............FFFF.                                                      [100%]
+=================================== FAILURES ===================================
+_______________________________ test_bad_type[0] _______________________________
+
+value = 0
+
+    @pytest.mark.parametrize("value", [0, 1, [], {}])
+    def test_bad_type(value):
+>       with pytest.raises(TypeError):
+E       Failed: DID NOT RAISE TypeError
+
+_benchmark_checks/test_acceptance.py:28: Failed
+_______________________________ test_bad_type[1] _______________________________
+
+value = 1
+
+    @pytest.mark.parametrize("value", [0, 1, [], {}])
+    def test_bad_type(value):
+>       with pytest.raises(TypeError):
+E       Failed: DID NOT RAISE TypeError
+
+_benchmark_checks/test_acceptance.py:28: Failed
+____________________________ test_bad_type[value2] _____________________________
+
+value = []
+
+    @pytest.mark.parametrize("value", [0, 1, [], {}])
+    def test_bad_type(value):
+        with pytest.raises(TypeError):
+>           parse_bool(value)
+
+_benchmark_checks/test_acceptance.py:29: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+value = [], default = False
+
+    def parse_bool(value, default=False):
+        """Parse boolean value from various input types.
+    
+        None returns default.
+        Booleans remain unchanged.
+        Strings are stripped and case-insensitive:
+        - true/1/yes/on → True
+        - false/0/no/off → False
+        - Other strings raise ValueError
+        Non-string non-bool values raise TypeError.
+        """
+        # Handle None - return default
+        if value is None:
+            return default
+    
+        # Handle boolean types - return unchanged
+        if isinstance(value, bool):
+            return value
+    
+        # Check if value can be converted to string
+        try:
+            str_value = str(value)
+        except TypeError:
+            raise TypeError(f"Cannot convert {type(value).__name__} to string for boolean parsing")
+    
+        # Strip whitespace and convert to lowercase
+        str_value = str_value.strip().lower()
+    
+        # Check for True values
+        if str_value in ("true", "1", "yes", "on"):
+            return True
+    
+        # Check for False values
+        if str_value in ("false", "0", "no", "off"):
+            return False
+    
+        # Any unrecognized string value raises ValueError
+>       raise ValueError(f"Invalid boolean representation: '{str_value}'")
+E       ValueError: Invalid boolean representation: '[]'
+
+config.py:38: ValueError
+____________________________ test_bad_type[value3] _____________________________
+
+value = {}
+
+    @pytest.mark.parametrize("value", [0, 1, [], {}])
+    def test_bad_type(value):
+        with pytest.raises(TypeError):
+>           parse_bool(value)
+
+_benchmark_checks/test_acceptance.py:29: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+value = {}, default = False
+
+    def parse_bool(value, default=False):
+        """Parse boolean value from various input types.
+    
+        None returns default.
+        Booleans remain unchanged.
+        Strings are stripped and case-insensitive:
+        - true/1/yes/on → True
+        - false/0/no/off → False
+        - Other strings raise ValueError
+        Non-string non-bool values raise TypeError.
+        """
+        # Handle None - return default
+        if value is None:
+            return default
+    
+        # Handle boolean types - return unchanged
+        if isinstance(value, bool):
+            return value
+    
+        # Check if value can be converted to string
+        try:
+            str_value = str(value)
+        except TypeError:
+            raise TypeError(f"Cannot convert {type(value).__name__} to string for boolean parsing")
+    
+        # Strip whitespace and convert to lowercase
+        str_value = str_value.strip().lower()
+    
+        # Check for True values
+        if str_value in ("true", "1", "yes", "on"):
+            return True
+    
+        # Check for False values
+        if str_value in ("false", "0", "no", "off"):
+            return False
+    
+        # Any unrecognized string value raises ValueError
+>       raise ValueError(f"Invalid boolean representation: '{str_value}'")
+E       ValueError: Invalid boolean representation: '{}'
+
+config.py:38: ValueError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_bad_type[0] - Failed: DID N...
+FAILED _benchmark_checks/test_acceptance.py::test_bad_type[1] - Failed: DID N...
+FAILED _benchmark_checks/test_acceptance.py::test_bad_type[value2] - ValueErr...
+FAILED _benchmark_checks/test_acceptance.py::test_bad_type[value3] - ValueErr...
+4 failed, 15 passed in 0.04s

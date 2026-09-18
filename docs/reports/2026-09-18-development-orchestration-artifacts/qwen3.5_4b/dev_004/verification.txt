@@ -1,0 +1,19 @@
+...F..                                                                   [100%]
+=================================== FAILURES ===================================
+___________________________ test_precision_and_input ___________________________
+
+    def test_precision_and_input():
+        lines = [("9007199254740993.01", 1), ("0.10", 3)]
+        before = list(lines)
+>       assert invoice_total(lines) == "9007199254740993.31"
+E       AssertionError: assert '9007199254740994.00' == '9007199254740993.31'
+E         
+E         - 9007199254740993.31
+E         ?                ^ ^^
+E         + 9007199254740994.00
+E         ?                ^ ^^
+
+_benchmark_checks/test_acceptance.py:21: AssertionError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_precision_and_input - Asser...
+1 failed, 5 passed in 0.02s

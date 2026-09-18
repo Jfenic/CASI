@@ -423,10 +423,23 @@ class Conversation:
 
     @staticmethod
     def format_tool_result(tool_name: str | None, result: ToolResult) -> str:
+        output = result.output
+        if tool_name == "run_tests" and not result.success:
+            from casi.agent.test_failures import sanitize_and_compact_error
+
+            output = sanitize_and_compact_error(output)
+        elif len(output) > settings.max_command_output_chars:
+            from casi.agent.test_failures import truncate_by_strategy
+
+            output = truncate_by_strategy(
+                output,
+                max_chars=settings.max_command_output_chars,
+                strategy="tail",
+            )
         return (
             f"tool={tool_name}\n"
             f"success={result.success}\n"
-            f"output={result.output}\n"
+            f"output={output}\n"
             f"error={result.error}"
         )
 

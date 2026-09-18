@@ -433,11 +433,20 @@ class AgentLoop:
                         step, step_limit, "error", duration_ms
                     )
                     self.trace.record_nudge(f"empty model response: {exc}")
-                self.conversation.append(
-                    "user",
-                    "Protocol violation: the model returned no usable content. "
-                    "Retry with the required structured action for this phase.",
+                last_msg = (
+                    self.conversation.messages[-1].content
+                    if self.conversation.messages
+                    else ""
                 )
+                if (
+                    "Protocol violation: the model returned no usable content"
+                    not in last_msg
+                ):
+                    self.conversation.append(
+                        "user",
+                        "Protocol violation: the model returned no usable content. "
+                        "Retry with the required structured action for this phase.",
+                    )
                 continue
             duration_ms = (time.perf_counter() - started) * 1000
             if self.trace is not None:

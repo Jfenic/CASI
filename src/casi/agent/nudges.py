@@ -9,6 +9,7 @@ from casi.agent.failure_classification import FailureKind, failure_kind_label
 from casi.agent.test_failures import (
     extract_assertion_mismatches,
     output_reports_failures,
+    sanitize_and_compact_error,
     summarize_test_failures,
 )
 
@@ -182,10 +183,11 @@ def nudge_for_read_file_instead_of_search(
 
 
 def nudge_for_corrupt_patch(output: str) -> ResponseNudge:
+    compact_output = sanitize_and_compact_error(output)
     return ResponseNudge(
         user_message=(
             f"{_PREFIX_CORRUPT_PATCH}.\n"
-            f"Output:\n{output}\n"
+            f"Output:\n{compact_output}\n"
             f"Do not hand-write a unified diff. {_PROPOSE_FILE_INSTRUCTION} "
             f"{_PREFIX_PATCH_CORRECTION} that fixes the failures."
         ),
@@ -266,15 +268,16 @@ def nudge_for_patch_correction(
     *,
     failure_kind: FailureKind | None = None,
 ) -> ResponseNudge:
+    compact_output = sanitize_and_compact_error(output)
     if failure_kind is not None:
-        return nudge_for_failure_kind(failure_kind, reason, output)
+        return nudge_for_failure_kind(failure_kind, reason, compact_output)
     if "corrupt patch" in output.lower():
-        return nudge_for_corrupt_patch(output)
+        return nudge_for_corrupt_patch(compact_output)
     assertion_hints = _assertion_correction_hints(output)
     return ResponseNudge(
         user_message=(
             f"{reason}\n"
-            f"Output:\n{output}\n"
+            f"Output:\n{compact_output}\n"
             f"{_PREFIX_PATCH_CORRECTION} that fixes the failures.{assertion_hints} "
             "Do not repeat the same change. Read the failed assertion carefully, "
             f"work out the expected value, and {_PROPOSE_FILE_INSTRUCTION}"
@@ -289,6 +292,7 @@ def nudge_for_failure_kind(
 ) -> ResponseNudge:
     """Return a recovery nudge tailored to the classified failure kind."""
 
+    compact_output = sanitize_and_compact_error(output)
     label = failure_kind_label(kind)
     guidance = _FAILURE_GUIDANCE[kind]
     assertion_hints = ""
@@ -298,7 +302,7 @@ def nudge_for_failure_kind(
         user_message=(
             f"{reason}\n"
             f"Failure kind: {kind.value} ({label}).\n"
-            f"Output:\n{output}\n"
+            f"Output:\n{compact_output}\n"
             f"{guidance}{assertion_hints} {_PROPOSE_FILE_INSTRUCTION}"
         ),
     )

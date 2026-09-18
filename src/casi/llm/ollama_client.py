@@ -83,7 +83,10 @@ class OllamaClient:
                     ),
                 },
                 *[
-                    {"role": message.role, "content": message.content}
+                    {
+                        "role": message.role,
+                        "content": self._bound_message_content(message.content),
+                    }
                     for message in messages
                 ],
             ],
@@ -158,6 +161,18 @@ class OllamaClient:
             parsed_action.as_tool_arguments(),
         )
 
+    @staticmethod
+    def _bound_message_content(content: str) -> str:
+        if len(content) <= settings.max_message_chars:
+            return content
+        from casi.agent.test_failures import truncate_by_strategy
+
+        return truncate_by_strategy(
+            content,
+            max_chars=settings.max_message_chars,
+            strategy="tail",
+        )
+
     def _complete(
         self,
         messages: Sequence[ChatMessage],
@@ -183,7 +198,10 @@ class OllamaClient:
                     ),
                 },
                 *[
-                    {"role": message.role, "content": message.content}
+                    {
+                        "role": message.role,
+                        "content": self._bound_message_content(message.content),
+                    }
                     for message in messages
                 ],
             ],

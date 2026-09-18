@@ -64,6 +64,11 @@ class Settings:
         "assist",
     )
     ollama_think_mode: str = os.getenv("LOCALCODE_AGENT_OLLAMA_THINK", "auto")
+    max_error_output_chars: int = int(
+        os.getenv("LOCALCODE_AGENT_MAX_ERROR_OUTPUT", "1500")
+    )
+    error_truncation_strategy: str = os.getenv("LOCALCODE_AGENT_ERROR_STRATEGY", "auto")
+    max_message_chars: int = int(os.getenv("LOCALCODE_AGENT_MAX_MESSAGE_CHARS", "6000"))
 
 
 settings = Settings()

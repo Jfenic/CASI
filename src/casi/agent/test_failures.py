@@ -74,3 +74,93 @@ def output_reports_failures(test_output: str) -> bool:
     if extract_failure_paths(test_output) or _FAILED_TEST_LINE.search(test_output):
         return True
     return "errors" in lowered
+
+
+def truncate_by_strategy(
+    text: str,
+    max_chars: int,
+    strategy: str = "tail",
+) -> str:
+    """Truncate text according to the given strategy when exceeding max_chars.
+
+    Strategies:
+    - 'tail': Preserve the end of the text (ideal for tracebacks and logs).
+    - 'head_tail': Preserve both beginning and end with an omission marker.
+    - 'head': Preserve the beginning of the text.
+    """
+    if len(text) <= max_chars:
+        return text
+
+    if strategy == "head":
+        marker = "\n[... salida truncada ...]"
+        budget = max(max_chars - len(marker), 10)
+        return text[:budget] + marker
+
+    if strategy == "head_tail":
+        marker = "\n[... omitido ...]\n"
+        available = max_chars - len(marker)
+        if available <= 10:
+            return text[-max_chars:]
+        head_len = max(available // 3, 5)
+        tail_len = max(available - head_len, 5)
+        head = text[:head_len]
+        tail = text[-tail_len:]
+        first_nl = tail.find("\n")
+        if first_nl != -1 and first_nl < tail_len // 3:
+            tail = tail[first_nl + 1 :]
+        return f"{head}{marker}{tail}"
+
+    # Default: 'tail' (quedarse con lo último)
+    marker = "[... salida truncada ...]\n"
+    budget = max(max_chars - len(marker), 20)
+    tail = text[-budget:]
+    first_nl = tail.find("\n")
+    if first_nl != -1 and first_nl < budget // 3:
+        tail = tail[first_nl + 1 :]
+    return f"{marker}{tail}"
+
+
+def sanitize_and_compact_error(
+    output: str,
+    *,
+    max_chars: int | None = None,
+    strategy: str | None = None,
+) -> str:
+    """Sanitize and compact test/command error output based on length and strategy."""
+    from casi.config import settings
+
+    limit = max_chars if max_chars is not None else settings.max_error_output_chars
+    strat = strategy if strategy is not None else settings.error_truncation_strategy
+
+    cleaned = output.strip()
+    if len(cleaned) <= limit:
+        return cleaned
+
+    if strat == "summary":
+        summary = summarize_test_failures(cleaned)
+        mismatches = extract_assertion_mismatches(cleaned)
+        parts = [f"Resumen de fallos: {summary}"]
+        if mismatches:
+            hints = [
+                f"esperado {exp!r}, pero obtuvo {act!r}" for act, exp in mismatches
+            ]
+            parts.append(f"Aserciones fallidas: {'; '.join(hints)}")
+        return "\n".join(parts)
+
+    if strat == "auto":
+        failures_idx = cleaned.find("= FAILURES =")
+        short_summary_idx = cleaned.find("= short test summary info =")
+
+        if failures_idx != -1:
+            extracted = cleaned[failures_idx:].strip()
+            if len(extracted) <= limit:
+                return extracted
+            return truncate_by_strategy(extracted, limit, strategy="tail")
+        if short_summary_idx != -1:
+            extracted = cleaned[short_summary_idx:].strip()
+            if len(extracted) <= limit:
+                return extracted
+            return truncate_by_strategy(extracted, limit, strategy="tail")
+        return truncate_by_strategy(cleaned, limit, strategy="tail")
+
+    return truncate_by_strategy(cleaned, limit, strategy=strat)

@@ -1,0 +1,52 @@
+--- /dev/null
++++ b/dependencies.py
+@@ -0,0 +1,49 @@
++import heapq
++
++
++def build_order(graph):
++    # Find all nodes (tasks that appear as keys or in prerequisite lists)
++    all_nodes = set()
++    for task in graph:
++        all_nodes.add(task)
++    for prereq in graph.values():
++        all_nodes.update(prereq)
++
++    if not all_nodes:
++        return []
++
++    # Calculate in-degree (number of prerequisites) for each node
++    in_degree = {node: 0 for node in all_nodes}
++
++    # Build adjacency list: who depends on whom
++    dependents = {node: [] for node in all_nodes}
++
++    for task, prereqs in graph.items():
++        for prereq in prereqs:
++            if prereq not in dependents:
++                dependents[prereq] = []
++            dependents[prereq].append(task)
++            in_degree[task] += 1
++
++    # Start with nodes that have no prerequisites, add to min-heap for lex ordering
++    heap = [node for node, degree in in_degree.items() if degree == 0]
++    heapq.heapify(heap)
++
++    result = []
++
++    while heap:
++        # Select lexicographically smallest available node
++        current = heapq.heappop(heap)
++        result.append(current)
++
++        # Update dependent nodes
++        for dependent in dependents[current]:
++            in_degree[dependent] -= 1
++            if in_degree[dependent] == 0:
++                heapq.heappush(heap, dependent)
++
++    # Check for cycles - we should have processed all nodes
++    if len(result) != len(all_nodes):
++        raise ValueError("Cycle detected")
++
++    return result

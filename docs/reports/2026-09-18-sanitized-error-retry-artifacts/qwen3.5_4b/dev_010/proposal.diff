@@ -1,0 +1,56 @@
+--- /dev/null
++++ b/test_slug.py
+@@ -0,0 +1,53 @@
++import pytest
++from slug import slugify
++
++def test_basic_lowercase():
++    assert slugify("Hello World") == "hello-world"
++
++def test_uppercase_letters():
++    assert slugify("HELLO WORLD") == "hello-world"
++
++def test_mixed_case():
++    assert slugify("HeLLo WoRLd") == "hello-world"
++
++def test_digits():
++    assert slugify("123456") == "123456"
++
++def test_alphanumeric():
++    assert slugify("Test123Example") == "test123example"
++
++def test_punctuation():
++    assert slugify("Hello!") == "hello"
++
++def test_consecutive_runners():
++    assert slugify("Hello...World!!!") == "hello-world"
++
++def test_space_separator():
++    assert slugify("a  b   c") == "a-b-c"
++
++def test_hyphen_separator():
++    assert slugify("a---b--c") == "a-b-c"
++
++def test_boundary_hyphens():
++    assert slugify("-hello-") == "hello"
++
++def test_leading_trailing_mixed():
++    assert slugify("-hello world-!") == "hello-world"
++
++def test_empty_input():
++    assert slugify("") == ""
++
++def test_punctuation_only():
++    assert slugify("!!!@@@") == ""
++
++def test_special_chars():
++    assert slugify("Test,Path\nWith\tSpaces!") == "test-path-with-spaces"
++
++def test_numeric_boundary():
++    assert slugify("1a2b3") == "1a2b3"
++
++def test_all_special_run():
++    assert slugify("!!!...") == ""
++
++def test_single_char_preserved():
++    assert slugify("a") == "a"

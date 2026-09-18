@@ -328,7 +328,12 @@ def run_repository_pipeline(
     if intent == TaskIntent.DIAGNOSE:
         run_diagnose_pipeline(context, execute, repository_path=repository_path)
         return
-    if intent in {TaskIntent.INSPECT, TaskIntent.UNKNOWN}:
+    if intent in {
+        TaskIntent.INSPECT,
+        TaskIntent.EXPLAIN,
+        TaskIntent.SECURITY,
+        TaskIntent.UNKNOWN,
+    }:
         if extract_search_targets(context):
             run_inspect_pipeline(context, execute, repository_path=repository_path)
         else:
@@ -337,7 +342,13 @@ def run_repository_pipeline(
     if intent == TaskIntent.GIT_STATUS:
         run_git_status_pipeline(execute)
         return
-    if intent in {TaskIntent.FIX, TaskIntent.ML, TaskIntent.CREATE}:
+    if intent in {
+        TaskIntent.FIX,
+        TaskIntent.ML,
+        TaskIntent.CREATE,
+        TaskIntent.TEST_ENGINEER,
+        TaskIntent.REFACTOR,
+    }:
         run_fix_pipeline(context, execute, repository_path=repository_path)
 
 
@@ -379,7 +390,22 @@ def nudge_after_create_pipeline() -> ResponseNudge:
     )
 
 
+def nudge_after_explain_pipeline() -> ResponseNudge:
+    return ResponseNudge(
+        user_message=(
+            f"{PIPELINE_FALLBACK_PREFIX} 'explain' loaded target files and "
+            "repository context. "
+            "Synthesize your explanation using the 5 technical sections: "
+            "1. Propósito General, 2. Componentes Clave (Clases y Funciones), "
+            "3. Dependencias e Interacciones, 4. Flujo de Datos y Ejecución, "
+            "5. Puntos Clave para el Proyecto."
+        ),
+    )
+
+
 def nudge_after_pipeline_fallback(intent: TaskIntent) -> ResponseNudge:
+    if intent is TaskIntent.EXPLAIN:
+        return nudge_after_explain_pipeline()
     return ResponseNudge(
         user_message=(
             f"{PIPELINE_FALLBACK_PREFIX} '{intent.value}' is now available "

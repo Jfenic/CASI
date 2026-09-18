@@ -77,10 +77,16 @@ class AgentFactory:
         routing_mode: str | RoutingMode | None = None,
         response_policy: ResponsePolicy | None = None,
         registry: ToolRegistry | None = None,
+        plan_instructions: str = "",
+        custom_role: str | None = None,
     ) -> SpecializedAgent:
         """Instantiate an agent for a known objective."""
 
         profile = resolve_profile(objective)
+        if plan_instructions:
+            profile = profile.with_instructions(plan_instructions)
+        if custom_role:
+            profile = profile.with_personality(role=custom_role)
         profiled_client = _client_for_profile(client, profile)
         tool_registry = registry or ToolRegistry(repository)
         loop = AgentLoop(

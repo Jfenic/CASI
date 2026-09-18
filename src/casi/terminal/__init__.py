@@ -14,8 +14,10 @@ from casi.terminal.diff_view import (
 )
 from casi.terminal.fold import fold_output
 from casi.terminal.line_editor import setup_line_editing
+from casi.terminal.memento import PatchMemento, PatchMementoStack
 from casi.terminal.presenter import PresenterProtocol, TerminalPresenter
 from casi.terminal.review import PatchAction, parse_patch_action, review_patch
+from casi.terminal.session_metrics import SessionMetrics, format_session_summary
 from casi.terminal.spinner import Spinner, status
 from casi.terminal.test_summary import (
     ParsedTestResult,
@@ -32,7 +34,10 @@ __all__ = [
     "InteractiveCompleter",
     "ParsedTestResult",
     "PatchAction",
+    "PatchMemento",
+    "PatchMementoStack",
     "PresenterProtocol",
+    "SessionMetrics",
     "Spinner",
     "TerminalPresenter",
     "Theme",
@@ -41,6 +46,7 @@ __all__ = [
     "extract_file_mentions",
     "fold_output",
     "format_compact_diff",
+    "format_session_summary",
     "format_test_summary",
     "parse_patch_action",
     "parse_test_output",

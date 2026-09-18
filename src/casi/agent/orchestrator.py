@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from casi.agent.conversation import ContextCompactNotifier, ContextCompactPrompt
+from casi.agent.evaluator import LLMTaskEvaluator
 from casi.agent.factory import AgentFactory, SpecializedAgent, ToolConfirmation
 from casi.agent.intent import RoutingMode, TaskIntent
 from casi.agent.permissions import (
@@ -124,10 +125,14 @@ class AgentOrchestrator:
             )
             self.trace.mark_started()
 
+        evaluator = (
+            LLMTaskEvaluator(self.client) if self.routing_mode != "off" else None
+        )
         plan = TaskPlanner.create_plan(
             task,
             self.session_messages,
             category=category,
+            evaluator=evaluator,
         )
         if plan.step_count() == 0:
             return OrchestratorResult(success=False, error="Task must not be empty")
@@ -276,7 +281,7 @@ class AgentOrchestrator:
                         },
                     )
                 step_task = self._build_step_task(step, step_results)
-                agent = self._create_agent(step.objective, segment)
+                agent = self._create_agent(step.objective, segment, step=step)
                 pending = PendingOrchestration(
                     plan=plan,
                     segment_index=segment_index,
@@ -341,7 +346,11 @@ class AgentOrchestrator:
         self,
         objective: TaskIntent | str,
         segment: PlanSegment,
+        *,
+        step: AgentPlanStep | None = None,
     ) -> SpecializedAgent:
+        plan_instructions = step.plan_instructions if step is not None else ""
+        custom_role = step.agent_role if step is not None else None
         return AgentFactory.create(
             objective,
             client=self.client,
@@ -357,6 +366,8 @@ class AgentOrchestrator:
             routing_mode=self.routing_mode,
             response_policy=self.response_policy,
             registry=self.registry,
+            plan_instructions=plan_instructions,
+            custom_role=custom_role,
         )
 
     def _confirmation_for_segment(
@@ -379,14 +390,20 @@ class AgentOrchestrator:
     def _build_step_task(
         step: AgentPlanStep, prior_results: list[AgentStepResult]
     ) -> str:
+        base_task = step.task
+        if step.plan_instructions and step.objective is TaskIntent.EXPLAIN:
+            base_task = (
+                f"{step.task}\n\n"
+                f"Orchestrator plan instructions:\n{step.plan_instructions}"
+            )
         if not prior_results:
-            return step.task
+            return base_task
         summary = prior_results[-1].result.response.strip()
         if not summary:
-            return step.task
+            return base_task
         compact = summary if len(summary) <= 800 else f"{summary[:797]}..."
         return (
-            f"{step.task}\n\n"
+            f"{base_task}\n\n"
             f"Context from previous agent ({prior_results[-1].step.agent_name}):\n"
             f"{compact}"
         )

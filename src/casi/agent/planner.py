@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from casi.agent.intent import (
     TaskIntent,
     build_task_context,
-    is_fast_path_intent,
     resolve_task_intent,
 )
 from casi.agent.permissions import PermissionTier
@@ -19,6 +19,10 @@ _FAST_PATH_TOOLS_GOAL = {
     TaskIntent.META: "direct answer",
     TaskIntent.RECALL_PLAN: "get_session_plan",
     TaskIntent.GIT_STATUS: "git_diff",
+    TaskIntent.EXPLAIN: "read_file and search_code for structured explanation",
+    TaskIntent.SECURITY: "read_file and search_code for security audit",
+    TaskIntent.TEST_ENGINEER: "run_tests and propose_file in test directories",
+    TaskIntent.REFACTOR: "run_tests and propose_file preserving behavior",
 }
 
 
@@ -32,6 +36,28 @@ class AgentPlanStep:
     agent_name: str
     agent_role: str
     tools_goal: str
+    plan_instructions: str = ""
+    tools_needed: tuple[str, ...] = ()
+
+    @classmethod
+    def from_evaluation(
+        cls,
+        task: str,
+        evaluation: Any,
+    ) -> AgentPlanStep:
+        return cls(
+            objective=evaluation.objective,
+            task=task.strip(),
+            tier=PermissionTier.READ,
+            agent_name=evaluation.agent_name,
+            agent_role=evaluation.agent_role,
+            tools_goal=_FAST_PATH_TOOLS_GOAL.get(
+                evaluation.objective,
+                ", ".join(evaluation.tools_needed) or "repository tools as needed",
+            ),
+            plan_instructions=evaluation.plan_instructions,
+            tools_needed=tuple(evaluation.tools_needed),
+        )
 
     @classmethod
     def from_intent(
@@ -117,17 +143,19 @@ class TaskPlanner:
         session_messages: list[ChatMessage] | None = None,
         *,
         category: str | None = None,
+        evaluator: Any | None = None,
     ) -> AgentPlan:
         session = session_messages if session_messages is not None else []
         stripped = task.strip()
         if not stripped:
             return AgentPlan(original_task="", segments=())
 
-        context = build_task_context(stripped, session)
-        intent = resolve_task_intent(context, category=category)
-        if is_fast_path_intent(intent):
-            steps = [AgentPlanStep.from_intent(stripped, intent)]
+        if evaluator is not None:
+            evaluation = evaluator.evaluate(stripped, session, category=category)
+            steps = [AgentPlanStep.from_evaluation(stripped, evaluation)]
         else:
+            context = build_task_context(stripped, session)
+            intent = resolve_task_intent(context, category=category)
             steps = [AgentPlanStep.from_intent(stripped, intent)]
 
         return AgentPlan(

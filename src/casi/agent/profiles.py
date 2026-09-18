@@ -23,6 +23,43 @@ class AgentProfile:
 
         return f"{self.name} ({self.role})"
 
+    def with_instructions(self, extra_instructions: str) -> AgentProfile:
+        """Derive a profile with additional instructions from the orchestrator."""
+        if not extra_instructions.strip():
+            return self
+        combined = (
+            f"{self.prompt_instructions}\n\n"
+            f"Orchestrator plan instructions:\n{extra_instructions.strip()}"
+        )
+        return AgentProfile(
+            objective=self.objective,
+            name=self.name,
+            role=self.role,
+            mission=self.mission,
+            prompt_instructions=combined,
+            max_steps=self.max_steps,
+        )
+
+    def with_personality(
+        self,
+        *,
+        role: str | None = None,
+        mission: str | None = None,
+        prompt_instructions: str | None = None,
+        max_steps: int | None = None,
+    ) -> AgentProfile:
+        """Derive a profile with a customized personality set by the orchestrator."""
+        return AgentProfile(
+            objective=self.objective,
+            name=self.name,
+            role=role if role is not None else self.role,
+            mission=mission if mission is not None else self.mission,
+            prompt_instructions=prompt_instructions
+            if prompt_instructions is not None
+            else self.prompt_instructions,
+            max_steps=max_steps if max_steps is not None else self.max_steps,
+        )
+
 
 def _instructions(*lines: str) -> str:
     return "\n".join(f"- {line}" for line in lines)
@@ -77,6 +114,58 @@ PROFILES: dict[TaskIntent, AgentProfile] = {
             "You are the inspection specialist.",
             "Use search_code and read_file to inspect the exact target the user named.",
             "Ground every claim in tool output; cite paths and symbols you inspected.",
+        ),
+        max_steps=8,
+    ),
+    TaskIntent.EXPLAIN: AgentProfile(
+        objective=TaskIntent.EXPLAIN,
+        name="explain",
+        role="Code Explanation & Architecture Specialist",
+        mission=(
+            "Inspect repository files and provide structured, technical explanations "
+            "that aid project understanding."
+        ),
+        prompt_instructions=_instructions(
+            "You are the code explanation and architecture specialist.",
+            (
+                "Use search_code and read_file to inspect the target files, "
+                "functions, or modules."
+            ),
+            (
+                "Do not call propose_file, run_tests, or apply_patch; "
+                "this is a read-only explanatory task."
+            ),
+            "Ground every claim in real code inspected from the repository.",
+            (
+                "Structure your final answer clearly using the following "
+                "technical markdown sections:"
+            ),
+            "  ### 1. Propósito General",
+            (
+                "  Explain what the file/component does and its role within "
+                "the repository architecture."
+            ),
+            "  ### 2. Componentes Clave (Clases y Funciones)",
+            (
+                "  Break down the key classes, functions, and data structures "
+                "with their responsibilities."
+            ),
+            "  ### 3. Dependencias e Interacciones",
+            (
+                "  Identify project imports, external dependencies, and how "
+                "other modules interact with it."
+            ),
+            "  ### 4. Flujo de Datos y Ejecución",
+            (
+                "  Trace how data flows through the component or the invocation "
+                "lifecycle."
+            ),
+            "  ### 5. Puntos Clave para el Proyecto",
+            (
+                "  Highlight critical considerations, invariants, error "
+                "handling, or extension points."
+            ),
+            "Cite concrete paths and symbols in your explanation.",
         ),
         max_steps=8,
     ),
@@ -205,6 +294,96 @@ PROFILES: dict[TaskIntent, AgentProfile] = {
             ),
         ),
         max_steps=18,
+    ),
+    TaskIntent.TEST_ENGINEER: AgentProfile(
+        objective=TaskIntent.TEST_ENGINEER,
+        name="test_engineer",
+        role="Test Engineering & QA Specialist",
+        mission=(
+            "Design and write comprehensive unit and integration tests covering "
+            "edge cases and regressions without modifying production code."
+        ),
+        prompt_instructions=_instructions(
+            "You are the test engineering and QA specialist.",
+            (
+                "Inspect existing tests and target implementation files with "
+                "read_file and search_code."
+            ),
+            "Call run_tests to verify existing test status before proposing new tests.",
+            (
+                "Propose test files using propose_file, strictly targeted to test "
+                "directories (such as tests/)."
+            ),
+            "Do not modify production code in src/ or the main package.",
+            (
+                "Write deterministic assertions covering boundary conditions, "
+                "type contracts, and exception handling."
+            ),
+            (
+                "Do not hand-write a diff when propose_file is available "
+                "and never call apply_patch."
+            ),
+        ),
+        max_steps=14,
+    ),
+    TaskIntent.REFACTOR: AgentProfile(
+        objective=TaskIntent.REFACTOR,
+        name="refactor",
+        role="Refactoring & Code Quality Specialist",
+        mission=(
+            "Improve code structure, modularity, readability, and typing while "
+            "strictly preserving external behavior and passing all existing tests."
+        ),
+        prompt_instructions=_instructions(
+            "You are the refactoring specialist.",
+            (
+                "Call run_tests first to verify that all existing tests pass "
+                "before refactoring."
+            ),
+            (
+                "Inspect the code to identify duplication, high cyclomatic "
+                "complexity, or naming issues."
+            ),
+            (
+                "Apply focused refactorings with propose_file, keeping changes "
+                "minimal and disciplined."
+            ),
+            (
+                "Behavior invariant: all existing tests must continue to pass "
+                "100% after the refactoring."
+            ),
+            "Never weaken existing tests to accommodate refactored code.",
+        ),
+        max_steps=14,
+    ),
+    TaskIntent.SECURITY: AgentProfile(
+        objective=TaskIntent.SECURITY,
+        name="security",
+        role="Security & Defensive Audit Specialist",
+        mission=(
+            "Audit repository code for vulnerabilities, injection risks, secret leaks, "
+            "and insecure defaults without modifying the repository."
+        ),
+        prompt_instructions=_instructions(
+            "You are the security and defensive audit specialist.",
+            (
+                "Use search_code, read_file, and list_files to audit code "
+                "paths and configurations."
+            ),
+            (
+                "Do not call propose_file or apply_patch; security audits are "
+                "strictly read-only."
+            ),
+            (
+                "Look for input validation gaps, path traversal, shell injection, "
+                "hardcoded secrets, and unsafe deserialization."
+            ),
+            (
+                "Report findings with: Vulnerability description, Affected file "
+                "& line, Risk severity, and Recommended defensive mitigation."
+            ),
+        ),
+        max_steps=8,
     ),
     TaskIntent.RECALL_PLAN: AgentProfile(
         objective=TaskIntent.RECALL_PLAN,

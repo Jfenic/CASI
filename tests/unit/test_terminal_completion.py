@@ -11,7 +11,10 @@ from casi.terminal.completion import (
 
 def test_default_commands_present() -> None:
     assert "/help" in DEFAULT_SLASH_COMMANDS
+    assert "/explain" in DEFAULT_SLASH_COMMANDS
     assert "/diff" in DEFAULT_SLASH_COMMANDS
+    assert "/undo" in DEFAULT_SLASH_COMMANDS
+    assert "/stats" in DEFAULT_SLASH_COMMANDS
     assert "/plan" in DEFAULT_SLASH_COMMANDS
     assert "/exit" in DEFAULT_SLASH_COMMANDS
 

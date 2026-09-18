@@ -535,3 +535,120 @@ def test_interactive_session_file_mention_hint(tmp_path: Path) -> None:
     session.run()
 
     assert any("Referenced files: target.py" in message for message in output)
+
+
+def test_interactive_session_undo_command_no_patch(tmp_path: Path) -> None:
+    commands = iter(["/undo", "/exit"])
+    output: list[str] = []
+
+    session = InteractiveSession(
+        tmp_path,
+        FakeClient(),
+        input_fn=lambda prompt: next(commands),
+        output_fn=output.append,
+    )
+    assert session.run() == 0
+    assert any(
+        "No patch has been applied in this session to undo" in message
+        for message in output
+    )
+
+
+def test_interactive_session_applies_and_undoes_patch(tmp_path: Path) -> None:
+    repository = tmp_path / "repo"
+    repository.mkdir()
+    (repository / "app.py").write_text("value = False\n", encoding="utf-8")
+    (repository / "test_app.py").write_text(
+        "from app import value\n\ndef test_value():\n    assert value is True\n",
+        encoding="utf-8",
+    )
+    commands = iter(["Fix app.py", "y", "/undo", "/exit"])
+    output: list[str] = []
+
+    InteractiveSession(
+        repository,
+        PatchClient(),
+        input_fn=lambda prompt: next(commands),
+        output_fn=output.append,
+    ).run()
+
+    # After undo, the file should be back to original
+    assert (repository / "app.py").read_text(encoding="utf-8") == "value = False\n"
+    assert any("Patch reverted. Restored: app.py" in message for message in output)
+
+
+def test_interactive_session_undo_with_presenter(tmp_path: Path) -> None:
+    repository = tmp_path / "repo"
+    repository.mkdir()
+    (repository / "app.py").write_text("value = False\n", encoding="utf-8")
+    (repository / "test_app.py").write_text(
+        "from app import value\n\ndef test_value():\n    assert value is True\n",
+        encoding="utf-8",
+    )
+    commands = iter(["Fix app.py", "y", "/undo", "/exit"])
+    output: list[str] = []
+    theme = Theme(use_color=False, use_unicode=True)
+    presenter = TerminalPresenter(output_fn=output.append, theme=theme)
+
+    InteractiveSession(
+        repository,
+        PatchClient(),
+        input_fn=lambda prompt: next(commands),
+        output_fn=output.append,
+        presenter=presenter,
+    ).run()
+
+    assert (repository / "app.py").read_text(encoding="utf-8") == "value = False\n"
+    assert any("Undid patch. Restored: app.py" in message for message in output)
+
+
+def test_interactive_session_stats_command(tmp_path: Path) -> None:
+    commands = iter(["Inspect files", "/stats", "/exit"])
+    output: list[str] = []
+
+    InteractiveSession(
+        tmp_path,
+        FakeClient(),
+        input_fn=lambda prompt: next(commands),
+        output_fn=output.append,
+    ).run()
+
+    assert any("Session summary" in message for message in output)
+    assert any("Tasks completed: 1" in message for message in output)
+
+
+def test_interactive_session_summary_on_exit_with_presenter(tmp_path: Path) -> None:
+    commands = iter(["Inspect files", "/exit"])
+    output: list[str] = []
+    theme = Theme(use_color=False, use_unicode=True)
+    presenter = TerminalPresenter(output_fn=output.append, theme=theme)
+
+    InteractiveSession(
+        tmp_path,
+        FakeClient(),
+        input_fn=lambda prompt: next(commands),
+        output_fn=output.append,
+        presenter=presenter,
+    ).run()
+
+    assert any("Session summary" in message for message in output)
+    assert any("Tasks completed: 1" in message for message in output)
+
+
+def test_interactive_session_explain_command(tmp_path: Path) -> None:
+    commands = iter(["/explain lib.py", "/exit"])
+    output: list[str] = []
+
+    session = InteractiveSession(
+        tmp_path,
+        FakeClient(),
+        input_fn=lambda prompt: next(commands),
+        output_fn=output.append,
+    )
+
+    assert session.run() == 0
+    assert any("[agent] Task completed" in line for line in output)
+    assert any(
+        "Explain the structure, components, and project role of lib.py" in line
+        for line in session.history
+    )

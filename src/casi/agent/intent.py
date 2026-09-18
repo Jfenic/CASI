@@ -161,11 +161,15 @@ class TaskIntent(StrEnum):
     META = "meta"
     OVERVIEW = "overview"
     INSPECT = "inspect"
+    EXPLAIN = "explain"
     DIAGNOSE = "diagnose"
     GIT_STATUS = "git_status"
     FIX = "fix"
     ML = "ml"
     CREATE = "create"
+    TEST_ENGINEER = "test_engineer"
+    REFACTOR = "refactor"
+    SECURITY = "security"
     RECALL_PLAN = "recall_plan"
     PRESENT = "present"
     UNKNOWN = "unknown"
@@ -289,6 +293,14 @@ def resolve_task_intent(
         return TaskIntent.DIAGNOSE
     if category == "fix":
         return TaskIntent.FIX
+    if category in {"explain", "ask"}:
+        return TaskIntent.EXPLAIN
+    if category in {"test_engineer", "test", "qa"}:
+        return TaskIntent.TEST_ENGINEER
+    if category == "refactor":
+        return TaskIntent.REFACTOR
+    if category in {"security", "audit"}:
+        return TaskIntent.SECURITY
 
     intent = classify_intent(context)
     if is_fast_path_intent(intent):
@@ -305,7 +317,13 @@ def resolve_task_intent(
 def is_mutation_intent(intent: TaskIntent) -> bool:
     """Return whether the intent requires tests, patches, or new file creation."""
 
-    return intent in {TaskIntent.FIX, TaskIntent.ML, TaskIntent.CREATE}
+    return intent in {
+        TaskIntent.FIX,
+        TaskIntent.ML,
+        TaskIntent.CREATE,
+        TaskIntent.TEST_ENGINEER,
+        TaskIntent.REFACTOR,
+    }
 
 
 def is_fast_path_intent(intent: TaskIntent) -> bool:
@@ -326,18 +344,28 @@ def intent_supports_pipeline(intent: TaskIntent) -> bool:
         TaskIntent.UNKNOWN,
         TaskIntent.OVERVIEW,
         TaskIntent.INSPECT,
+        TaskIntent.EXPLAIN,
         TaskIntent.DIAGNOSE,
         TaskIntent.GIT_STATUS,
         TaskIntent.FIX,
         TaskIntent.ML,
         TaskIntent.CREATE,
+        TaskIntent.TEST_ENGINEER,
+        TaskIntent.REFACTOR,
+        TaskIntent.SECURITY,
     }
 
 
 def response_defers_repository_work(content: str, intent: TaskIntent) -> bool:
     """Detect answers that push repository inspection back to the user."""
 
-    if intent not in {TaskIntent.OVERVIEW, TaskIntent.INSPECT, TaskIntent.UNKNOWN}:
+    if intent not in {
+        TaskIntent.OVERVIEW,
+        TaskIntent.INSPECT,
+        TaskIntent.EXPLAIN,
+        TaskIntent.SECURITY,
+        TaskIntent.UNKNOWN,
+    }:
         return False
     return USER_DEFERRAL_PATTERN.search(content) is not None
 
@@ -354,12 +382,16 @@ def should_defer_clarification(
         return True
     if intent in {
         TaskIntent.INSPECT,
+        TaskIntent.EXPLAIN,
         TaskIntent.DIAGNOSE,
         TaskIntent.OVERVIEW,
         TaskIntent.GIT_STATUS,
         TaskIntent.FIX,
         TaskIntent.ML,
         TaskIntent.CREATE,
+        TaskIntent.TEST_ENGINEER,
+        TaskIntent.REFACTOR,
+        TaskIntent.SECURITY,
         TaskIntent.RECALL_PLAN,
         TaskIntent.PRESENT,
     }:

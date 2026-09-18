@@ -2,61 +2,41 @@
 
 ## Direction
 
-Protocol enforcement & Interactive Terminal UX Overhaul
+Multi-Agent Orchestration & Closed Catalog of Specialized Personalities (Software Engineering Roles).
+Reference: [docs/features/orchestration/](docs/features/orchestration/).
 
-## Working on
+## State: Feature Completed & Validated
 
-**Interactive Terminal UX Overhaul** — Modules 1, 2, 3 complete; Module 4 pending.
+All 5 phases of the Multi-Agent Orchestration feature have been successfully implemented, linted, formatted, and verified.
 
-## Completed
+### Summary of Accomplishments
 
-### Interactive Terminal UX Overhaul (2026-09-17)
+1. **Closed Catalog of 7 Personalities (`src/casi/agent/profiles.py`):**
+   - Implemented `explain` with mandatory 5-section technical structure (`Propósito General`, `Componentes Clave`, `Dependencias e Interacciones`, `Flujo de Datos y Ejecución`, `Puntos Clave para el Proyecto`).
+   - Implemented `test_engineer`, `refactor`, and `security` profiles with strict least-privilege tool boundaries.
+   - Added `AgentProfile.with_instructions()` and `with_personality()` for non-destructive dynamic plan injection.
+   - Verified via `tests/unit/test_profiles.py`.
 
-- `src/casi/terminal/`:
-  - `theme.py`: semantic 4-role palette, TTY detection, NO_COLOR, ASCII fallback.
-  - `tree.py`: composite hierarchical tree renderer (`├─`, `└─`, badges, status).
-  - `diff_view.py`: compact unified diff parser with +X/-Y stats and syntax coloring.
-  - `fold.py`: intelligent output folding for long multi-line outputs.
-  - `spinner.py`: non-blocking background daemon thread spinner (<200ms).
-  - `test_summary.py`: extraction of clean summary lines and isolated failure traces.
-  - `review.py`: multi-action interactive review loop `[y/N/v/save/?]`.
-  - `completion.py`: readline completion for slash commands and `@file` repository paths.
-  - `line_editor.py`: persistent `~/.casi_history` and terminal TTY readline bindings.
-  - `presenter.py`: unified presenter facade.
-- `src/casi/interactive.py`: integrated `TerminalPresenter`, `/diff` command, and `@file` mentions.
-- `src/casi/cli.py`: added `--plain` flag.
-- Tests: 43 new unit tests across 8 suites (491 total passed).
+2. **Typed Intents & Permissions (`src/casi/agent/intent.py`, `permissions.py`, `pipelines.py`):**
+   - Added `TaskIntent.EXPLAIN`, `TEST_ENGINEER`, `REFACTOR`, `SECURITY`.
+   - Bounded tool execution per role; read-only roles cannot mutate files or apply patches.
 
-### Phase D — Soften CREATE verify & contract nudges (2026-09-17)
+3. **LLM Task Evaluator (`src/casi/agent/evaluator.py`):**
+   - Implemented `LLMTaskEvaluator` and `TaskEvaluation` to analyze user tasks against the closed catalog without fragile regex patterns.
+   - Added deterministic fallback for test doubles / mock clients.
+   - Verified via `tests/unit/test_evaluator.py`.
 
-- `patch_verify.py`: soften patch verification on empty-repo CREATE when no tests exist in repo and pytest exits with 5.
-- `loop.py`: pass `intent` to `verify_patch_response`; use `resolve_task_intent` in `_resolve_intent`.
-- `prompts.py`: contract guidance for zero vs negative TTL (`dev_005`), deepcopy requirements (`dev_006`), and avoiding hallucinated imports/modules (`dev_011`).
-- Tests: `test_sandbox_integration.py` coverage for CREATE empty repo verification. Full suite: 448 passed.
+4. **Factory & Orchestrator Integration (`planner.py`, `factory.py`, `orchestrator.py`):**
+   - Wired dynamic plan generation into `TaskPlanner.create_plan` with evaluator.
+   - Passed plan instructions and specialized roles to `AgentFactory.create`.
+   - Fixed mock signature compatibility in `tests/unit/test_cli.py`.
 
-### Phase C — Repair fallback (2026-09-16)
+5. **Terminal UX & Commands (`interactive.py`, `cli.py`, `completion.py`, `cli_help.py`):**
+   - Added `/explain <path>` command to interactive session and readline completion.
+   - Wired `casi ask` to default to `explain` category.
+   - Fixed Ruff formatting, line lengths, and import issues across all touched modules.
+   - All linters, formatters, compileall, and unit tests passing cleanly.
 
-- `extract_tool_call_payload`: nested final/tool_call wrappers, single-action guard.
-- `normalize_response(..., allowed_tools=...)`: strict schema + known-tool recovery.
-- `OllamaClient._parse_payload`: passes tools, validates recovered tool calls.
-- `AgentLoop`: safety net with `step_tools`; trace `recovered_embedded_tool_call`.
-- Tests: parser strict rules + ollama final-wrapped recovery.
+## Next Backlog Priority
 
-### Phase B — CREATE constrained action (2026-09-16)
-
-- `src/casi/llm/actions.py`: `ProposeFileAction`, validation, JSON schema.
-- `OllamaClient.complete_action()`: Ollama `format` = schema only; no `final` branch.
-- `AgentLoop._request_model_decision()`: CREATE + ACTION_REQUIRED + layout → schema path.
-- `build_create_action_prompt()` in `prompts.py`.
-- Tests: `test_actions.py`, `test_ollama_client` action test, CREATE integration test.
-
-### Phase A — state machine
-
-- `phases.py`, illegal `final` in ACTION_REQUIRED, structural retry.
-
-## Next
-
-1. Git commits; close Phase 12.
-2. Persist API/UI task history across restarts.
-
-Delete this file when Phase 12 closes.
+According to [TASKS.md](TASKS.md): **API & UI Persistence & Hardening** (storage for tasks/traces across restarts, clarification answers over HTTP, end-to-end UI verification).

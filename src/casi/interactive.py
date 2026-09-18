@@ -24,8 +24,10 @@ from casi.config import settings
 from casi.llm.base import ChatMessage, LLMClient
 from casi.patching.applier import PatchApplicationError, apply_patch
 from casi.patching.extract import extract_patch
+from casi.patching.memento import PatchMemento, PatchMementoStack
 from casi.patching.validator import validate_patch
 from casi.terminal.presenter import TerminalPresenter
+from casi.terminal.session_metrics import SessionMetrics
 from casi.tools.registry import ToolRegistry
 
 
@@ -50,6 +52,8 @@ class InteractiveSession:
         self.input_fn = input_fn
         self.output_fn = output_fn
         self.presenter = presenter
+        self.metrics = SessionMetrics()
+        self._undo_stack = PatchMementoStack()
         self.history: list[str] = []
         self.messages: list[ChatMessage] = []
         self._registry = ToolRegistry(
@@ -158,6 +162,7 @@ class InteractiveSession:
                     self.presenter.agent("Session ended.")
                 else:
                     self._emit("\nSession ended.")
+                self._show_session_summary_if_active()
                 return 0
 
             if not task:
@@ -176,15 +181,22 @@ class InteractiveSession:
                 self.history.append(task)
                 result = self._start_turn(task)
 
-            if result is None:
+            if self._process_turn_result(result):
                 return 0
-            agent_result = self._as_agent_result(result)
-            if agent_result.success and not self._awaiting_clarification:
-                self._display_response(agent_result)
-                self._maybe_warn_context_usage()
-            elif not agent_result.success and not result.cancelled:
-                self._emit(self._format_error(agent_result.error))
-                self._emit_trace_summary(result.trace)
+
+    def _process_turn_result(self, result: OrchestratorResult | None) -> bool:
+        """Process turn outcome, display responses, and return True if session ends."""
+        if result is None:
+            self._show_session_summary_if_active()
+            return True
+        agent_result = self._as_agent_result(result)
+        if agent_result.success and not self._awaiting_clarification:
+            self._display_response(agent_result)
+            self._maybe_warn_context_usage()
+        elif not agent_result.success and not result.cancelled:
+            self._emit(self._format_error(agent_result.error))
+            self._emit_trace_summary(result.trace)
+        return False
 
     def _format_error(self, error: str | None) -> str:
         message = error or "Agent failed."
@@ -312,6 +324,49 @@ class InteractiveSession:
             self._emit("[diff] Last patch:")
             self._emit(self._last_patch)
 
+    def _undo_last_patch(self) -> None:
+        if self._undo_stack.is_empty():
+            if self.presenter is not None:
+                self.presenter.hint(
+                    "No patch has been applied in this session to undo."
+                )
+            else:
+                self._emit("[undo] No patch has been applied in this session to undo.")
+            return
+
+        memento, restored_files = self._undo_stack.undo(self.repository)
+        still_modified: set[str] = set()
+        for m in self._undo_stack._stack:
+            still_modified.update(m.files)
+        self.metrics.record_patch_undone(restored_files, still_modified=still_modified)
+
+        file_list = ", ".join(restored_files) if restored_files else "none"
+        if self.presenter is not None:
+            self.presenter.success(f"Undid patch. Restored: {file_list}")
+        else:
+            self._emit(f"[undo] Patch reverted. Restored: {file_list}")
+
+    def _show_metrics(self) -> None:
+        if self.presenter is not None:
+            self.presenter.session_summary(self.metrics)
+        else:
+            self._emit(self.metrics.format_summary())
+
+    def _show_session_summary_if_active(self) -> None:
+        if self.metrics.turns_completed > 0:
+            self._show_metrics()
+
+    def _record_turn_trace_metrics(self) -> None:
+        for ev in self._trace.structured_events:
+            kind = ev.get("kind")
+            data = ev.get("data")
+            if kind == "tool_call" and isinstance(data, dict):
+                tool_name = str(data.get("tool", ""))
+                if tool_name:
+                    self.metrics.record_tool_call(tool_name)
+            elif kind == "decision":
+                self.metrics.record_step()
+
     def _save_last_trace(self, path: str) -> None:
         if not path:
             self._emit("[trace] Usage: /save-trace PATH.json")
@@ -326,9 +381,12 @@ class InteractiveSession:
             return
         self._emit(f"[trace] Saved diagnostic trace to {target}")
 
-    def _start_turn(self, task: str) -> OrchestratorResult | None:
+    def _start_turn(
+        self, task: str, *, category: str | None = None
+    ) -> OrchestratorResult | None:
         """Begin a new user task using the multi-agent orchestrator."""
 
+        self.metrics.record_turn()
         self._trace.clear()
         if self.presenter is not None:
             from casi.terminal.completion import extract_file_mentions
@@ -339,9 +397,12 @@ class InteractiveSession:
             self.presenter.agent("Planning your request...")
         else:
             self._emit("[working] Planning your request...")
-        result = self._handle_orchestrator_result(self._orchestrator.run(task))
+        result = self._handle_orchestrator_result(
+            self._orchestrator.run(task, category=category)
+        )
         if result is not None and result.trace:
             self._last_trace = list(result.trace)
+        self._record_turn_trace_metrics()
         return result
 
     def _continue_clarification(self, answer: str) -> OrchestratorResult | None:
@@ -355,10 +416,13 @@ class InteractiveSession:
 
         self._emit("[working] Continuing with your answer...")
         if self._pending_orchestration is None:
-            return self._handle_orchestrator_result(self._orchestrator.run(answer))
-        return self._handle_orchestrator_result(
-            self._orchestrator.run(answer, pending=self._pending_orchestration)
-        )
+            res = self._handle_orchestrator_result(self._orchestrator.run(answer))
+        else:
+            res = self._handle_orchestrator_result(
+                self._orchestrator.run(answer, pending=self._pending_orchestration)
+            )
+        self._record_turn_trace_metrics()
+        return res
 
     def _approve_plan_segment(self, segment: PlanSegment) -> bool:
         """Ask once before running a non-read plan phase."""
@@ -503,6 +567,7 @@ class InteractiveSession:
                 self.presenter.agent(response)
                 return
 
+            self.metrics.record_patch_proposed()
             self._last_patch = patch
             validation = validate_patch(self.repository, patch)
             if validation.valid:
@@ -535,12 +600,17 @@ class InteractiveSession:
                 return
 
             try:
+                memento = PatchMemento.capture(
+                    self.repository, patch, files=validation.files
+                )
                 files = apply_patch(
                     self.repository,
                     patch,
                     approved=True,
                     dry_run=False,
                 )
+                self._undo_stack.push(memento)
+                self.metrics.record_patch_applied(files)
             except PatchApplicationError as exc:
                 self.presenter.error(str(exc))
                 return
@@ -565,6 +635,7 @@ class InteractiveSession:
             self._emit(f"[agent] {response}")
             return
 
+        self.metrics.record_patch_proposed()
         self._last_patch = patch
         validation = validate_patch(self.repository, patch)
         self._emit(f"[patch] {validation.error or 'Patch is valid'}")
@@ -587,12 +658,17 @@ class InteractiveSession:
             return
 
         try:
+            memento = PatchMemento.capture(
+                self.repository, patch, files=validation.files
+            )
             files = apply_patch(
                 self.repository,
                 patch,
                 approved=True,
                 dry_run=False,
             )
+            self._undo_stack.push(memento)
+            self.metrics.record_patch_applied(files)
         except PatchApplicationError as exc:
             self._emit(f"[error] {exc}")
             return
@@ -609,6 +685,7 @@ class InteractiveSession:
         name = name.lower()
         if name in {"/exit", "/quit"}:
             self._emit("Session ended.")
+            self._show_session_summary_if_active()
             return True
         if name == "/help":
             warn_at = max(
@@ -619,8 +696,12 @@ class InteractiveSession:
             )
             self._emit(
                 "/help  Show available commands\n"
+                "/explain <path>  Inspect and explain a file using the 5-section "
+                "architecture format\n"
                 "/diff  Show the last generated patch diff\n"
+                "/undo  Revert the last applied patch in this session\n"
                 "/history  Show tasks from this session\n"
+                "/stats  Show session summary metrics\n"
                 "/context  Show the conversation thread sent to the model\n"
                 "/compact [instrucciones]  Summarize older context "
                 f"(warn from {warn_at} msgs)\n"
@@ -637,8 +718,23 @@ class InteractiveSession:
                 "Do not type at CASI> until you see [agent] or [question]."
             )
             return False
+        if name == "/explain":
+            target = remainder.strip()
+            if not target:
+                self._emit("[error] Usage: /explain <path or symbol>")
+                return False
+            task = f"Explain the structure, components, and project role of {target}"
+            self.history.append(task)
+            result = self._start_turn(task, category="explain")
+            return self._process_turn_result(result)
         if name == "/diff":
             self._show_diff()
+            return False
+        if name == "/undo":
+            self._undo_last_patch()
+            return False
+        if name in {"/stats", "/metrics"}:
+            self._show_metrics()
             return False
         if name == "/trace":
             argument = remainder.strip().lower()

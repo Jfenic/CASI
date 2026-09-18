@@ -10,9 +10,13 @@ from casi.repository.explorer import list_files
 
 DEFAULT_SLASH_COMMANDS = [
     "/help",
+    "/explain",
     "/plan",
     "/diff",
+    "/undo",
     "/history",
+    "/stats",
+    "/metrics",
     "/context",
     "/compact",
     "/clear",

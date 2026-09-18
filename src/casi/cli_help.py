@@ -216,7 +216,11 @@ TOPICS: dict[str, str] = {
         Comandos dentro de la sesión:
 
           /help            Lista comandos de la sesión
+          /explain <ruta>  Explica un archivo con la estructura técnica de 5 secciones
+          /diff            Muestra el último diff propuesto
+          /undo            Revierte el último parche aplicado
           /history         Muestra tareas de esta sesión
+          /stats           Muestra resumen y métricas de la sesión
           /context         Muestra el hilo enviado al modelo
           /compact [texto] Resume contexto antiguo
           /clear           Borra historial y contexto conversacional

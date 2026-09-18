@@ -86,7 +86,9 @@ def test_cli_fix_executes_agent_task(tmp_path: Path, capsys, monkeypatch) -> Non
 
     monkeypatch.setattr(
         "casi.cli.AgentOrchestrator.run",
-        lambda self, task: OrchestratorResult(success=True, response="Task completed"),
+        lambda self, task, **kwargs: OrchestratorResult(
+            success=True, response="Task completed"
+        ),
     )
 
     exit_code = main(["fix", "--repo", str(tmp_path), "--task", "Fix failing tests"])
@@ -134,7 +136,9 @@ def test_cli_fix_save_patch_writes_file(tmp_path: Path, capsys, monkeypatch) -> 
     )
     monkeypatch.setattr(
         "casi.cli.AgentOrchestrator.run",
-        lambda self, task: OrchestratorResult(success=True, response=patch_response),
+        lambda self, task, **kwargs: OrchestratorResult(
+            success=True, response=patch_response
+        ),
     )
     patch_path = tmp_path / "fix.diff"
 

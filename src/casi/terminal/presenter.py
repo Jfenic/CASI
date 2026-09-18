@@ -10,6 +10,7 @@ from typing import Protocol
 from casi.terminal.diff_view import FileDiffStat, format_compact_diff
 from casi.terminal.fold import fold_output
 from casi.terminal.review import review_patch
+from casi.terminal.session_metrics import SessionMetrics
 from casi.terminal.spinner import Spinner
 from casi.terminal.test_summary import format_test_summary
 from casi.terminal.theme import Theme
@@ -27,6 +28,7 @@ class PresenterProtocol(Protocol):
     def hint(self, text: str) -> None: ...
     def diff(self, diff_text: str, *, max_lines: int | None = 60) -> None: ...
     def tree(self, nodes: Sequence[TreeNode]) -> None: ...
+    def session_summary(self, metrics: SessionMetrics) -> None: ...
 
 
 class TerminalPresenter:
@@ -194,3 +196,7 @@ class TerminalPresenter:
             yield spinner
         finally:
             spinner.stop()
+
+    def session_summary(self, metrics: SessionMetrics) -> None:
+        """Render session summary metrics tree."""
+        self._emit(metrics.format_summary(theme=self.theme))

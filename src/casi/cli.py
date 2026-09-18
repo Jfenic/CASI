@@ -354,6 +354,7 @@ def _run_agent(
     max_steps: int | None,
     routing: str,
     *,
+    category: str | None = None,
     save_patch: str | None = None,
     yes: bool = False,
     verbose: bool = False,
@@ -383,7 +384,7 @@ def _run_agent(
         trace=trace,
     )
     print("[working] Running agent...", file=sys.stderr)
-    result = orchestrator.run(task)
+    result = orchestrator.run(task, category=category)
 
     if verbose:
         emit_execution_log(trace)
@@ -626,11 +627,17 @@ def main(argv: list[str] | None = None) -> int:
             return _run_search(args.repo, args.query, args.limit)
 
         if args.command in {"run", "ask", "fix"}:
+            category = (
+                "explain"
+                if args.command == "ask"
+                else ("fix" if args.command == "fix" else None)
+            )
             return _run_agent(
                 args.repo,
                 args.task,
                 args.max_steps,
                 args.routing,
+                category=category,
                 save_patch=getattr(args, "save_patch", None),
                 yes=getattr(args, "yes", False),
                 verbose=getattr(args, "verbose", False),

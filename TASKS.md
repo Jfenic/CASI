@@ -19,6 +19,13 @@ Last updated: 2026-09-18.
 
 ## Done recently
 
+### Error Sanitization & Context Bounding (Closed: 2026-09-18)
+- [x] Length check `len()` and strategy-based error truncation (`truncate_by_strategy`, `sanitize_and_compact_error`).
+- [x] Implemented `tail` strategy ("quedarse con lo último") to preserve failure assertions without flooding context.
+- [x] Nudge integration in `nudge_for_patch_correction`, `nudge_for_failure_kind`, and `nudge_for_corrupt_patch`.
+- [x] Tool result sanitization in `format_tool_result` and message length bounding in `OllamaClient`.
+- [x] Recovered `dev_008` (dependency_order) and `dev_010` (slug_tests); development benchmark reaches **10/12 (83.33%)** on `qwen3.5:4b`.
+
 ### Multi-Agent Orchestration & Closed Catalog of Personalities (Closed: 2026-09-18)
 - [x] Phase 1: Closed catalog of 7 personalities in `profiles.py` (with 5-section `explain`).
 - [x] Phase 2: Typed intents and permission mapping in `intent.py` and `permissions.py`.

@@ -19,6 +19,14 @@ Last updated: 2026-09-18.
 
 ## Done recently
 
+### Task Interpreter, 'create' Role, Empty-Repo Tolerance & Readline Fix (Closed: 2026-09-19)
+- [x] Evaluator catalog expansion: Added `create` role (New File & Feature Specialist) to `EVALUATOR_SYSTEM_PROMPT` in `evaluator.py`.
+- [x] Task Interpreter & Refiner: Pre-step task disambiguation (`refined_task`) with existing repository files context passed to the evaluator before agent loop starts (zero step consumption).
+- [x] Dynamic step task assembly: `AgentOrchestrator._build_step_task` provides `refined_task` and `plan_instructions` across all specialized roles.
+- [x] Empty-repo test tolerance: `patch_verify.py` and `create_workflow.py` (`require_actual_files=True`) recognize repositories without test files (`test_*.py`), allowing new file creation without failing on pytest exit code 5 (`no tests ran`).
+- [x] Terminal Readline fix: Wrapped ANSI escape sequences in `Theme.user()` and `_apply_prompt` with `\001` and `\002` markers to fix prompt length calculation and line-wrapping overwriting in interactive mode.
+- [x] Interactive error shield: Wrapped turn execution in `interactive.py` with `try...except Exception` to maintain the session active on unexpected exceptions.
+
 ### Error Sanitization & Permissive Control Characters in JSON Parser (Closed: 2026-09-18)
 - [x] Length check `len()` and strategy-based error truncation (`truncate_by_strategy`, `sanitize_and_compact_error`).
 - [x] Implemented `tail` strategy ("quedarse con lo último") to preserve failure assertions without flooding context.

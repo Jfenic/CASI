@@ -688,3 +688,6 @@ def main(argv: list[str] | None = None) -> int:
     except (FileNotFoundError, IsADirectoryError, RuntimeError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
         return 1
+    except Exception as exc:
+        print(f"Internal error: {exc}", file=sys.stderr)
+        return 1

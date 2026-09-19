@@ -33,7 +33,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md).
 
 | Path | Responsibility |
 | --- | --- |
-| `src/casi/agent/` | Loop, planner, orchestrator, nudges, profiles |
+| `src/casi/agent/` | Loop, planner, orchestrator, evaluator/interpreter, nudges, profiles |
 | `src/casi/llm/` | Ollama client, JSON schema, prompts |
 | `src/casi/tools/` | Tool registry and implementations |
 | `src/casi/api/` | FastAPI task lifecycle |

@@ -172,17 +172,33 @@ class InteractiveSession:
                     return 0
                 continue
 
-            if self._awaiting_clarification:
-                if self._is_plan_request(task):
-                    self._show_plan()
-                    continue
-                result = self._continue_clarification(task)
-            else:
-                self.history.append(task)
-                result = self._start_turn(task)
+            try:
+                if self._awaiting_clarification:
+                    if self._is_plan_request(task):
+                        self._show_plan()
+                        continue
+                    result = self._continue_clarification(task)
+                else:
+                    self.history.append(task)
+                    result = self._start_turn(task)
 
-            if self._process_turn_result(result):
-                return 0
+                if self._process_turn_result(result):
+                    return 0
+            except Exception as exc:
+                if self.presenter is not None:
+                    self.presenter.error(f"Internal error during turn: {exc}")
+                    self.presenter.hint(
+                        "Use /last-trace to inspect recent events, "
+                        "or enter another command."
+                    )
+                else:
+                    self._emit(f"[error] Internal error during turn: {exc}")
+                    self._emit(
+                        "[hint] Use /last-trace to inspect recent events, "
+                        "or enter another command."
+                    )
+                if self._trace is not None:
+                    self._trace.record(f"unhandled exception: {exc}", kind="error")
 
     def _process_turn_result(self, result: OrchestratorResult | None) -> bool:
         """Process turn outcome, display responses, and return True if session ends."""

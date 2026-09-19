@@ -61,3 +61,12 @@ def test_profile_with_personality_derives_adapted_profile() -> None:
     assert adapted.role == "Custom Senior Architect"
     assert adapted.mission == "Special review mission"
     assert adapted.objective == base.objective
+
+
+def test_profile_with_list_instructions_derives_new_profile() -> None:
+    base = resolve_profile(TaskIntent.TEST_ENGINEER)
+    derived = base.with_instructions(["Paso 1: Inspeccionar", "Paso 2: Escribir tests"])
+
+    assert derived is not base
+    assert "Paso 1: Inspeccionar\nPaso 2: Escribir tests" in derived.prompt_instructions
+    assert "Orchestrator plan instructions:" in derived.prompt_instructions

@@ -128,11 +128,21 @@ class AgentOrchestrator:
         evaluator = (
             LLMTaskEvaluator(self.client) if self.routing_mode != "off" else None
         )
+        repository_files: list[str] | None = None
+        if evaluator is not None and self.repository:
+            try:
+                from casi.repository.explorer import list_files
+
+                repository_files = list_files(self.repository, limit=60)
+            except Exception:
+                repository_files = None
+
         plan = TaskPlanner.create_plan(
             task,
             self.session_messages,
             category=category,
             evaluator=evaluator,
+            repository_files=repository_files,
         )
         if plan.step_count() == 0:
             return OrchestratorResult(success=False, error="Task must not be empty")
@@ -390,10 +400,10 @@ class AgentOrchestrator:
     def _build_step_task(
         step: AgentPlanStep, prior_results: list[AgentStepResult]
     ) -> str:
-        base_task = step.task
-        if step.plan_instructions and step.objective is TaskIntent.EXPLAIN:
+        base_task = step.refined_task if step.refined_task else step.task
+        if step.plan_instructions:
             base_task = (
-                f"{step.task}\n\n"
+                f"{base_task}\n\n"
                 f"Orchestrator plan instructions:\n{step.plan_instructions}"
             )
         if not prior_results:

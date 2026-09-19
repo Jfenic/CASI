@@ -120,6 +120,11 @@ class Theme:
             return text
         return f"{code}{text}{self.RESET}"
 
+    def _apply_prompt(self, text: str, code: str) -> str:
+        if not self.color_enabled or not text:
+            return text
+        return f"\001{code}\002{text}\001{self.RESET}\002"
+
     # Text style helpers
     def bold(self, text: str) -> str:
         return self._apply(text, self.BOLD)
@@ -133,7 +138,7 @@ class Theme:
     # Semantic roles
     def user(self, text: str) -> str:
         """User input role: bold cyan prompt icon + crisp text."""
-        icon = self._apply(self.glyphs.prompt, self.BRIGHT_CYAN + self.BOLD)
+        icon = self._apply_prompt(self.glyphs.prompt, self.BRIGHT_CYAN + self.BOLD)
         return f"{icon} {text}"
 
     def agent(self, text: str) -> str:

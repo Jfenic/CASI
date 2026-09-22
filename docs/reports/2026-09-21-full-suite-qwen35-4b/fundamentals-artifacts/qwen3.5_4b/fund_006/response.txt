@@ -1,0 +1,8 @@
+--- a/bst.py
++++ b/bst.py
+@@ -19,4 +19,4 @@
+         return True
+     if target < root.value:
+         return contains(root.left, target)
+-    return contains(root.left, target)
++    return contains(root.right, target)

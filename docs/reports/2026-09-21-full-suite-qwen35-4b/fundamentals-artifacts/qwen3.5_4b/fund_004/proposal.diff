@@ -1,0 +1,8 @@
+--- a/linked_list.py
++++ b/linked_list.py
+@@ -26,4 +26,4 @@
+         current.next = prev
+         prev = current
+         current = nxt
+-    return head
++    return prev

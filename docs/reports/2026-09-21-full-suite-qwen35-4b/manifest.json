@@ -1,0 +1,108 @@
+{
+  "started_at": "2026-09-21T10:46:29.093950+00:00",
+  "model": "qwen3.5:4b",
+  "model_digest": "2a654d98e6fba55d452b7043684e9b57a947e393bbffa62485a7aac05ee4eefd",
+  "python": "3.12.3",
+  "docker_version": "29.7.2",
+  "docker_image_id": "sha256:c9d5feffa3f30b4f6e121fe8952e4c461849d623fbe245af03faeefd5468ca44",
+  "base_commit": "eb1cab0a4e17a8cf248843ebee493a8586dfeeb5",
+  "settings": {
+    "max_file_size_bytes": 120000,
+    "max_files": 300,
+    "max_search_results": 50,
+    "ollama_model": "qwen2.5-coder:7b",
+    "ollama_timeout_seconds": 120.0,
+    "test_timeout_seconds": 120.0,
+    "max_command_output_chars": 20000,
+    "git_timeout_seconds": 30.0,
+    "max_patch_size_bytes": 100000,
+    "max_patch_files": 20,
+    "max_context_messages": 40,
+    "context_compact_warn_ratio": 0.8,
+    "docker_image": "casi-sandbox:latest",
+    "docker_memory": "512m",
+    "docker_cpus": "1",
+    "use_docker_sandbox": true,
+    "allow_local_test_fallback": false,
+    "docker_pids_limit": 64,
+    "max_correction_attempts": 4,
+    "fix_max_steps": 12,
+    "create_max_steps": 18,
+    "max_agent_file_reads": 12,
+    "max_reads_per_file": 2,
+    "agent_routing_mode": "assist",
+    "ollama_think_mode": "auto",
+    "max_error_output_chars": 1500,
+    "error_truncation_strategy": "auto",
+    "max_message_chars": 6000
+  },
+  "routing": "assist",
+  "suites": {
+    "development": {
+      "report_json": "docs/reports/2026-09-21-full-suite-qwen35-4b/development.json",
+      "report_md": "docs/reports/2026-09-21-full-suite-qwen35-4b/development.md",
+      "tasks": 12,
+      "passed": 9,
+      "duration_seconds": 1624.9373891730002
+    },
+    "v2_testing": {
+      "report_json": "docs/reports/2026-09-21-full-suite-qwen35-4b/v2_testing.json",
+      "report_md": "docs/reports/2026-09-21-full-suite-qwen35-4b/v2_testing.md",
+      "tasks": 4,
+      "passed": 2,
+      "duration_seconds": 1776.004931215
+    },
+    "v2_security": {
+      "report_json": "docs/reports/2026-09-21-full-suite-qwen35-4b/v2_security.json",
+      "report_md": "docs/reports/2026-09-21-full-suite-qwen35-4b/v2_security.md",
+      "tasks": 4,
+      "passed": 2,
+      "duration_seconds": 393.0879821620001
+    },
+    "v2_ml": {
+      "report_json": "docs/reports/2026-09-21-full-suite-qwen35-4b/v2_ml.json",
+      "report_md": "docs/reports/2026-09-21-full-suite-qwen35-4b/v2_ml.md",
+      "tasks": 4,
+      "passed": 3,
+      "duration_seconds": 158.9216797600002
+    },
+    "diagnosis": {
+      "report_json": "docs/reports/2026-09-21-full-suite-qwen35-4b/diagnosis.json",
+      "report_md": "docs/reports/2026-09-21-full-suite-qwen35-4b/diagnosis.md",
+      "tasks": 8,
+      "passed": 6,
+      "duration_seconds": 96.83667026900002
+    },
+    "fundamentals": {
+      "report_json": "docs/reports/2026-09-21-full-suite-qwen35-4b/fundamentals.json",
+      "report_md": "docs/reports/2026-09-21-full-suite-qwen35-4b/fundamentals.md",
+      "tasks": 9,
+      "passed": 8,
+      "duration_seconds": 235.19084289900002
+    },
+    "ml": {
+      "report_json": "docs/reports/2026-09-21-full-suite-qwen35-4b/ml.json",
+      "report_md": "docs/reports/2026-09-21-full-suite-qwen35-4b/ml.md",
+      "tasks": 6,
+      "passed": 5,
+      "duration_seconds": 189.37811541800056
+    },
+    "security": {
+      "report_json": "docs/reports/2026-09-21-full-suite-qwen35-4b/security.json",
+      "report_md": "docs/reports/2026-09-21-full-suite-qwen35-4b/security.md",
+      "tasks": 3,
+      "passed": 3,
+      "duration_seconds": 73.13931999799934
+    },
+    "general": {
+      "report_json": "docs/reports/2026-09-21-full-suite-qwen35-4b/general.json",
+      "report_md": "docs/reports/2026-09-21-full-suite-qwen35-4b/general.md",
+      "tasks": 26,
+      "passed": 25,
+      "duration_seconds": 549.9463390600004
+    }
+  },
+  "complete": true,
+  "finished_at": "2026-09-21T12:11:26.737269+00:00",
+  "total_duration_seconds": 5097.642802692
+}

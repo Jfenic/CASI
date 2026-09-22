@@ -1,0 +1,17 @@
+--- a/preprocessing.py
++++ b/preprocessing.py
+@@ -12,11 +12,13 @@
+     def transform(self, rows):
+         if not hasattr(self, "means"):
+             raise ValueError("not fitted")
++        if not rows:
++            return []
+         if any(len(row) != len(self.means) for row in rows):
+             raise ValueError("wrong width")
+         return [
+             [
+-                0.0 if value is None else value
++                0.0 if value is None else value - mean
+                 for value, mean in zip(row, self.means, strict=True)
+             ]
+             for row in rows

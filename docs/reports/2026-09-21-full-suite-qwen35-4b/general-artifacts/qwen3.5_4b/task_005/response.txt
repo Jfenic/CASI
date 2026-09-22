@@ -1,0 +1,5 @@
+I'll analyze the repository structure to identify public helper functions.
+
+Let me start by reading the main library file to understand the exports:
+
+{"name":"read_file","arguments":{"path":"lib.py"}}

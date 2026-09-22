@@ -1,0 +1,129 @@
+--- /dev/null
++++ b/test_checkout.py
+@@ -0,0 +1,126 @@
++import pytest
++from orders import checkout
++
++def test_checkout_success():
++    stock = {'sku_a': 10}
++    prices = {'sku_a': 5}
++    sku = 'sku_a'
++    quantity = 3
++    result = checkout(stock, prices, sku, quantity)
++    assert result == 15
++    assert stock['sku_a'] == 7
++
++def test_checkout_exhaustion():
++    stock = {'sku_a': 5}
++    prices = {'sku_a': 2}
++    sku = 'sku_a'
++    quantity = 5
++    result = checkout(stock, prices, sku, quantity)
++    assert result == 10
++    assert stock['sku_a'] == 0
++
++def test_checkout_zero_quantity_raises_valueerror():
++    stock = {'sku_a': 10}
++    prices = {'sku_a': 5}
++    sku = 'sku_a'
++    quantity = 0
++    with pytest.raises(ValueError):
++        checkout(stock, prices, sku, quantity)
++    assert stock['sku_a'] == 10
++
++def test_checkout_negative_quantity_raises_valueerror():
++    stock = {'sku_a': 10}
++    prices = {'sku_a': 5}
++    sku = 'sku_a'
++    quantity = -3
++    with pytest.raises(ValueError):
++        checkout(stock, prices, sku, quantity)
++    assert stock['sku_a'] == 10
++
++def test_checkout_insufficient_stock_raises_valueerror():
++    stock = {'sku_a': 5}
++    prices = {'sku_a': 2}
++    sku = 'sku_a'
++    quantity = 7
++    with pytest.raises(ValueError):
++        checkout(stock, prices, sku, quantity)
++    assert stock['sku_a'] == 5
++
++def test_checkout_missing_sku_in_stock_raises_keyerror():
++    stock = {'sku_b': 10}
++    prices = {'sku_a': 5}
++    sku = 'sku_c'
++    quantity = 1
++    with pytest.raises(KeyError):
++        checkout(stock, prices, sku, quantity)
++    assert stock['sku_b'] == 10
++
++def test_checkout_missing_sku_in_prices_raises_keyerror():
++    stock = {'sku_a': 10}
++    prices = {'sku_b': 5}
++    sku = 'sku_c'
++    quantity = 1
++    with pytest.raises(KeyError):
++        checkout(stock, prices, sku, quantity)
++    assert stock['sku_a'] == 10
++
++def test_checkout_prices_unchanged_after_success():
++    stock = {'sku_a': 10}
++    prices = {'sku_a': 5}
++    sku = 'sku_a'
++    quantity = 3
++    result = checkout(stock, prices, sku, quantity)
++    assert prices['sku_a'] == 5
++
++def test_checkout_prices_unchanged_after_failure():
++    stock = {'sku_a': 10}
++    prices = {'sku_a': 5}
++    sku = 'sku_b'
++    quantity = 1
++    with pytest.raises(KeyError):
++        checkout(stock, prices, sku, quantity)
++    assert prices['sku_a'] == 5
++
++def test_checkout_stock_unchanged_after_failure():
++    stock = {'sku_a': 10}
++    prices = {'sku_a': 5}
++    sku = 'sku_b'
++    quantity = 1
++    with pytest.raises(KeyError):
++        checkout(stock, prices, sku, quantity)
++    assert stock['sku_a'] == 10
++
++def test_checkout_multiple_quantities_independent():
++    stock = {'sku_a': 10}
++    prices = {'sku_a': 3}
++    # First transaction reduces stock by 2
++    result1 = checkout(stock, prices, 'sku_a', 2)
++    assert result1 == 6
++    # Second transaction should use remaining stock
++    result2 = checkout(stock, prices, 'sku_a', 4)
++    assert result2 == 12
++    assert stock['sku_a'] == 4
++
++def test_checkout_unrelated_skus_independent():
++    stock = {'sku_a': 5, 'sku_b': 3}
++    prices = {'sku_a': 2, 'sku_b': 4}
++    # First checkout sku_a only
++    result1 = checkout(stock, prices, 'sku_a', 2)
++    assert result1 == 4
++    assert stock['sku_a'] == 3
++    assert stock['sku_b'] == 3
++    # Second checkout sku_b only
++    result2 = checkout(stock, prices, 'sku_b', 3)
++    assert result2 == 12
++    assert stock['sku_a'] == 3
++    assert stock['sku_b'] == 0
++
++def test_checkout_multiple_products_in_one_transaction():
++    stock = {'sku_a': 10, 'sku_b': 5}
++    prices = {'sku_a': 2, 'sku_b': 4}
++    sku = 'sku_a'
++    quantity = 3
++    result = checkout(stock, prices, sku, quantity)
++    assert result == 6
++    assert stock['sku_a'] == 7
++    assert stock['sku_b'] == 5

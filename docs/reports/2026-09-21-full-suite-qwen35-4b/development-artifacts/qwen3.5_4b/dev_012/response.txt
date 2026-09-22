@@ -1,0 +1,14 @@
+The bug is in totals.subtotal(). It's adding unit prices without multiplying by quantity.
+
+Fix:
+--- a/totals.py
++++ b/totals.py
+@@ -7,6 +7,7 @@ def subtotal(cart: Cart) -> float:
+     total = 0.0
+     for sku, qty in cart.lines:
+-        total += catalog.get_price(sku)
++        total += catalog.get_price(sku) * qty
+     return total
+"""
+
+This change multiplies the unit price by quantity (qty) when computing subtotals. With this fix, widget (10.0 × 2 = 20.0) + gadget (5.0 × 3 = 15.0) gives subtotal 35.0, matching the test expectation."}

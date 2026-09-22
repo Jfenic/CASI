@@ -1,0 +1,1 @@
+{"file": "stats.py", "line": 7, "cause": "The mean function incorrectly subtracts 1.0 from the calculated average: return sum(values) / len(values) - 1.0", "evidence": "For input [1.0, 2.0, 3.0], sum=6.0, len=3, so 6.0/3.0-1.0=1.0 instead of the expected 2.0"}

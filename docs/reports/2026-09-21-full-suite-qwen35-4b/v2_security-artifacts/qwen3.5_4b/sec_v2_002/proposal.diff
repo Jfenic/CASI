@@ -1,0 +1,40 @@
+--- a/archive.py
++++ b/archive.py
+@@ -2,4 +2,36 @@
+ 
+ 
+ def destination(base, member):
+-    return (Path(base) / member).resolve()
++    """Get resolved path inside base directory.
++
++    Accepts nested relative names, spaces and dots within names.
++    Rejects empty names, absolute paths, any .. path component,
++    and any path resolving outside base (including symlink escapes).
++    Returns the resolved pathlib.Path inside base; does not create or
++    modify files.
++    """
++    # Check for empty name
++    if not member or not member.strip():
++        raise ValueError("Member path cannot be empty")
++
++    # Check for absolute paths (starting with / on POSIX)
++    if member.startswith('/'):
++        raise ValueError("Absolute paths are not allowed")
++
++    # Check for .. components before resolution
++    parts = member.split('/')
++    for part in parts:
++        if part == '..':
++            raise ValueError("Relative path component '..' is not allowed")
++
++    # Resolve the path within base directory
++    result = (Path(base) / member).resolve(strict=False)
++    base_resolved = Path(base).resolve()
++
++    # Verify resolved path is actually inside base (not just by name)
++    try:
++        result.is_relative_to(base_resolved)
++    except ValueError:
++        raise ValueError(f"Resolved path '{result}' is outside base directory '{base}'")
++
++    return result

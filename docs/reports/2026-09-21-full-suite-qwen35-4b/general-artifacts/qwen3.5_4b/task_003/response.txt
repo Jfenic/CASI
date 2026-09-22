@@ -1,0 +1,7 @@
+I didn't find any code specifically named "excerpt helper" in the repository. Let me search for just "excerpt" to see if there's related functionality:
+
+```json
+{"name": "search_code", "arguments": {"query": "excerpt"}}
+```
+
+This will help identify where excerpt-related code might be defined and how it behaves."}

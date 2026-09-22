@@ -1,0 +1,12 @@
+The `slugify` function transforms input text through three sequential steps:
+
+1. **strip()** - Removes any leading and trailing whitespace from the text
+2. **lower()** - Converts all characters to lowercase letters
+3. **replace(" ", "-")** - Replaces all spaces with hyphens
+
+For example:
+- Input: `"Hello World  "` → Output: `"hello-world"`
+- Input: `"  TEST   "` → Output: `"test"`
+- Input: `"PyThOn ScrIpT"` → Output: `"python-script"`
+
+The function also accepts the `excerpt()` helper for truncating text up to a limit and appending `...` when needed. All transformations are done sequentially on the input string, which is not modified in place but returns a new transformed string.

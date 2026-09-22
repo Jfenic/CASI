@@ -1,0 +1,18 @@
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+____________________ test_generated_suite_detects_mutations ____________________
+
+tmp_path = PosixPath('/tmp/pytest-of-unknown/pytest-0/test_generated_suite_detects_m0')
+
+    def test_generated_suite_detects_mutations(tmp_path):
+        root = Path(__file__).resolve().parents[1]
+>       assert (root / TEST_FILE).is_file(), "The requested test file was not created"
+E       AssertionError: The requested test file was not created
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = (PosixPath('/workspace') / 'test_slug.py').is_file
+
+_benchmark_checks/test_acceptance.py:60: AssertionError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_generated_suite_detects_mutations
+1 failed, 1 passed in 0.02s

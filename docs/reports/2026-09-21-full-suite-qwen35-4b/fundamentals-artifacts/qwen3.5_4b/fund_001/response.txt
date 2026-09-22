@@ -1,0 +1,17 @@
+--- a/stack.py
++++ b/stack.py
+@@ -11,12 +11,12 @@
+     def pop(self) -> object:
+         if not self._items:
+             raise IndexError("pop from empty stack")
+-        return self._items.pop(0)
++        return self._items.pop()
+ 
+     def peek(self) -> object:
+         if not self._items:
+             raise IndexError("peek from empty stack")
+-        return self._items[0]
++        return self._items[-1]
+ 
+     def is_empty(self) -> bool:
+         return len(self._items) == 0

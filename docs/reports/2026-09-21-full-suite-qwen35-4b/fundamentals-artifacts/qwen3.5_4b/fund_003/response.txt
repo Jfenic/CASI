@@ -1,0 +1,14 @@
+--- a/gcd.py
++++ b/gcd.py
+@@ -4,6 +4,10 @@
+ def gcd(a: int, b: int) -> int:
+     a = abs(a)
+     b = abs(b)
++    # Ensure a >= b before starting the loop for correct Euclid's algorithm
++    while a < b:
++        a, b = b, a
++
+     while b:
+         a, b = b, a % b
+-    return b
++    return a

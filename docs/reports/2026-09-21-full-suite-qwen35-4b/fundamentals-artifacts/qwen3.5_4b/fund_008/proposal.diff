@@ -1,0 +1,33 @@
+--- a/conversion.py
++++ b/conversion.py
+@@ -1,13 +1,29 @@
++#!/usr/bin/env python3
+ """Decimal to binary conversion — computer systems / number bases classic."""
+ 
+ 
+ def to_binary(n: int) -> str:
++    """Convert a non-negative integer to its binary string representation.
++
++    Args:
++        n: A non-negative integer
++
++    Returns:
++        Binary representation as string without leading zeros (except "0" for input 0)
++
++    Raises:
++        ValueError: If n is negative
++    """
++    # Handle zero explicitly to avoid empty result after loop
+     if n == 0:
+         return "0"
++    # Reject negative inputs immediately with clear message
+     if n < 0:
+         raise ValueError("n must be non-negative")
++
++    # Build binary bits from LSB to MSB, then join in correct order
+     bits: list[str] = []
+-    while n:
++    while n > 0:
+         bits.append(str(n % 2))
+         n //= 2
+     return "".join(bits)

@@ -1,0 +1,11 @@
+--- a/postfix.py
++++ b/postfix.py
+@@ -10,7 +10,7 @@
+             if token == "+":
+                 stack.append(left + right)
+             elif token == "-":
+-                stack.append(right - left)
++                stack.append(left - right)
+             elif token == "*":
+                 stack.append(left * right)
+             else:

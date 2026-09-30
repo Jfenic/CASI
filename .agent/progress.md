@@ -50,3 +50,31 @@ All 5 phases of the Multi-Agent Orchestration feature and the Error Sanitization
 ## Next Backlog Priority
 
 According to [TASKS.md](TASKS.md): **API & UI Persistence & Hardening** (storage for tasks/traces across restarts, clarification answers over HTTP, end-to-end UI verification).
+
+## Demo LinkedIn preparada — 2026-09-29
+
+- Proyecto independiente creado en `../casi-cart-demo` (FastAPI, HTML y cálculo Python).
+- Fallo deliberado de descuento: dos artículos de 50 €, descuento 20 %, total inicial 90 €.
+- Verificación local: 3 tests pasan y 1 falla; una copia temporal corregida pasa los 4.
+- Guion de grabación y backlog trasladado como hoja de trabajo en `docs/` de la demo.
+- Funciones de endpoints y existencia del HTML comprobadas. La comprobación HTTP con
+  TestClient no terminó; no se ha validado visualmente en navegador ni ejecutado todavía
+  el flujo completo de CASI + Ollama + Docker. No se ha aplicado la solución a la demo.
+- Las tareas de persistencia, aclaraciones y orquestación futura siguen pendientes.
+
+## Corrección de reintentos FIX y aislamiento de contexto — 2026-09-30
+
+- El agente orquestado usa el contrato refinado por el evaluador sin concatenar
+  peticiones e instrucciones de planes anteriores. El evaluador conserva acceso
+  al historial para resolver solicitudes como «Corrige el error».
+- Las respuestas a aclaraciones amplían el contrato de la tarea activa.
+- Tras una verificación fallida, las correcciones usan `ProposeFileAction` cuando
+  el cliente lo admite, con indicaciones para conservar las validaciones existentes.
+- Dos decisiones consecutivas con errores del modelo detienen el bucle y conservan
+  la última verificación fallida para diagnóstico; una decisión válida reinicia
+  ese contador. Ollama mantiene sus reintentos internos existentes.
+- Cuatro regresiones deterministas pasan: descuento con rechazo de booleanos,
+  errores persistentes del modelo, recuperación e instrucciones antiguas aisladas.
+- Validación completa: lint, formato y compilación pasan; `pytest -ra` termina con
+  536 tests pasando, 2 omitidos y 2 avisos de dependencias (Starlette/AnyIO).
+- Pendiente repetir la demo con Ollama real y Docker; no se ha modificado la demo.

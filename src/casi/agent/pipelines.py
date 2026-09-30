@@ -360,7 +360,10 @@ def nudge_after_fix_pipeline() -> ResponseNudge:
             "propose_file with the repository-relative source path and the complete "
             "corrected file content. CASI will generate the unified diff; do not "
             "write the diff yourself. Ensure your fix satisfies all explicit task "
-            "specifications, types, and edge cases, not just visible tests."
+            "specifications, types, and edge cases, not just visible tests. "
+            "Start from the original source and change only the faulty behavior. "
+            "Preserve existing validation guards, signatures, and return structure "
+            "unless the failing tests require changing them."
         ),
     )
 

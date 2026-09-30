@@ -50,6 +50,7 @@ def test_fix_retry_requires_action_and_preserves_failed_verification(
     )
     bad = original.replace("type(discount) is not int", "not isinstance(discount, int)")
     bad = bad.replace("prices[0] * discount", "sum(prices) * discount")
+    bad += "\n# first_rejected_attempt\n"
     corrected = original.replace("prices[0] * discount", "sum(prices) * discount")
     (tmp_path / "cart.py").write_text(original, encoding="utf-8")
     (tmp_path / "test_cart.py").write_text(
@@ -77,6 +78,20 @@ def test_fix_retry_requires_action_and_preserves_failed_verification(
             self.action_calls.append(messages[:])
             if model_errors:
                 raise LLMError("Ollama message does not contain usable content")
+            if len(self.action_calls) == 1:
+                return LLMResponse.tool_call(
+                    "propose_file",
+                    {
+                        "path": "cart.py",
+                        "content": bad.replace(
+                            "first_rejected_attempt", "second_rejected_attempt"
+                        ),
+                    },
+                )
+            if len(self.action_calls) == 2:
+                return LLMResponse.tool_call(
+                    "propose_file", {"path": "cart.py", "content": "def broken(:\n"}
+                )
             return LLMResponse.tool_call(
                 "propose_file", {"path": "cart.py", "content": corrected}
             )
@@ -94,6 +109,15 @@ def test_fix_retry_requires_action_and_preserves_failed_verification(
     assert any(
         "test_invalid_discount" in message.content for message in client.action_calls[0]
     )
+    assert any(
+        line.strip().startswith("discount") and line.split("=")[-1].strip() == "True"
+        for line in client.action_calls[0][-1].content.splitlines()
+    )
+    assert any(
+        "type(discount) is not int" in message.content
+        for message in client.action_calls[0]
+        if message.role == "tool"
+    )
     assert result.patch_verification is not None
     assert (tmp_path / "cart.py").read_text(encoding="utf-8") == original
     if model_errors:
@@ -104,10 +128,14 @@ def test_fix_retry_requires_action_and_preserves_failed_verification(
         assert "twice in a row" in result.error
         assert result.steps == 3
     else:
-        assert len(client.action_calls) == 1
+        assert len(client.action_calls) == 3
+        last_context = "\n".join(m.content for m in client.action_calls[-1])
+        assert "second_rejected_attempt" in last_context
+        assert "first_rejected_attempt" not in last_context
+        assert "syntax error" in client.action_calls[-1][-1].content
         assert result.success is True
         assert result.patch_verification.passed is True
-        assert result.patch_verification.correction_attempts == 1
+        assert result.patch_verification.correction_attempts == 2
 
 
 def test_model_error_budget_resets_after_usable_decision(tmp_path: Path) -> None:

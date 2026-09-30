@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
+import pytest
+
 from casi.agent.failure_classification import FailureKind
 from casi.agent.nudges import (
     nudge_for_corrupt_patch,
@@ -47,3 +51,28 @@ def test_missing_patch_nudge_lists_remaining_failures() -> None:
     assert "Tests are still failing" in nudge.user_message
     assert "test_rejects_missing_at_symbol" in nudge.user_message
     assert "Fix every remaining failure" in nudge.user_message
+
+
+@pytest.mark.parametrize("failure_kind", [None, FailureKind.CODE])
+def test_missing_exception_guidance_survives_output_truncation(
+    monkeypatch: pytest.MonkeyPatch, failure_kind: FailureKind | None
+) -> None:
+    from casi.config import settings
+
+    monkeypatch.setattr(
+        "casi.config.settings",
+        replace(settings, max_error_output_chars=200),
+    )
+    output = (
+        "E Failed: DID NOT RAISE <class 'ValueError'>\n"
+        + "irrelevant log line\n" * 100
+        + "FAILED tests/test_inputs.py::test_validation\n1 failed\n"
+    )
+    nudge = nudge_for_patch_correction(
+        "The proposed patch failed tests.", output, failure_kind=failure_kind
+    )
+
+    assert "restore any removed or weakened guards" in nudge.user_message
+    assert "isinstance(True, int)" not in nudge.user_message
+    assert "type(value) is int" not in nudge.user_message
+    assert "salida truncada" in nudge.user_message

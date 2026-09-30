@@ -78,3 +78,22 @@ According to [TASKS.md](TASKS.md): **API & UI Persistence & Hardening** (storage
 - Validación completa: lint, formato y compilación pasan; `pytest -ra` termina con
   536 tests pasando, 2 omitidos y 2 avisos de dependencias (Starlette/AnyIO).
 - Pendiente repetir la demo con Ollama real y Docker; no se ha modificado la demo.
+
+## Diagnóstico general de correcciones fallidas — 2026-09-30
+
+- Los perfiles de mutación ejecutan la preparación y los tests iniciales aunque
+  el contrato refinado no contenga palabras reconocidas por los patrones de texto.
+- Los reintentos estructurados reciben los archivos originales, la última propuesta
+  rechazada, el fallo actual y los errores posteriores de `propose_file`. Las
+  propuestas anteriores permanecen en la traza, sin acumularse en el prompt.
+- Pytest incluye los valores locales del fallo (`--showlocals`). Los mensajes
+  detectan excepciones esperadas que no se produjeron antes de truncar la salida.
+- Se retiraron las pistas específicas sobre booleanos y orden de cálculo. El
+  experimento de sustitución de texto se descartó por indicación del usuario.
+- Validación de la versión general: 538 tests pasan, 2 omitidos y 2 avisos de
+  dependencias; lint, formato y compilación correctos.
+- La reproducción con `qwen2.5-coder:7b` y Docker sobre una copia temporal sigue
+  fallando: el modelo pierde validaciones y campos del resultado tras cuatro
+  correcciones. No se considera resuelta la capacidad del modelo en este caso.
+- Artefactos de esa reproducción: `/tmp/casi-cart-real-n0s0n9ua/`. La demo original
+  conserva su contenido. Se detienen los ajustes específicos a petición del usuario.

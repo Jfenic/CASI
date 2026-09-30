@@ -52,7 +52,8 @@ def test_orchestrator_uses_refined_contract_without_old_plan_instructions(
             super().__init__(
                 [
                     LLMResponse.final(
-                        '{"objective":"fix", "refined_task":"Fix discount in cart.py",'
+                        '{"objective":"fix",'
+                        '"refined_task":"Correct discount in cart.py",'
                         '"plan_instructions":"Preserve validation",'
                         '"tools_needed":["read_file","propose_file"]}'
                     ),
@@ -78,7 +79,9 @@ def test_orchestrator_uses_refined_contract_without_old_plan_instructions(
     assert result.success is True
     assert any("Discount bug" in message.content for message in client.messages[0])
     worker_context = "\n".join(message.content for message in client.messages[1])
-    assert "Fix discount in cart.py" in worker_context
+    assert "Correct discount in cart.py" in worker_context
+    assert "tool=run_tests\n" in worker_context
+    assert "assert total == 80" in worker_context
     assert "Preserve validation" in worker_context
     assert "Read README" not in worker_context
     assert "Explain repository" not in worker_context

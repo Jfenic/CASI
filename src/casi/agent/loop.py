@@ -29,6 +29,7 @@ from casi.agent.nudges import (
     nudge_after_layout_loaded,
     nudge_for_layout_required,
     nudge_for_missing_local_modules,
+    nudge_for_patch_correction,
     nudge_for_premature_clarification,
     nudge_for_propose_file_failure,
     nudge_for_read_file_instead_of_search,
@@ -336,7 +337,7 @@ class AgentLoop:
 
         if active.intent is TaskIntent.DIAGNOSE:
             self._bootstrap_diagnose_workflow(task_context, active.retries)
-        elif task_requests_code_change(task_context):
+        elif is_mutation_intent(intent) or task_requests_code_change(task_context):
             self._bootstrap_code_change_workflow(task_context, active.retries)
         elif self._should_prefetch_repository(intent, task_context, False):
             self._notify_activity("Inspecting repository before first model call...")
@@ -782,8 +783,67 @@ class AgentLoop:
                     )
                 from casi.llm.actions import ProposeFileAction
 
-                return complete_action(active_messages, ProposeFileAction)
+                action_messages = (
+                    self._patch_correction_messages(active)
+                    if correction_required
+                    else active_messages
+                )
+                return complete_action(action_messages, ProposeFileAction)
         return self.client.complete(active_messages, step_tools)
+
+    def _patch_correction_messages(self, active: _ActiveTask) -> list[ChatMessage]:
+        """Focus a repair on original files and the most recent rejected patch."""
+
+        messages = [ChatMessage(role="user", content=active.task_context)]
+        history = active.scope.task_messages
+        for index, message in enumerate(history):
+            if message.role == "tool" and message.content.startswith(
+                ("tool=read_file\n", "tool=list_files\n")
+            ):
+                if index > 0 and history[index - 1].role == "assistant":
+                    messages.append(history[index - 1])
+                messages.append(message)
+        for message in reversed(history):
+            if message.role == "assistant" and extract_patch(message.content):
+                messages.append(
+                    ChatMessage(
+                        role="assistant",
+                        content="Latest rejected proposal:\n" + message.content,
+                    )
+                )
+                break
+        verification = active.patch_verification
+        if verification is not None:
+            nudge = nudge_for_patch_correction(
+                "The latest proposal failed verification.",
+                verification.output,
+                failure_kind=verification.failure_kind,
+            )
+            messages.append(
+                ChatMessage(
+                    role="user",
+                    content=(
+                        nudge.user_message
+                        + "\nThe read_file results show the original "
+                        "repository, which has not been modified. Start from that "
+                        "source and make the smallest fix. Preserve original input "
+                        "guards, signatures, and return structure unless they cause "
+                        "the failure. Revert unrelated changes in the rejected "
+                        "proposal. Do not repeat that proposal."
+                    ),
+                )
+            )
+        proposal = self.conversation.last_tool_result("propose_file")
+        if proposal is not None and not proposal.success:
+            messages.append(
+                ChatMessage(
+                    role="user",
+                    content=nudge_for_propose_file_failure(
+                        proposal.error or "propose_file failed"
+                    ).user_message,
+                )
+            )
+        return messages
 
     def _resolve_intent(self, task_context: str) -> TaskIntent:
         if self.profile is not None:

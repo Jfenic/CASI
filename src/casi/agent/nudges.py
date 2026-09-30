@@ -247,6 +247,12 @@ def nudge_for_premature_clarification() -> ResponseNudge:
 
 def _assertion_correction_hints(output: str) -> str:
     hints: list[str] = []
+    if "DID NOT RAISE" in output:
+        hints.append(
+            "pytest.raises expected an exception, but the proposal accepted an "
+            "invalid input; compare the original validation with the rejected "
+            "proposal and restore any removed or weakened guards"
+        )
     for actual, expected in extract_assertion_mismatches(output):
         hints.append(f"expected {expected!r}, but the code returned {actual!r}")
         if expected.endswith(".") and not actual.endswith("."):
@@ -268,9 +274,9 @@ def nudge_for_patch_correction(
     *,
     failure_kind: FailureKind | None = None,
 ) -> ResponseNudge:
-    compact_output = sanitize_and_compact_error(output)
     if failure_kind is not None:
-        return nudge_for_failure_kind(failure_kind, reason, compact_output)
+        return nudge_for_failure_kind(failure_kind, reason, output)
+    compact_output = sanitize_and_compact_error(output)
     if "corrupt patch" in output.lower():
         return nudge_for_corrupt_patch(compact_output)
     assertion_hints = _assertion_correction_hints(output)

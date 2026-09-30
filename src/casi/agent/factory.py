@@ -79,6 +79,7 @@ class AgentFactory:
         registry: ToolRegistry | None = None,
         plan_instructions: str = "",
         custom_role: str | None = None,
+        include_session_context: bool = True,
     ) -> SpecializedAgent:
         """Instantiate an agent for a known objective."""
 
@@ -103,6 +104,7 @@ class AgentFactory:
             trace=trace,
             routing_mode=routing_mode,
             response_policy=response_policy,
+            include_session_context=include_session_context,
         )
         return SpecializedAgent(profile=profile, loop=loop)
 

@@ -163,6 +163,9 @@ CREATE_ACTION_PROMPT = (
     "- content must be the full corrected file, not a diff and not a summary.\n"
     "- Do not return type, final, name, arguments, or any other keys.\n"
     "- Do not describe the change in prose.\n"
+    "- Preserve existing behavior and input validation outside the requested fix.\n"
+    "- Use the latest sandbox failure to correct the proposal; do not repeat it.\n"
+    "- Never weaken tests or import test modules into production code.\n"
 )
 
 

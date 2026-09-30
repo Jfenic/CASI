@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
+
+import pytest
 
 from casi.agent.intent import TaskIntent
 from casi.agent.orchestrator import AgentOrchestrator
@@ -20,6 +23,66 @@ class FakeClient:
     ) -> LLMResponse:
         self.calls += 1
         return next(self.responses)
+
+
+def test_orchestrator_uses_refined_contract_without_old_plan_instructions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from casi.config import settings
+
+    monkeypatch.setattr(
+        "casi.sandbox.runner_factory.settings",
+        replace(settings, use_docker_sandbox=False),
+    )
+    (tmp_path / "cart.py").write_text("total = 90\n", encoding="utf-8")
+    (tmp_path / "test_cart.py").write_text(
+        "from cart import total\n\ndef test_total():\n    assert total == 80\n",
+        encoding="utf-8",
+    )
+    old_request = "Explain repository\n\nOrchestrator plan instructions:\nRead README"
+    session = [
+        ChatMessage(role="user", content=old_request),
+        ChatMessage(role="assistant", content="Discount bug in cart.py: total is 90."),
+    ]
+
+    class EvaluatingClient(FakeClient):
+        supports_evaluation = True
+
+        def __init__(self) -> None:
+            super().__init__(
+                [
+                    LLMResponse.final(
+                        '{"objective":"fix", "refined_task":"Fix discount in cart.py",'
+                        '"plan_instructions":"Preserve validation",'
+                        '"tools_needed":["read_file","propose_file"]}'
+                    ),
+                    LLMResponse.tool_call(
+                        "propose_file", {"path": "cart.py", "content": "total = 80\n"}
+                    ),
+                ]
+            )
+            self.messages: list[list[ChatMessage]] = []
+
+        def complete(self, messages, tools) -> LLMResponse:
+            self.messages.append(messages[:])
+            return super().complete(messages, tools)
+
+    client = EvaluatingClient()
+    result = AgentOrchestrator(
+        client,
+        tmp_path,
+        session_messages=session,
+        require_tool_confirmation=lambda *_args: True,
+    ).run("Corrige el error")
+
+    assert result.success is True
+    assert any("Discount bug" in message.content for message in client.messages[0])
+    worker_context = "\n".join(message.content for message in client.messages[1])
+    assert "Fix discount in cart.py" in worker_context
+    assert "Preserve validation" in worker_context
+    assert "Read README" not in worker_context
+    assert "Explain repository" not in worker_context
+    assert session[0].content == old_request
 
 
 def test_orchestrator_runs_general_agent_without_segment_approval(

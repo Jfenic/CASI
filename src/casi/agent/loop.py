@@ -93,6 +93,7 @@ class _ActiveTask:
     continuing_after_clarification: bool = False
     next_step: int = 1
     proposal_rejected: bool = False
+    consecutive_model_errors: int = 0
 
 
 class AgentLoop:
@@ -115,6 +116,7 @@ class AgentLoop:
         trace: AgentTraceRecorder | None = None,
         routing_mode: str | RoutingMode | None = None,
         response_policy: ResponsePolicy | None = None,
+        include_session_context: bool = True,
     ) -> None:
         if max_steps < 1:
             raise ValueError("max_steps must be greater than or equal to 1")
@@ -144,6 +146,7 @@ class AgentLoop:
         self.on_activity = on_activity
         self.trace = trace
         self.response_policy = response_policy or ResponsePolicy()
+        self.include_session_context = include_session_context
         self._clarification_pending = False
         self._active_task: _ActiveTask | None = None
         self.conversation = self._build_conversation(self.messages)
@@ -310,7 +313,11 @@ class AgentLoop:
                 self.trace.mark_started()
         scope = TaskScope(session_messages=self._session_merge_target())
         tools = self._tools_for_task()
-        task_context = build_task_context(task, self.messages)
+        task_context = (
+            build_task_context(task, self.messages)
+            if self.include_session_context
+            else task.strip()
+        )
         intent = self._resolve_intent(task_context)
         active = _ActiveTask(
             scope=scope,
@@ -365,7 +372,7 @@ class AgentLoop:
         )
         self.conversation.append("user", answer)
         tools = self._tools_for_task()
-        active.task_context = build_task_context(answer, self.messages)
+        active.task_context += f"\n\nAdditional user context: {answer.strip()}"
         active.intent = self._resolve_intent(active.task_context)
         active.continuing_after_clarification = True
 
@@ -427,12 +434,28 @@ class AgentLoop:
                     active=active,
                 )
             except LLMError as exc:
+                active.consecutive_model_errors += 1
                 duration_ms = (time.perf_counter() - started) * 1000
                 if self.trace is not None:
                     self.trace.record_step_timing(
                         step, step_limit, "error", duration_ms
                     )
-                    self.trace.record_nudge(f"empty model response: {exc}")
+                    self.trace.record_nudge(f"model error: {exc}")
+                if active.consecutive_model_errors >= 2:
+                    return self._finish(
+                        active,
+                        AgentResult(
+                            success=False,
+                            error=(
+                                "Model failed to return a usable decision twice in "
+                                f"a row: {exc}"
+                            ),
+                            steps=step,
+                            messages=active_messages,
+                            patch_verification=active.patch_verification,
+                            requested_code_change=mutation_workflow,
+                        ),
+                    )
                 last_msg = (
                     self.conversation.messages[-1].content
                     if self.conversation.messages
@@ -448,6 +471,7 @@ class AgentLoop:
                         "Retry with the required structured action for this phase.",
                     )
                 continue
+            active.consecutive_model_errors = 0
             duration_ms = (time.perf_counter() - started) * 1000
             if self.trace is not None:
                 self.trace.record_step_timing(
@@ -735,9 +759,15 @@ class AgentLoop:
         phase: AgentPhase,
         active: _ActiveTask,
     ) -> LLMResponse:
-        """Call the LLM using CREATE action schema or the normal tool protocol."""
+        """Constrain CREATE and failed mutation retries to a file proposal."""
 
-        if should_use_create_action_schema(
+        correction_required = (
+            self._in_mutation_workflow(active)
+            and active.patch_verification is not None
+            and not active.patch_verification.passed
+            and any(tool.name == "propose_file" for tool in step_tools)
+        )
+        if correction_required or should_use_create_action_schema(
             intent=active.intent,
             layout_known=self.conversation.layout_known(),
             propose_file_succeeded=self.conversation.propose_file_succeeded(),

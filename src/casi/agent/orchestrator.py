@@ -378,6 +378,8 @@ class AgentOrchestrator:
             registry=self.registry,
             plan_instructions=plan_instructions,
             custom_role=custom_role,
+            # The evaluator already resolved this request against session history.
+            include_session_context=False,
         )
 
     def _confirmation_for_segment(

@@ -109,8 +109,9 @@ def nudge_for_missing_patch(
         summary = summarize_test_failures(remaining_test_output)
         detail = (
             f" Tests are still failing: {summary}. "
-            "Fix every remaining failure, not only the requirement mentioned in "
-            "the task."
+            "Compare these failures with the initial test results. Fix issues "
+            "within the requested scope and regressions introduced by the proposal; "
+            "report unrelated pre-existing failures without expanding the task."
         )
     return ResponseNudge(
         user_message=(
@@ -153,7 +154,8 @@ def nudge_for_missing_local_modules(paths: list[str]) -> ResponseNudge:
         user_message=(
             f"The repository is missing local file(s): {joined}. "
             f"Create each missing file with {_PROPOSE_FILE_INSTRUCTION} "
-            "Use the failing tests as the contract for required behavior."
+            "Respect the complete user task and repository behavior, using the "
+            "failing tests as evidence."
         ),
     )
 
@@ -162,13 +164,21 @@ def nudge_for_read_file_instead_of_search(
     paths: list[str],
     *,
     sources_already_read: bool = False,
+    allow_patch: bool = True,
 ) -> ResponseNudge:
+    next_step = (
+        _PROPOSE_FILE_INSTRUCTION
+        if allow_patch
+        else "Answer the task from tool evidence when the context is sufficient."
+    )
     if sources_already_read:
         return ResponseNudge(
             user_message=(
                 f"{_PREFIX_READ_INSTEAD_OF_SEARCH}. "
                 "Source files are already loaded with read_file. "
-                f"Do not call search_code again; {_PROPOSE_FILE_INSTRUCTION}"
+                "Use the existing results for this repeated search. Search a "
+                "different target if more context is needed, or "
+                f"{next_step}"
             ),
         )
 
@@ -177,7 +187,7 @@ def nudge_for_read_file_instead_of_search(
         user_message=(
             f"{_PREFIX_READ_INSTEAD_OF_SEARCH} for {joined}. "
             f"Call read_file on those paths to load the full source, then "
-            f"{_PROPOSE_FILE_INSTRUCTION}"
+            f"{next_step}"
         ),
     )
 
@@ -249,20 +259,11 @@ def _assertion_correction_hints(output: str) -> str:
     hints: list[str] = []
     if "DID NOT RAISE" in output:
         hints.append(
-            "pytest.raises expected an exception, but the proposal accepted an "
-            "invalid input; compare the original validation with the rejected "
-            "proposal and restore any removed or weakened guards"
+            "an expected exception was not raised; inspect the failing test, "
+            "its local values, and the implementation to determine the cause"
         )
     for actual, expected in extract_assertion_mismatches(output):
         hints.append(f"expected {expected!r}, but the code returned {actual!r}")
-        if expected.endswith(".") and not actual.endswith("."):
-            hints.append(
-                "the expected value ends with a trailing period that is missing "
-                f"from {actual!r}"
-            )
-        elif len(expected) > len(actual) and expected.startswith(actual):
-            suffix = expected[len(actual) :]
-            hints.append(f"the expected value adds {suffix!r} after {actual!r}")
     if not hints:
         return ""
     return " Assertion hints: " + " ".join(hints[:3]) + "."
@@ -320,17 +321,17 @@ _FAILURE_GUIDANCE = {
         "corrected file content."
     ),
     FailureKind.DEPENDENCY: (
-        "The failure looks like a missing import. If a local module or file is "
-        "missing, create it with propose_file. Otherwise verify imports against "
-        "the loaded source files before proposing changes."
+        "The failure looks like a missing import. Check repository layout, "
+        "import configuration, and declared dependencies before deciding whether "
+        "a source change or an environment correction is needed."
     ),
     FailureKind.DOCKER: (
         "The Docker sandbox failed before tests could run. Retry only after the "
         "environment issue is resolved or use an approved local fallback."
     ),
     FailureKind.TIMEOUT: (
-        "The test command timed out. Propose a smaller, focused fix rather than "
-        "adding expensive work."
+        "The test command timed out. Inspect the available output and execution "
+        "environment to determine the cause before proposing code changes."
     ),
     FailureKind.PATCH_INVALID: (
         "The patch format or paths were rejected. Do not hand-write a diff;"

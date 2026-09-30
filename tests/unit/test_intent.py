@@ -1,7 +1,10 @@
+import pytest
+
 from casi.agent.intent import (
     TaskIntent,
     build_task_context,
     classify_intent,
+    extract_search_targets,
     is_fast_path_intent,
     resolve_task_intent,
     task_requests_code_change,
@@ -72,12 +75,26 @@ def test_resolve_task_intent_routes_diagnose_category() -> None:
     )
 
 
-def test_resolve_task_intent_routes_ml_category_and_keywords() -> None:
+def test_resolve_task_intent_requires_explicit_ml_category_in_fallback() -> None:
     assert resolve_task_intent("Fix metrics", category="ml") is TaskIntent.ML
     assert (
-        resolve_task_intent("Fix precision and recall in metrics.py") is TaskIntent.ML
+        resolve_task_intent("Fix precision and recall in metrics.py") is TaskIntent.FIX
     )
     assert resolve_task_intent("Fix pagination bug") is TaskIntent.FIX
+
+
+@pytest.mark.parametrize(
+    "task",
+    [
+        "Correct the calculation in totals.py",
+        "Fix model.py",
+        "Fix feature flags parsing",
+        "Fix labels in the checkout form",
+        "Fix path splitting",
+    ],
+)
+def test_fallback_does_not_infer_specialist_from_ambiguous_terms(task: str) -> None:
+    assert resolve_task_intent(task) is TaskIntent.FIX
 
 
 def test_build_task_context_includes_recent_user_messages() -> None:
@@ -89,3 +106,9 @@ def test_build_task_context_includes_recent_user_messages() -> None:
     )
     assert "Fix validate_email" in context
     assert "corrígelo" in context
+
+
+def test_search_targets_preserve_full_paths_with_underscores() -> None:
+    assert extract_search_targets("Create library/missing_app.py") == [
+        "library/missing_app.py"
+    ]

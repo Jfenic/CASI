@@ -256,31 +256,15 @@ class AgentLoop:
         *,
         mutation_workflow: bool,
     ) -> list[ToolDefinition]:
-        """Stop tool loops once a fix has enough repository context."""
+        """Keep inspection available within the task's existing tool permissions."""
 
         if intent is TaskIntent.DIAGNOSE:
-            if (
-                self.conversation.tool_was_used("run_tests")
-                and self.conversation.read_file_paths()
-            ):
-                return [tool for tool in tools if tool.name == "read_file"]
             return [
                 tool
                 for tool in tools
                 if tool.name not in {"validate_patch", "propose_file", "apply_patch"}
             ]
         if mutation_workflow or is_mutation_intent(intent):
-            if intent is TaskIntent.CREATE and not self.conversation.tool_was_used(
-                "propose_file"
-            ):
-                return [tool for tool in tools if tool.name != "validate_patch"]
-            if (
-                self.conversation.tool_was_used("run_tests")
-                and self.conversation.read_file_paths()
-            ):
-                return [
-                    tool for tool in tools if tool.name in {"read_file", "propose_file"}
-                ]
             return [tool for tool in tools if tool.name != "validate_patch"]
         return tools
 
@@ -539,25 +523,17 @@ class AgentLoop:
                 elif mutation_workflow and not any(
                     tool.name == tool_name for tool in step_tools
                 ):
-                    if tool_name == "search_code":
-                        message = nudge_for_read_file_instead_of_search(
-                            self.conversation.unread_search_code_paths(),
-                            sources_already_read=True,
-                        ).user_message
-                    else:
-                        message = (
-                            "Repository inspection is complete. Only read_file and "
-                            "propose_file are available now. Re-read a loaded file "
-                            "only if needed, then call propose_file with its "
-                            "repository-relative path and complete corrected "
-                            "content. Do not hand-write another diff."
-                        )
+                    allowed = ", ".join(tool.name for tool in step_tools) or "none"
+                    message = (
+                        f"Tool {tool_name!r} is unavailable for this task. "
+                        f"Available tools: {allowed}. Choose an available tool "
+                        "consistent with the user's task contract."
+                    )
                     self.conversation.append_nudge(
                         Conversation.format_tool_call(tool_name, response.arguments),
                         message,
                     )
                     if self.trace is not None:
-                        allowed = ", ".join(tool.name for tool in step_tools) or "none"
                         self.trace.record_tool_result(
                             tool_name,
                             success=False,
@@ -1123,13 +1099,15 @@ class AgentLoop:
         self._notify_activity(f"Running tool `{tool_name}`...")
         if self._should_redirect_search_to_read(
             tool_name,
+            response.arguments,
             mutation_workflow=mutation_workflow,
             intent=intent,
         ):
             paths = self.conversation.unread_search_code_paths()
             nudge = nudge_for_read_file_instead_of_search(
                 paths,
-                sources_already_read=bool(self.conversation.read_file_paths()),
+                sources_already_read=not paths,
+                allow_patch=mutation_workflow and intent is not TaskIntent.DIAGNOSE,
             )
             if self.trace is not None:
                 self.trace.record_nudge("redirect repeated search_code to read_file")
@@ -1260,6 +1238,7 @@ class AgentLoop:
     def _should_redirect_search_to_read(
         self,
         tool_name: str,
+        arguments: dict[str, object],
         *,
         mutation_workflow: bool,
         intent: TaskIntent,
@@ -1274,13 +1253,13 @@ class AgentLoop:
             return False
         if not self.conversation.tool_was_used("run_tests"):
             return False
-        search_calls = sum(
-            1
+        return any(
+            message.tool_call is not None
+            and message.tool_call.name == "search_code"
+            and message.tool_call.success
+            and message.tool_call.arguments == arguments
             for message in self.conversation.messages
-            if message.role == "assistant"
-            and message.content.startswith("Called tool=search_code")
         )
-        return search_calls >= 2
 
     def _handle_clarification(
         self,

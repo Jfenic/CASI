@@ -8,9 +8,19 @@ from typing import Any, Protocol
 
 
 @dataclass(frozen=True)
+class ToolCallRecord:
+    """Internal execution evidence; never inferred from model response text."""
+
+    name: str
+    arguments: dict[str, object]
+    success: bool
+
+
+@dataclass(frozen=True)
 class ChatMessage:
     role: str
     content: str
+    tool_call: ToolCallRecord | None = None
 
 
 @dataclass(frozen=True)

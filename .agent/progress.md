@@ -97,3 +97,35 @@ According to [TASKS.md](TASKS.md): **API & UI Persistence & Hardening** (storage
   correcciones. No se considera resuelta la capacidad del modelo en este caso.
 - Artefactos de esa reproducción: `/tmp/casi-cart-real-n0s0n9ua/`. La demo original
   conserva su contenido. Se detienen los ajustes específicos a petición del usuario.
+
+## Auditoría de instrucciones generalistas — 2026-09-30
+
+- Informe: [2026-09-30-generalist-audit.md](../docs/reports/2026-09-30-generalist-audit.md).
+- Se identificaron recetas de copia, TTL y excepciones en el prompt global,
+  convenciones ML, supuestos causales en nudges y ampliación del alcance de fixes.
+- Se comprobaron rutas incorrectas del clasificador determinista, lecturas con
+  rangos que no se contabilizan y pérdida de argumentos de tests al adaptar a Docker.
+- También se revisaron restricciones prematuras de herramientas y supuestos de
+  estructura del repositorio. No se ha modificado código de ejecución ni benchmarks.
+- Solo se ejecutaron comprobaciones locales de funciones para respaldar el informe;
+  no se repitió la suite ni se hicieron ajustes del modelo.
+
+## Corrección de reglas específicas y heurísticas — 2026-09-30
+
+- Se eliminaron las recetas de copia profunda, TTL y excepciones del prompt
+  global, y las convenciones numéricas y de mutabilidad impuestas por el perfil ML.
+- Los nudges describen evidencia sin atribuir causas no verificadas; respetan el
+  alcance solicitado y los permisos de los roles de solo lectura.
+- El fallback no asigna ML por palabras ambiguas. La búsqueda sigue disponible
+  después de inspeccionar archivos y solo se redirigen consultas idénticas previas.
+- Las llamadas ejecutadas conservan argumentos y resultado estructurados para
+  contabilizar lecturas con rangos y distinguirlas de llamadas solo descritas.
+- La preparación descubre README existentes, tests según configuración de Pytest,
+  raíces de código e imports relativos. No ordena crear módulos desconocidos sin
+  que la tarea nombre un archivo local ausente.
+- Docker conserva argumentos de tests y adapta rutas absolutas del repositorio.
+- Regresiones y validación completa: 561 tests pasan, 2 omitidos y 2 avisos de
+  Starlette/AnyIO. Ruff, formato, compileall y comprobación del diff correctos.
+- Informe actualizado: `docs/reports/2026-09-30-generalist-audit.md`. Sin cambios
+  en benchmarks ni nueva medición con Ollama; la capacidad del modelo para la demo
+  sigue sin considerarse resuelta.

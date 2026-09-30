@@ -4,24 +4,19 @@ from __future__ import annotations
 
 import ast
 import re
-import sys
 from collections.abc import Callable
-from importlib.metadata import packages_distributions
 from pathlib import Path
 
 from casi.agent.intent import TaskIntent, derive_search_queries, extract_search_targets
 from casi.agent.nudges import PIPELINE_FALLBACK_PREFIX, ResponseNudge
 from casi.agent.test_failures import extract_failure_paths
+from casi.exceptions import SecurityError
 from casi.repository.explorer import looks_like_filename, resolve_named_paths
+from casi.repository.python_project import discover_test_files, python_source_roots
+from casi.repository.security import safe_path
 from casi.tools.result import ToolResult
 
 ToolExecutor = Callable[[str, dict[str, object]], ToolResult]
-
-
-def _local_module_candidates(module: str) -> list[str]:
-    root = module.split(".")[0]
-    base = Path(root)
-    return [base.with_suffix(".py").as_posix(), (base / "__init__.py").as_posix()]
 
 
 def missing_local_module_paths(
@@ -29,30 +24,45 @@ def missing_local_module_paths(
     test_paths: list[str],
     *,
     test_output: str | None = None,
+    task_context: str = "",
 ) -> list[str]:
-    """Return repository-relative paths for imported local modules that do not exist."""
+    """Suggest absent imported files only when the task names their local path."""
 
     repository = Path(repository_path).resolve()
     missing: list[str] = []
-    external_modules = sys.stdlib_module_names | packages_distributions().keys()
+    requested = [
+        Path(target)
+        for target in extract_search_targets(task_context)
+        if Path(target).suffix == ".py"
+    ]
+    roots = python_source_roots(repository)
 
     def record(module: str) -> None:
-        root = module.split(".")[0]
-        if root in external_modules:
+        module_path = Path(*module.split("."))
+        if any(
+            (root / module_path.with_suffix(".py")).is_file()
+            or (root / module_path).is_dir()
+            for root in roots
+        ):
             return
-        candidate = Path(root).with_suffix(".py").as_posix()
-        package_init = (Path(root) / "__init__.py").as_posix()
-        if (repository / candidate).is_file() or (repository / package_init).is_file():
-            return
-        if candidate not in missing:
-            missing.append(candidate)
+        for candidate in requested:
+            if candidate.stem != module_path.name:
+                continue
+            try:
+                path = safe_path(repository, candidate)
+            except SecurityError:
+                continue
+            if not path.exists() and candidate.as_posix() not in missing:
+                missing.append(candidate.as_posix())
 
     for relative_path in test_paths:
-        if not Path(relative_path).name.startswith("test_"):
+        if Path(relative_path).suffix != ".py":
             continue
         try:
-            tree = ast.parse((repository / relative_path).read_text(encoding="utf-8"))
-        except (OSError, SyntaxError, UnicodeError):
+            tree = ast.parse(
+                safe_path(repository, relative_path).read_text(encoding="utf-8")
+            )
+        except (OSError, SyntaxError, UnicodeError, SecurityError):
             continue
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
@@ -75,10 +85,6 @@ def missing_local_module_paths(
     return missing
 
 
-def _external_module_roots() -> set[str]:
-    return set(sys.stdlib_module_names) | set(packages_distributions().keys())
-
-
 def _local_module_paths_from_file(
     repository: Path,
     relative_path: str,
@@ -86,30 +92,46 @@ def _local_module_paths_from_file(
     """Resolve repository-relative paths imported by one Python file."""
 
     paths: list[str] = []
-    external_modules = _external_module_roots()
     try:
-        tree = ast.parse((repository / relative_path).read_text(encoding="utf-8"))
-    except (OSError, SyntaxError, UnicodeError):
+        tree = ast.parse(
+            safe_path(repository, relative_path).read_text(encoding="utf-8")
+        )
+    except (OSError, SyntaxError, UnicodeError, SecurityError):
         return paths
 
-    modules: list[str] = []
+    module_paths: list[Path] = []
+    roots = python_source_roots(repository)
     for node in ast.walk(tree):
-        if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
-            modules.append(node.module)
+        if isinstance(node, ast.ImportFrom):
+            if node.level:
+                parent = (repository / relative_path).parent
+                for _ in range(node.level - 1):
+                    parent = parent.parent
+                bases = [parent / Path(*(node.module or "").split("."))]
+            else:
+                bases = [root / Path(*(node.module or "").split(".")) for root in roots]
+            module_paths.extend(bases)
+            module_paths.extend(
+                base / alias.name for base in bases for alias in node.names
+            )
         elif isinstance(node, ast.Import):
-            modules.extend(alias.name for alias in node.names)
+            module_paths.extend(
+                root / Path(*alias.name.split("."))
+                for alias in node.names
+                for root in roots
+            )
 
-    for module in modules:
-        root = module.split(".")[0]
-        if root in external_modules:
-            continue
-        module_path = Path(*module.split("."))
+    for module_path in module_paths:
         for candidate in (
             module_path.with_suffix(".py"),
             module_path / "__init__.py",
         ):
-            if (repository / candidate).is_file():
-                path = candidate.as_posix()
+            try:
+                resolved = safe_path(repository, candidate)
+            except SecurityError:
+                continue
+            if resolved.is_file():
+                path = resolved.relative_to(repository).as_posix()
                 if path not in paths:
                     paths.append(path)
                 break
@@ -125,7 +147,7 @@ def _source_paths_imported_by_tests(
     repository = Path(repository_path).resolve()
     paths: list[str] = []
     for relative_path in test_paths:
-        if not Path(relative_path).name.startswith("test_"):
+        if Path(relative_path).suffix != ".py":
             continue
         for path in _local_module_paths_from_file(repository, relative_path):
             if path not in paths:
@@ -200,8 +222,19 @@ def run_inspect_pipeline(
 def run_overview_pipeline(execute: ToolExecutor) -> None:
     """Collect a repository overview from structure and documentation."""
 
-    execute("list_files", {})
-    execute("read_file", {"path": "README.md"})
+    result = execute("list_files", {})
+    if not result.success:
+        return
+    readmes = sorted(
+        (
+            path
+            for path in result.output.splitlines()
+            if Path(path).stem.casefold() == "readme"
+        ),
+        key=lambda path: (len(Path(path).parts), path),
+    )
+    if readmes:
+        execute("read_file", {"path": readmes[0]})
 
 
 def run_git_status_pipeline(execute: ToolExecutor) -> None:
@@ -222,8 +255,7 @@ def repair_context_paths(
     for path in extract_failure_paths(test_output):
         if (Path(repository_path) / path).is_file() and path not in paths:
             paths.append(path)
-    test_paths = [path for path in paths if Path(path).name.startswith("test_")]
-    for path in _source_paths_imported_by_tests(repository_path, test_paths):
+    for path in _source_paths_imported_by_tests(repository_path, paths[:]):
         if path not in paths:
             paths.append(path)
     return paths
@@ -267,10 +299,7 @@ def run_fix_pipeline(
                 break
 
     if not read_paths:
-        read_paths.extend(
-            path.relative_to(repository).as_posix()
-            for path in sorted(repository.glob("test_*.py"))
-        )
+        read_paths.extend(discover_test_files(repository))
 
     read_paths = _expand_transitive_local_imports(repository, read_paths)
 
@@ -278,17 +307,16 @@ def run_fix_pipeline(
         if (repository / path).is_file():
             execute("read_file", {"path": path})
 
-    test_paths = [path for path in read_paths if Path(path).name.startswith("test_")]
+    discovered_tests = discover_test_files(repository)
+    test_paths = [path for path in read_paths if path in discovered_tests]
     if not test_paths:
-        test_paths = [
-            path.relative_to(repository).as_posix()
-            for path in sorted(repository.glob("test_*.py"))
-        ]
+        test_paths = discovered_tests
 
     return missing_local_module_paths(
         repository_path,
         test_paths,
         test_output=test_output,
+        task_context=context,
     )
 
 
@@ -363,7 +391,8 @@ def nudge_after_fix_pipeline() -> ResponseNudge:
             "specifications, types, and edge cases, not just visible tests. "
             "Start from the original source and change only the faulty behavior. "
             "Preserve existing validation guards, signatures, and return structure "
-            "unless the failing tests require changing them."
+            "unless the task contract requires changing them. Stay within the "
+            "requested scope and report unrelated pre-existing failures."
         ),
     )
 

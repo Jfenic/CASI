@@ -15,7 +15,7 @@ from casi.agent.intent import (
 from casi.agent.loop import AgentLoop
 from casi.config import settings
 from casi.exceptions import LLMError
-from casi.llm.base import ChatMessage, LLMResponse, ToolDefinition
+from casi.llm.base import ChatMessage, LLMResponse, ToolCallRecord, ToolDefinition
 from casi.patching.extract import extract_patch
 from casi.tools.registry import ToolRegistry
 
@@ -319,7 +319,7 @@ def test_mutation_workflow_rejects_premature_final_with_structural_retry(
     assert any("Protocol violation" in message.content for message in retry_messages)
 
 
-def test_fix_agent_hides_patch_validator_and_limits_tools_after_context(
+def test_fix_agent_hides_patch_validator_and_keeps_inspection_after_context(
     tmp_path: Path,
 ) -> None:
     (tmp_path / "module.py").write_text("value = 1\n", encoding="utf-8")
@@ -346,8 +346,47 @@ def test_fix_agent_hides_patch_validator_and_limits_tools_after_context(
 
     assert result.success is True
     assert "validate_patch" not in {tool.name for tool in client.calls[0][1]}
-    limited_tool_sets = [{tool.name for tool in tools} for _, tools in client.calls]
-    assert {"read_file", "propose_file"} in limited_tool_sets
+    names = {tool.name for tool in client.calls[0][1]}
+    assert {"read_file", "propose_file", "search_code", "run_tests"} <= names
+
+
+@pytest.mark.parametrize("intent", [TaskIntent.FIX, TaskIntent.DIAGNOSE])
+def test_inspection_keeps_distinct_searches_available(tmp_path: Path, intent) -> None:
+    loop = AgentLoop(FakeClient([]), ToolRegistry(tmp_path))
+    loop.conversation.messages.extend(
+        [
+            ChatMessage(
+                "assistant",
+                "tests executed",
+                tool_call=ToolCallRecord("run_tests", {}, False),
+            ),
+            ChatMessage(
+                "assistant",
+                "file read",
+                tool_call=ToolCallRecord("read_file", {"path": "app.py"}, True),
+            ),
+            ChatMessage(
+                "assistant",
+                "search executed",
+                tool_call=ToolCallRecord("search_code", {"query": "total"}, True),
+            ),
+        ]
+    )
+    tools = loop._tools_for_step(
+        intent,
+        loop.registry.definitions(agent_safe=True),
+        mutation_workflow=intent is TaskIntent.FIX,
+    )
+    names = {tool.name for tool in tools}
+    assert {"read_file", "search_code", "run_tests"} <= names
+    assert "apply_patch" not in names
+    assert ("propose_file" in names) is (intent is TaskIntent.FIX)
+    assert not loop._should_redirect_search_to_read(
+        "search_code", {"query": "tax"}, mutation_workflow=True, intent=intent
+    )
+    assert loop._should_redirect_search_to_read(
+        "search_code", {"query": "total"}, mutation_workflow=True, intent=intent
+    )
 
 
 def test_fix_agent_allows_source_reread_after_inspection(tmp_path: Path) -> None:
@@ -789,7 +828,7 @@ def test_agent_loop_redirects_repeat_search_code_to_read_file(tmp_path: Path) ->
         for message in result.messages
         if message.role == "tool" and message.content.startswith("tool=search_code")
     ]
-    assert len(search_tool_results) == 0
+    assert len(search_tool_results) == 1
 
 
 @pytest.mark.parametrize(

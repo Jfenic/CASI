@@ -36,9 +36,9 @@ SEARCH_STOP_WORDS = frozenset(
 
 IDENTIFIER_PATTERN = re.compile(
     r"`([^`]+)`"
+    r"|(?<![\w])[\w./-]+\.(?:py|js|ts|tsx|jsx|go|rs|java|md|toml|yaml|yml|json|txt)\b"
     r"|\b(?:test_[a-z0-9_]+|[a-z][a-z0-9_]*_[a-z0-9_]+)\b"
-    r"|\b[A-Z][a-z0-9_]*[A-Z][a-zA-Z0-9_]*\b"
-    r"|\b[\w.-]+\.(?:py|js|ts|tsx|jsx|go|rs|java|md|toml|yaml|yml|json|txt)\b",
+    r"|\b[A-Z][a-z0-9_]*[A-Z][a-zA-Z0-9_]*\b",
 )
 
 _CONVERSATION_PATTERN = re.compile(
@@ -47,8 +47,12 @@ _CONVERSATION_PATTERN = re.compile(
 )
 
 _META_PATTERN = re.compile(
-    r"\b(?:modelo|model|tools?|herramientas?|quién eres|quien eres|"
-    r"what model|which tools|qué tool|que tool)\b",
+    r"\b(?:quién eres|quien eres|who are you|"
+    r"(?:qué|que|cuál|cual|what|which)\s+(?:modelo|model)\s+"
+    r"(?:eres|usas|utilizas|are you|do you use)|"
+    r"(?:qué|que|cuáles|cuales|what|which)\s+(?:tools?|herramientas?)\s+"
+    r"(?:tienes?|usas|utilizas|hay|are available|do you have|do you use|"
+    r"tiene activada))\b",
     re.IGNORECASE,
 )
 
@@ -86,7 +90,7 @@ _APPLY_PATCH_PATTERN = re.compile(
 
 _CHANGE_REQUEST_PATTERN = re.compile(
     (
-        "\\b(?:fix|fixes|corrige(?:lo|la|los|las)?|corrígelo|corrí"
+        "\\b(?:fix|fixes|correct|corrige(?:lo|la|los|las)?|corrígelo|corrí"
         "gela|corregir|arregla(?:lo|la|los|las)?|arréglalo|arrégl"
         "ala|repara(?:lo|la)?|repáralo|repair|actualiza|update|mo"
         "difica|cambia|create|crea)\\b|\\b(?:pass|pasa|pasan|pasen|"
@@ -111,14 +115,6 @@ _CREATE_REQUEST_PATTERN = re.compile(
         ",40}\\b(?:module|modulo|módulo|file|archivo)\\b"
     ),
     re.IGNORECASE | re.DOTALL,
-)
-
-_ML_PATTERN = re.compile(
-    r"\b(?:machine learning|ml|modelo|model|entrenamiento|training|"
-    r"precision|recall|f1|accuracy|confusion|one[- ]hot|onehot|"
-    r"standardiz|normaliz|minibatch|mini-batch|train[_ ]test|"
-    r"split|dataset|features?|labels?|métrica|metrica|métricas|metricas)\b",
-    re.IGNORECASE,
 )
 
 _PLAN_RECALL_PATTERN = re.compile(
@@ -307,8 +303,6 @@ def resolve_task_intent(
         return intent
     if task_requests_create(context):
         return TaskIntent.CREATE
-    if _ML_PATTERN.search(context) and task_requests_code_change(context):
-        return TaskIntent.ML
     if task_requests_code_change(context):
         return TaskIntent.FIX
     return intent

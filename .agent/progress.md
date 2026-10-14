@@ -2,11 +2,32 @@
 
 ## Direction
 
-Multi-Agent Orchestration & Closed Catalog of Specialized Personalities (Software Engineering Roles).
-Reference: [docs/features/orchestration/](docs/features/orchestration/).
+Advanced Coding Agent Architecture (CASI v2)
+Reference: [docs/features/advanced-agent/spec.md](docs/features/advanced-agent/spec.md) and [docs/features/advanced-agent/plan.md](docs/features/advanced-agent/plan.md).
 
 ## State: Features Completed & Validated
- 
+
+### CASI v2 — Phase 2: Isolated Worktree & Multi-File Patching (Completed: 2026-10-14)
+- **Worktree Management (`src/casi/workspace/worktree.py`):**
+  - Implemented `WorktreeManager` and `WorktreeSession` managing ephemeral git worktrees under `.casi/worktrees/<task_id>`.
+  - Non-git fallback and detached HEAD handling with full directory isolation.
+  - Multi-file staging, batch mutations, and patch applications without touching the user's working tree.
+  - Safe path traversal, task ID validation, and sensitive path filtering (`.env`, `.git`, etc.).
+  - Robust crash recovery: automatic pruning and cleanup of stale worktrees and orphan `casi/wt-*` branches.
+  - Ephemeral vs. user branch preservation: cleanup never deletes pre-existing user branches.
+  - Multi-file unified diff generation against base commits with accurate trailing newline indicators (`\ No newline at end of file`) compatible with `git apply`.
+  - Interactive terminal review integration (`[y/N/v/save/?]`) and mandatory approval gate for applying to main repository.
+  - Seamless Docker runner integration (`DockerRunner.run_in_worktree` and `DockerTestRunner`).
+  - 31 unit tests in `tests/unit/test_worktree.py` including live Docker container execution.
+
+### CASI v2 — Phase 1: Model Provider Abstraction & OpenAI Support (Completed: 2026-10-14)
+- Abstract `ModelProvider` protocol (`src/casi/llm/providers/base.py`).
+- OpenAI provider (`src/casi/llm/providers/openai.py`) with native `tool_calls`.
+- Ollama provider (`src/casi/llm/providers/ollama.py`) preserving structured JSON schema mode for local models.
+- Configuration via `casi.toml` and CLI flags (`--provider`, `--model`).
+- Comprehensive unit tests in `tests/unit/test_providers.py`, `test_openai_client.py`, `test_config.py`.
+
+### Prior Work: Multi-Agent Orchestration & Error Sanitization (Completed: 2026-09-29)
 All 5 phases of the Multi-Agent Orchestration feature and the Error Sanitization / Context Bounding feature have been successfully implemented, linted, formatted, and verified.
  
 ### Summary of Accomplishments
@@ -129,3 +150,53 @@ According to [TASKS.md](TASKS.md): **API & UI Persistence & Hardening** (storage
 - Informe actualizado: `docs/reports/2026-09-30-generalist-audit.md`. Sin cambios
   en benchmarks ni nueva medición con Ollama; la capacidad del modelo para la demo
   sigue sin considerarse resuelta.
+
+## Iniciativa CASI v2: Agente de Programación Avanzado — 2026-10-14
+
+- Especificación arquitectónica documentada en [docs/features/advanced-agent/spec.md](docs/features/advanced-agent/spec.md).
+- Plan de implementación estructurado en 6 fases registrado en [docs/features/advanced-agent/plan.md](docs/features/advanced-agent/plan.md).
+- Backlog actualizado en [TASKS.md](TASKS.md).
+- Definición de fases:
+  1. Abstracción de proveedores (`ModelProvider`, OpenAI con `tool_calls` nativo + Ollama).
+  2. Aislamiento con `git worktree` y soporte de mutación multifichero con diff unificado.
+  3. Búsqueda y comprensión semántica de código (`ripgrep` + AST de símbolos).
+  4. Terminal de diagnóstico aislada en contenedor Docker efímero con comandos permitidos.
+  5. Memoria persistente en SQLite y gestor de contexto (cubre la persistencia pendiente de API/UI).
+  6. Ecosistema ampliable (cliente MCP, búsqueda/documentación web y puente VS Code).
+- Todo el suite de pruebas actual verificado y pasando limpiamente (561 tests).
+
+## Fase 1 Completada: Abstracción de Proveedores y Soporte OpenAI — 2026-10-14
+
+- Implementación del protocolo `ModelProvider` en `src/casi/llm/providers/base.py` con interfaz unificada para acciones (`complete_action`), decisiones (`complete`), recuperación de tool calls (`complete_tool_call`), métricas de tokens (`prompt_tokens`, `completion_tokens`) y adaptación de roles especializados (`with_role_instructions`).
+- Implementación de `OpenAIClient` y `OpenAIProvider` en `src/casi/llm/providers/openai.py`:
+  - Soporte nativo para `tool_calls` de OpenAI (transformación de `ToolDefinition` al esquema JSON de funciones).
+  - Manejo de `tool_choice` requerido para `complete_tool_call` y `complete_action` (esquema `ProposeFileAction`).
+  - Historial de conversación con asignación de identificadores de llamadas (`call_id`, `tool_call_id`).
+  - Cliente HTTP estándar con `urllib.request` sin dependencias externas adicionales.
+- Adaptador `OllamaProvider` en `src/casi/llm/providers/ollama.py` manteniendo el comportamiento y compatibilidad de `OllamaClient`.
+- Factoría desacoplada `create_llm_client` en `src/casi/llm/providers/factory.py`.
+- Integración en configuración (`src/casi/config.py`) con soporte para archivo `casi.toml` y variables de entorno (`CASI_LLM_PROVIDER`, `OPENAI_API_KEY`, etc.).
+- Soporte CLI en `casi run`, `casi interactive` y `casi benchmark` con parámetros `--provider` y `--model`.
+- Verificación completa: `ruff check`, `ruff format --check`, `python -m compileall` y `pytest -ra` pasando al 100% (586 tests pasando, 2 omitidos, 0 errores).
+
+## Fase 2 Completada: Aislamiento con Git Worktree y Mutación Multifichero — 2026-10-14
+
+- Implementación de `WorktreeManager` y `WorktreeSession` en `src/casi/workspace/worktree.py`:
+  - Creación, seguimiento y eliminación limpia de worktrees efímeros en `.casi/worktrees/<task_id>`.
+  - Soporte para repositorios git en HEAD desasociado (detached HEAD) y modo de rama temporal (`casi/wt-<task_id>`).
+  - Fallback automático para repositorios que no son git o repositorios vacíos sin commits mediante copias aisladas en directorio.
+  - Exclusión automática en `.git/info/exclude` para garantizar que `.casi/` no ensucie el estado del repositorio principal del usuario.
+- Mutación multifichero aislada:
+  - Operaciones sobre el worktree (`write_file`, `delete_file`, `stage_file`, `stage_files`, `apply_patch`, `reset`).
+  - Garantía de aislamiento: el árbol de trabajo y la rama activa del usuario permanecen intactos durante toda la sesión.
+- Integración con Docker runner:
+  - Adaptación de `DockerRunner` y alias `DockerTestRunner` con el método `run_in_worktree` para ejecutar suites de tests directamente contra la ruta del worktree sin copias intermedias redundantes.
+- Extracción de diff multifichero y revisión humana:
+  - Generación de diff unificado (`get_diff`) y métricas de cambios por fichero (`get_diff_stats`) contra el commit base.
+  - Flujo de revisión interactiva con selector `[y/N/v/save/?]` (`session.review()`).
+  - Invariante de seguridad: `apply_to_main_repo()` exige `approved=True` para aplicar cambios sobre el repositorio principal.
+- Poda y limpieza segura:
+  - Limpieza de directorios, poda de metadatos de worktrees (`git worktree prune`) y eliminación de ramas efímeras (`git branch -D`).
+- Suite de pruebas unitarias exhaustiva añadida en `tests/unit/test_worktree.py` (21 tests específicos).
+- Verificación completa: `ruff check`, `ruff format --check`, `python -m compileall` y `pytest -ra` validados al 100%.
+

@@ -166,6 +166,25 @@ class DockerRunner:
             return []
         return ["--user", f"{os.getuid()}:{os.getgid()}"]
 
+    def run_in_worktree(
+        self,
+        worktree_path: str | Path,
+        command: list[str] | None = None,
+        *,
+        timeout_seconds: float = 120,
+    ) -> TestResult:
+        """Run tests directly against a worktree path without extra copying."""
+
+        if command is None:
+            from casi.sandbox.test_command import detect_test_command
+
+            command = detect_test_command(worktree_path, runner="docker")
+        return self.run_in_workspace(
+            worktree_path,
+            command,
+            timeout_seconds=timeout_seconds,
+        )
+
     def _limit_output(self, output: str | bytes | None) -> str:
         if output is None:
             return ""
@@ -174,3 +193,7 @@ class DockerRunner:
         if len(output) <= self.max_output_chars:
             return output
         return output[: self.max_output_chars] + "\n[output truncated]"
+
+
+# Backward-compatible and architecture spec alias
+DockerTestRunner = DockerRunner

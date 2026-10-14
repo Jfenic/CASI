@@ -183,3 +183,18 @@ def test_evaluator_passes_repository_files_in_prompt() -> None:
     assert "Existing repository files:" in client.last_user_prompt
     assert "sorter.py" in client.last_user_prompt
     assert "README.md" in client.last_user_prompt
+
+
+def test_evaluator_recognizes_supports_evaluation_attribute() -> None:
+    class GenericProviderClient:
+        supports_evaluation = True
+
+        def complete(self, messages, tools):
+            return LLMResponse.final(
+                '{"objective": "explain", "agent_role": "Code Explanation Specialist", '
+                '"tools_needed": [], "plan_instructions": "", "reasoning": "testing"}'
+            )
+
+    evaluator = LLMTaskEvaluator(GenericProviderClient())
+    result = evaluator.evaluate("What is this file?")
+    assert result.objective is TaskIntent.EXPLAIN

@@ -282,10 +282,11 @@ class Conversation:
         arguments: dict[str, object],
         *,
         require_confirmation: bool = True,
+        call_id: str | None = None,
     ) -> ToolResult:
         """Run a repository tool and append the exchange to the conversation."""
 
-        response = LLMResponse.tool_call(tool_name, arguments)
+        response = LLMResponse.tool_call(tool_name, arguments, call_id=call_id)
         result = execute_tool(
             self.registry,
             response,
@@ -297,7 +298,12 @@ class Conversation:
             ChatMessage(
                 role="assistant",
                 content=self.format_tool_call(response.tool_name, response.arguments),
-                tool_call=ToolCallRecord(tool_name, dict(arguments), result.success),
+                tool_call=ToolCallRecord(
+                    tool_name,
+                    dict(arguments),
+                    result.success,
+                    call_id=call_id,
+                ),
             )
         )
         self.append("tool", self.format_tool_result(response.tool_name, result))

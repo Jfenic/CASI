@@ -30,7 +30,7 @@ from casi.evaluation.progress import (
 )
 from casi.exceptions import CasiError
 from casi.llm.base import LLMClient
-from casi.llm.ollama_client import OllamaClient
+from casi.llm.providers import create_llm_client
 from casi.observability.metrics import summarize_trace
 from casi.observability.tracing import reconstruct_trace
 from casi.patching.applier import PatchApplicationError, apply_patch
@@ -390,7 +390,7 @@ def compare_models(
 ) -> list[BenchmarkModelRun]:
     """Run the same tasks against multiple local models."""
 
-    factory = client_factory or (lambda model: OllamaClient(model=model))
+    factory = client_factory or (lambda model: create_llm_client(model=model))
     return [
         run_model_benchmark(tasks, client=factory(model), options=options)
         for model in models

@@ -47,6 +47,8 @@ class SpecializedAgent:
 def _client_for_profile(client: LLMClient, profile: AgentProfile) -> LLMClient:
     if not profile.prompt_instructions.strip():
         return client
+    if hasattr(client, "with_role_instructions"):
+        return client.with_role_instructions(profile.prompt_instructions)
     if isinstance(client, OllamaClient):
         return OllamaClient(
             base_url=client.base_url,

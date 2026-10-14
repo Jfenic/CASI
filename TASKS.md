@@ -1,8 +1,8 @@
 # Current Tasks
 
-Last updated: 2026-09-18.
+Last updated: 2026-10-14.
 
-## Now — API & UI Persistence & Hardening
+## Now — API & UI Persistence & Hardening (Phase 5 of CASI v2)
 
 1. **Persist API/UI task history across restarts:**
    - [ ] Implement file or SQLite-backed storage for tasks and traces in `src/casi/api/`.
@@ -12,12 +12,49 @@ Last updated: 2026-09-18.
 3. **End-to-end UI verification:**
    - [ ] Measure UI flow with real Ollama model (`casi serve` + `casi ui`) on real repository tasks.
 
-## Next
+## Next — Advanced Coding Agent (CASI v2) Initiative
+
+Detailed specification: [docs/features/advanced-agent/spec.md](docs/features/advanced-agent/spec.md)
+Implementation plan: [docs/features/advanced-agent/plan.md](docs/features/advanced-agent/plan.md)
+
+1. **Phase 1 — Model Provider Abstraction & OpenAI Support (COMPLETED):**
+   - [x] Abstract `ModelProvider` in `src/casi/llm/providers/` (`OpenAIProvider`, `OllamaProvider`).
+   - [x] Native `tool_calls` handling and provider CLI selection (`--provider`, `--model`).
+   - [x] Configuration via `casi.toml` and environment variables.
+2. **Phase 2 — Isolated Worktree & Multi-File Patching (COMPLETED):**
+   - [x] `WorktreeManager` in `src/casi/workspace/worktree.py` for ephemeral git worktrees under `.casi/worktrees/<task_id>`.
+   - [x] Multi-file staging and diff extraction without touching user workspace.
+   - [x] Non-git and detached HEAD fallback support.
+   - [x] DockerTestRunner integration directly against worktree paths.
+3. **Phase 3 — Semantic Code Navigation (`ripgrep` + AST):**
+   - AST-based symbol locator (`find_symbol`) and `ripgrep` regex search.
+4. **Phase 4 — Sandboxed Diagnostic Terminal:**
+   - Whitelisted command execution inside ephemeral Docker containers.
+5. **Phase 5 — Persistent Context & Memory:**
+   - SQLite store for tasks, traces, and session resumption (completes current *Now* priorities).
+6. **Phase 6 — Extensibility & External Integrations:**
+   - MCP client, web doc fetching with anti-injection sanitization, and VS Code bridge.
 
 - [ ] Investigate third-party Starlette/httpx/AnyIO deprecation warnings in API tests.
-- [ ] Phase E (Optional): A/B test native Ollama `tool_calls` vs schema-by-phase; evaluate vLLM for hard `tool_choice=required`.
 
 ## Done recently
+
+### Phase 2 — Isolated Worktree & Multi-File Patching (Closed: 2026-10-14)
+- [x] Implemented `WorktreeManager` and `WorktreeSession` in `src/casi/workspace/worktree.py` with support for ephemeral git worktrees, detached HEAD states, and non-git fallback directory copies.
+- [x] Supported multi-file patching, incremental mutations, and staging across multiple files (`write_file`, `stage_file`, `stage_files`, `delete_file`, `apply_patch`).
+- [x] Integrated `DockerRunner` / `DockerTestRunner` to execute test verification directly against the worktree path (`run_in_worktree`).
+- [x] Unified multi-file diff extraction against base commit (`get_diff`, `get_diff_stats`) and human review integration (`[y/N/v/save/?]`).
+- [x] Pruning and rollback routines (`reset`, `cleanup`, `cleanup_all`, `remove_worktree`) ensuring worktrees and temporary branches are cleaned up cleanly.
+- [x] Comprehensive unit tests in `tests/unit/test_worktree.py` covering creation, file isolation, diff extraction, review, and cleanup.
+
+### Phase 1 — Model Provider Abstraction & OpenAI Support (Closed: 2026-10-14)
+- [x] Defined `ModelProvider` protocol in `src/casi/llm/providers/base.py` with unified action, tool call, and token metrics contract.
+- [x] Implemented `OpenAIClient` and `OpenAIProvider` in `src/casi/llm/providers/openai.py` with native `tool_calls`, action completion (`complete_action`), tool-call requirement recovery (`complete_tool_call`), token accounting, and stdlib HTTP request handling.
+- [x] Implemented `OllamaProvider` in `src/casi/llm/providers/ollama.py` inheriting from `OllamaClient`.
+- [x] Created provider factory `create_llm_client` in `src/casi/llm/providers/factory.py`.
+- [x] Added `casi.toml` and environment variable support in `src/casi/config.py` (`Settings.from_toml`).
+- [x] Added `--provider` (`ollama` | `openai`) and `--model` CLI options across `casi run`, `casi interactive`, and `casi benchmark`.
+- [x] Added comprehensive unit tests in `tests/unit/test_openai_client.py`, `tests/unit/test_providers.py`, and `tests/unit/test_config.py`.
 
 ### Task Interpreter, 'create' Role, Empty-Repo Tolerance & Readline Fix (Closed: 2026-09-19)
 - [x] Evaluator catalog expansion: Added `create` role (New File & Feature Specialist) to `EVALUATOR_SYSTEM_PROMPT` in `evaluator.py`.

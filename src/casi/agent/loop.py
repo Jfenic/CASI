@@ -494,7 +494,9 @@ class AgentLoop:
                         )
                         continue
                     result = self.conversation.execute_tool(
-                        tool_name, response.arguments
+                        tool_name,
+                        response.arguments,
+                        call_id=response.call_id,
                     )
                     if self.trace is not None:
                         self.trace.record_tool_result(
@@ -1136,7 +1138,11 @@ class AgentLoop:
                 )
                 return
 
-        result = self.conversation.execute_tool(tool_name, response.arguments)
+        result = self.conversation.execute_tool(
+            tool_name,
+            response.arguments,
+            call_id=response.call_id,
+        )
         if self.trace is not None:
             self.trace.record_tool_result(
                 tool_name,

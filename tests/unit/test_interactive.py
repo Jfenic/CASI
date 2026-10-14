@@ -652,3 +652,24 @@ def test_interactive_session_explain_command(tmp_path: Path) -> None:
         "Explain the structure, components, and project role of lib.py" in line
         for line in session.history
     )
+
+
+def test_interactive_session_catches_internal_turn_error(tmp_path: Path) -> None:
+    class BuggyClient:
+        def complete(self, messages, tools):
+            raise AttributeError("'list' object has no attribute 'strip'")
+
+    commands = iter(["trigger error", "/exit"])
+    output: list[str] = []
+
+    session = InteractiveSession(
+        tmp_path,
+        BuggyClient(),
+        input_fn=lambda prompt: next(commands),
+        output_fn=output.append,
+    )
+
+    # Session should not crash with an uncaught exception; should exit cleanly
+    assert session.run() == 0
+    assert any("Internal error during turn" in line for line in output)
+    assert any("/last-trace" in line for line in output)

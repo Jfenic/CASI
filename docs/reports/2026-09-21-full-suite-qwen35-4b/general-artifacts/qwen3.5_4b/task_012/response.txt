@@ -1,0 +1,13 @@
+El test `test_increment_twice` está fallando porque el método `increment()` en la clase `Counter` no incrementa realmente el valor. En la línea 9 de `counter.py`, se tiene:
+
+```
+self._value += 0
+```
+
+Esto significa que cada llamada a `increment()` suma 0 en lugar de 1. Por lo tanto, después de dos llamadas a `increment()`, el valor permanece en 0 en lugar de subir a 2 como espera el test.
+
+El comportamiento correcto debería ser:
+```
+def increment(self) -> None:
+    self._value += 1
+```

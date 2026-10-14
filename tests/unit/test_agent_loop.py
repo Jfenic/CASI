@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -12,7 +13,9 @@ from casi.agent.intent import (
     task_requests_code_change,
 )
 from casi.agent.loop import AgentLoop
-from casi.llm.base import ChatMessage, LLMResponse, ToolDefinition
+from casi.config import settings
+from casi.exceptions import LLMError
+from casi.llm.base import ChatMessage, LLMResponse, ToolCallRecord, ToolDefinition
 from casi.patching.extract import extract_patch
 from casi.tools.registry import ToolRegistry
 
@@ -29,6 +32,131 @@ class FakeClient:
     ) -> LLMResponse:
         self.calls.append((messages[:], tools[:]))
         return next(self.responses)
+
+
+@pytest.mark.parametrize("model_errors", [False, True])
+def test_fix_retry_requires_action_and_preserves_failed_verification(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, model_errors: bool
+) -> None:
+    monkeypatch.setattr(
+        "casi.sandbox.runner_factory.settings",
+        replace(settings, use_docker_sandbox=False),
+    )
+    original = (
+        "def calculate_cart(prices, discount=0):\n"
+        "    if type(discount) is not int or not 0 <= discount <= 100:\n"
+        "        raise ValueError('invalid discount')\n"
+        "    return sum(prices) - prices[0] * discount // 100\n"
+    )
+    bad = original.replace("type(discount) is not int", "not isinstance(discount, int)")
+    bad = bad.replace("prices[0] * discount", "sum(prices) * discount")
+    bad += "\n# first_rejected_attempt\n"
+    corrected = original.replace("prices[0] * discount", "sum(prices) * discount")
+    (tmp_path / "cart.py").write_text(original, encoding="utf-8")
+    (tmp_path / "test_cart.py").write_text(
+        "import pytest\nfrom cart import calculate_cart\n\n"
+        "def test_total():\n    assert calculate_cart([5000, 5000], 20) == 8000\n\n"
+        "def test_invalid_discount():\n"
+        "    for discount in (-1, 101, 20.5, True):\n"
+        "        with pytest.raises(ValueError):\n"
+        "            calculate_cart([5000], discount)\n",
+        encoding="utf-8",
+    )
+
+    class RetryClient(FakeClient):
+        def __init__(self) -> None:
+            super().__init__(
+                [
+                    LLMResponse.tool_call(
+                        "propose_file", {"path": "cart.py", "content": bad}
+                    )
+                ]
+            )
+            self.action_calls: list[list[ChatMessage]] = []
+
+        def complete_action(self, messages, action) -> LLMResponse:
+            self.action_calls.append(messages[:])
+            if model_errors:
+                raise LLMError("Ollama message does not contain usable content")
+            if len(self.action_calls) == 1:
+                return LLMResponse.tool_call(
+                    "propose_file",
+                    {
+                        "path": "cart.py",
+                        "content": bad.replace(
+                            "first_rejected_attempt", "second_rejected_attempt"
+                        ),
+                    },
+                )
+            if len(self.action_calls) == 2:
+                return LLMResponse.tool_call(
+                    "propose_file", {"path": "cart.py", "content": "def broken(:\n"}
+                )
+            return LLMResponse.tool_call(
+                "propose_file", {"path": "cart.py", "content": corrected}
+            )
+
+    client = RetryClient()
+    result = AgentFactory.create(
+        TaskIntent.FIX,
+        client=client,
+        repository=tmp_path,
+        require_tool_confirmation=lambda *_args: True,
+        routing_mode="off",
+    ).run("Corrige el descuento en cart.py")
+
+    assert len(client.calls) == 1
+    assert any(
+        "test_invalid_discount" in message.content for message in client.action_calls[0]
+    )
+    assert any(
+        line.strip().startswith("discount") and line.split("=")[-1].strip() == "True"
+        for line in client.action_calls[0][-1].content.splitlines()
+    )
+    assert any(
+        "type(discount) is not int" in message.content
+        for message in client.action_calls[0]
+        if message.role == "tool"
+    )
+    assert result.patch_verification is not None
+    assert (tmp_path / "cart.py").read_text(encoding="utf-8") == original
+    if model_errors:
+        assert len(client.action_calls) == 2
+        assert result.success is False
+        assert result.patch_verification.passed is False
+        assert "test_invalid_discount" in result.patch_verification.output
+        assert "twice in a row" in result.error
+        assert result.steps == 3
+    else:
+        assert len(client.action_calls) == 3
+        last_context = "\n".join(m.content for m in client.action_calls[-1])
+        assert "second_rejected_attempt" in last_context
+        assert "first_rejected_attempt" not in last_context
+        assert "syntax error" in client.action_calls[-1][-1].content
+        assert result.success is True
+        assert result.patch_verification.passed is True
+        assert result.patch_verification.correction_attempts == 2
+
+
+def test_model_error_budget_resets_after_usable_decision(tmp_path: Path) -> None:
+    class RecoveringClient:
+        calls = 0
+
+        def complete(self, messages, tools) -> LLMResponse:
+            self.calls += 1
+            if self.calls in {1, 3}:
+                raise LLMError("Ollama message does not contain usable content")
+            if self.calls == 2:
+                return LLMResponse.tool_call("list_files", {})
+            return LLMResponse.final("Repository inspected.")
+
+    client = RecoveringClient()
+    result = AgentLoop(client, ToolRegistry(tmp_path), routing_mode="off").run(
+        "Inspect repository"
+    )
+
+    assert result.success is True
+    assert result.steps == 4
 
 
 def test_agent_loop_executes_tool_then_returns_final_response(tmp_path: Path) -> None:
@@ -191,7 +319,7 @@ def test_mutation_workflow_rejects_premature_final_with_structural_retry(
     assert any("Protocol violation" in message.content for message in retry_messages)
 
 
-def test_fix_agent_hides_patch_validator_and_limits_tools_after_context(
+def test_fix_agent_hides_patch_validator_and_keeps_inspection_after_context(
     tmp_path: Path,
 ) -> None:
     (tmp_path / "module.py").write_text("value = 1\n", encoding="utf-8")
@@ -218,8 +346,47 @@ def test_fix_agent_hides_patch_validator_and_limits_tools_after_context(
 
     assert result.success is True
     assert "validate_patch" not in {tool.name for tool in client.calls[0][1]}
-    limited_tool_sets = [{tool.name for tool in tools} for _, tools in client.calls]
-    assert {"read_file", "propose_file"} in limited_tool_sets
+    names = {tool.name for tool in client.calls[0][1]}
+    assert {"read_file", "propose_file", "search_code", "run_tests"} <= names
+
+
+@pytest.mark.parametrize("intent", [TaskIntent.FIX, TaskIntent.DIAGNOSE])
+def test_inspection_keeps_distinct_searches_available(tmp_path: Path, intent) -> None:
+    loop = AgentLoop(FakeClient([]), ToolRegistry(tmp_path))
+    loop.conversation.messages.extend(
+        [
+            ChatMessage(
+                "assistant",
+                "tests executed",
+                tool_call=ToolCallRecord("run_tests", {}, False),
+            ),
+            ChatMessage(
+                "assistant",
+                "file read",
+                tool_call=ToolCallRecord("read_file", {"path": "app.py"}, True),
+            ),
+            ChatMessage(
+                "assistant",
+                "search executed",
+                tool_call=ToolCallRecord("search_code", {"query": "total"}, True),
+            ),
+        ]
+    )
+    tools = loop._tools_for_step(
+        intent,
+        loop.registry.definitions(agent_safe=True),
+        mutation_workflow=intent is TaskIntent.FIX,
+    )
+    names = {tool.name for tool in tools}
+    assert {"read_file", "search_code", "run_tests"} <= names
+    assert "apply_patch" not in names
+    assert ("propose_file" in names) is (intent is TaskIntent.FIX)
+    assert not loop._should_redirect_search_to_read(
+        "search_code", {"query": "tax"}, mutation_workflow=True, intent=intent
+    )
+    assert loop._should_redirect_search_to_read(
+        "search_code", {"query": "total"}, mutation_workflow=True, intent=intent
+    )
 
 
 def test_fix_agent_allows_source_reread_after_inspection(tmp_path: Path) -> None:
@@ -661,7 +828,7 @@ def test_agent_loop_redirects_repeat_search_code_to_read_file(tmp_path: Path) ->
         for message in result.messages
         if message.role == "tool" and message.content.startswith("tool=search_code")
     ]
-    assert len(search_tool_results) == 0
+    assert len(search_tool_results) == 1
 
 
 @pytest.mark.parametrize(

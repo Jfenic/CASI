@@ -1,0 +1,7 @@
+Here are the Python source files with their responsibilities:
+
+- **lib.py**: Core utility library providing text processing functions like `slugify` (normalizes text with spaces as hyphens, lowercase) and `excerpt` (generates truncated text previews with ellipsis).
+
+- **test_lib.py**: Test file for lib.py containing unit tests that verify the correctness of slugify and excerpt functions against various input scenarios.
+
+The repository implements a simple text manipulation library with corresponding test coverage."}

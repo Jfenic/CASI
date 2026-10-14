@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from casi.sandbox.test_command import detect_test_command
 
 
@@ -33,3 +35,44 @@ def test_detect_test_command_uses_makefile_test_target(tmp_path: Path) -> None:
     command = detect_test_command(tmp_path, runner="local")
 
     assert command[:2] == ["make", "test"]
+
+
+@pytest.mark.parametrize(
+    "executable", ["pytest", "python", "python3", ".venv/bin/python3.12"]
+)
+def test_docker_override_preserves_selection_and_options(
+    tmp_path: Path, executable: str
+) -> None:
+    override = tmp_path / ".casi"
+    override.mkdir()
+    prefix = executable if executable == "pytest" else f"{executable} -m pytest"
+    (override / "test-command").write_text(
+        f"{prefix} -q -k regression tests/unit --maxfail=2\n"
+    )
+
+    assert detect_test_command(tmp_path, runner="docker") == [
+        "python3",
+        "-m",
+        "pytest",
+        "-q",
+        "-k",
+        "regression",
+        "tests/unit",
+        "--maxfail=2",
+    ]
+
+
+def test_docker_override_maps_absolute_repository_paths(tmp_path: Path) -> None:
+    override = tmp_path / ".casi"
+    override.mkdir()
+    (override / "test-command").write_text(
+        f"python3 -m pytest --rootdir={tmp_path} "
+        f"{tmp_path}/checks/cart_test.py::test_total\n"
+    )
+    assert detect_test_command(tmp_path, runner="docker") == [
+        "python3",
+        "-m",
+        "pytest",
+        "--rootdir=/workspace",
+        "/workspace/checks/cart_test.py::test_total",
+    ]

@@ -1,0 +1,1 @@
+{"file": "normalize.py", "line": 8, "cause": "The normalize function incorrectly calculates the divisor by subtracting 1 from the count (len(values) - 1), producing a biased sample mean when it should use the population size as the denominator.", "evidence": "For input [2, 4, 6]: sum=12 and len(values)-1=2, resulting in 12/2=6.0 instead of the correct 12/3=4.0"}

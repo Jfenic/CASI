@@ -1,0 +1,14 @@
+Based on the test file `test_greeter.py`, here's the expected output format:
+
+**Test Case: `test_greet_is_title_case()`**
+- **Input:** A lowercase string (e.g., "casi")
+- **Expected Output:** The same string formatted in title case with a greeting prefix
+  - Format: `"Hello, [name]"`
+  - Example: Input `"casi"` → Output `"Hello, casi"`
+
+**Key Requirements:**
+1. The function should prepend `"Hello, "` to the input string
+2. The name in the greeting should preserve the case of the original input (as shown in the test)
+3. The output must be a formatted string matching the pattern: `Hello, {input_string}`
+
+The test validates that the `greet()` function from `greeter.py` correctly formats greetings in this title-case style with proper comma placement after "Hello".

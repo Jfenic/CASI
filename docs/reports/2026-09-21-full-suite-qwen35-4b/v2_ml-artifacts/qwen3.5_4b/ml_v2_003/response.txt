@@ -1,0 +1,12 @@
+--- a/features.py
++++ b/features.py
+@@ -2,7 +2,7 @@
+     if isinstance(window, bool) or not isinstance(window, int) or window < 1:
+         raise ValueError("positive integer window required")
+     result = []
+-    for end in range(window, len(values)):
+-        segment = values[end - window : end]
++    for start in range(len(values) - window + 1):
++        segment = values[start : start + window]
+         result.append((sum(segment) / window, min(segment), max(segment)))
+     return result

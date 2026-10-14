@@ -34,6 +34,7 @@ _COPY_EXCLUDES = {
     "node_modules",
     "dist",
     "build",
+    ".casi",
 }
 
 

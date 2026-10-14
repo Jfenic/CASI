@@ -1,0 +1,14 @@
+F...                                                                     [100%]
+=================================== FAILURES ===================================
+________________________ test_sample_standard_deviation ________________________
+
+    def test_sample_standard_deviation():
+        rows = [[1.0, 4.0], [3.0, 8.0], [5.0, 12.0]]
+        result = standardize(rows)
+>       assert result[0][0] == -1.0
+E       assert -0.2734343708098653 == -1.0
+
+_benchmark_checks/test_acceptance.py:7: AssertionError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_sample_standard_deviation
+1 failed, 3 passed in 0.02s

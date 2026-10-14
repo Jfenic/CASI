@@ -1,0 +1,10 @@
+--- a/auth.py
++++ b/auth.py
+@@ -2,4 +2,6 @@
+ 
+ 
+ def verify_token(provided: str, expected: str) -> bool:
+-    return provided == expected
++    """Verify token using constant-time comparison to prevent timing attacks."""
++    from secrets import compare_digest
++    return compare_digest(provided, expected)

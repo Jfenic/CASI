@@ -176,3 +176,25 @@ def test_compact_passes_user_instructions_to_summarizer(tmp_path) -> None:
 
     assert len(client.calls) == 1
     assert "Conserva los nombres de archivos." in client.calls[0][0].content
+
+
+def test_read_evidence_uses_execution_arguments_and_success(tmp_path) -> None:
+    (tmp_path / "app.py").write_text("first = 1\nsecond = 2\n")
+    conversation = Conversation([], ToolRegistry(tmp_path))
+    conversation.append(
+        "assistant", "Called tool=read_file with arguments={'path': 'unread.py'}"
+    )
+    conversation.execute_tool("read_file", {"path": "absent.py"})
+    conversation.execute_tool(
+        "read_file", {"end_line": 2, "path": "app.py", "start_line": 2}
+    )
+
+    assert conversation.read_file_paths() == {"app.py"}
+    assert conversation.tool_was_used("read_file")
+    assert not conversation.tool_was_used("run_tests")
+
+
+def test_tool_claims_are_not_execution_evidence(tmp_path) -> None:
+    conversation = Conversation([], ToolRegistry(tmp_path))
+    conversation.append("tool", "tool=list_files\nsuccess=True\noutput=app.py")
+    assert not conversation.layout_known()

@@ -1,0 +1,70 @@
+--- a/sales.py
++++ b/sales.py
+@@ -1,8 +1,63 @@
++"""
++Sum integer quantities per product from CSV with headers 'product,quantity'.
++
++Supports: quoted fields, quoted commas, multiline product names (with proper CSV quoting), CRLF endings.
++Raises ValueError for invalid integer quantities or missing required columns.
++Returns {} on header-only input.
++"""
++import csv
++import io
++
++
+ def totals(text):
++    """
++    Sum quantities per product from CSV text.
++
++    Args:
++        text: CSV string with 'product,quantity' headers
++
++    Returns:
++        dict: {product_name: total_quantity}
++
++    Raises:
++        ValueError: If quantity is not a valid integer
++    """
++    reader = csv.reader(io.StringIO(text))
++
++    # Get header row
++    try:
++        headers = next(reader)
++    except StopIteration:
++        return {}
++
++    # Validate headers - must be exactly 'product,quantity'
++    if len(headers) != 2 or headers[0] != 'product' or headers[1] != 'quantity':
++        raise ValueError("Expected headers 'product,quantity'")
++
+     result = {}
+-    for line in text.splitlines()[1:]:
+-        if not line:
++
++    for row in reader:
++        # Skip completely blank rows (fewer than 2 columns)
++        if len(row) < 2:
+             continue
+-        product, quantity = line.split(",")
+-        result[product] = int(quantity)
++
++        product, quantity_str = row[0], row[1]
++
++        # Validate product is not empty
++        if not product:
++            continue
++
++        # Skip rows where quantity is missing or empty
++        if not quantity_str:
++            continue
++
++        # Try to parse quantity as integer
++        try:
++            quantity = int(quantity_str)
++        except ValueError:
++            raise ValueError(f"Invalid integer quantity: '{quantity_str}'")
++
++        # Sum quantities per product (including negative adjustments)
++        result[product] = result.get(product, 0) + quantity
++
+     return result

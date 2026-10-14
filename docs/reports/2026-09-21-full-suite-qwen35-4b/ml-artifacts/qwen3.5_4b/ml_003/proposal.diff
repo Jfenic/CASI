@@ -1,0 +1,50 @@
+--- a/normalize.py
++++ b/normalize.py
+@@ -1,19 +1,42 @@
+ def standardize(rows):
++    """
++    Standardize feature vectors: subtract mean, divide by sample std (ddof=1).
++
++    - Zero-variance features become all zeros.
++    - Returns a new list; does not mutate input.
++    """
+     if not rows:
+         return []
++
++    # Ensure all rows have same length
+     width = len(rows[0])
++    for row in rows:
++        if len(row) != width:
++            raise ValueError("All rows must have equal length")
++
++    # Compute means (same formula regardless of ddof)
+     means = []
+     for col in range(width):
+         values = [row[col] for row in rows]
+         means.append(sum(values) / len(values))
++
++    # Compute standard deviations with ddof=1, handling zero variance
++    stds = []
++    for col in range(width):
++        variance_sum = sum((x - means[col]) ** 2 for x in values)
++        sample_variance = variance_sum / (len(values) - 1) if len(values) > 1 else 0
++        # Cap at 0 to avoid NaN/infinity; zero-variance features become all zeros
++        stds.append(min(sample_variance**0.5, float('inf')) if not sample_variance else sample_variance**0.5)
++
+     result = []
+     for row in rows:
+         standardized = []
+         for col, value in enumerate(row):
+-            values = [candidate[col] for candidate in rows]
+-            mean = means[col]
+-            variance = sum((item - mean) ** 2 for item in values) / len(values)
+-            std = variance**0.5
+-            standardized.append((value - mean) / std)
++            if stds[col] == 0:
++                # Zero-variance feature: all values become 0
++                standardized.append(0.0)
++            else:
++                standardized.append((value - means[col]) / stds[col])
+         result.append(standardized)
++
+     return result

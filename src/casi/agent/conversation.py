@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -10,7 +9,7 @@ from casi.agent.executor import execute_tool
 from casi.agent.intent import extract_search_targets
 from casi.agent.pipelines import paths_from_search_output
 from casi.config import settings
-from casi.llm.base import ChatMessage, LLMClient, LLMResponse
+from casi.llm.base import ChatMessage, LLMClient, LLMResponse, ToolCallRecord
 from casi.repository.explorer import resolve_named_paths
 from casi.tools.registry import ToolRegistry
 from casi.tools.result import ToolResult
@@ -47,10 +46,6 @@ class ContextCompactDecision:
 
 
 ContextCompactPrompt = Callable[[ContextCompactRequest], ContextCompactDecision]
-
-_READ_FILE_CALL_PATTERN = re.compile(
-    r"Called tool=read_file with arguments=\{'path': '([^']+)'\}"
-)
 
 
 def _truncate_content(content: str, max_chars: int) -> str:
@@ -287,10 +282,11 @@ class Conversation:
         arguments: dict[str, object],
         *,
         require_confirmation: bool = True,
+        call_id: str | None = None,
     ) -> ToolResult:
         """Run a repository tool and append the exchange to the conversation."""
 
-        response = LLMResponse.tool_call(tool_name, arguments)
+        response = LLMResponse.tool_call(tool_name, arguments, call_id=call_id)
         result = execute_tool(
             self.registry,
             response,
@@ -298,16 +294,24 @@ class Conversation:
                 self.require_tool_confirmation if require_confirmation else None
             ),
         )
-        self.append(
-            "assistant", self.format_tool_call(response.tool_name, response.arguments)
+        self.messages.append(
+            ChatMessage(
+                role="assistant",
+                content=self.format_tool_call(response.tool_name, response.arguments),
+                tool_call=ToolCallRecord(
+                    tool_name,
+                    dict(arguments),
+                    result.success,
+                    call_id=call_id,
+                ),
+            )
         )
         self.append("tool", self.format_tool_result(response.tool_name, result))
         return result
 
     def tool_was_used(self, tool_name: str) -> bool:
-        prefix = f"tool={tool_name}\n"
         return any(
-            message.role == "tool" and message.content.startswith(prefix)
+            message.tool_call is not None and message.tool_call.name == tool_name
             for message in self.messages
         )
 
@@ -391,11 +395,11 @@ class Conversation:
 
         paths: set[str] = set()
         for message in self.messages:
-            if message.role != "assistant":
-                continue
-            match = _READ_FILE_CALL_PATTERN.search(message.content)
-            if match:
-                paths.add(match.group(1))
+            call = message.tool_call
+            if call is not None and call.name == "read_file" and call.success:
+                path = call.arguments.get("path")
+                if path is not None:
+                    paths.add(str(path))
         return paths
 
     def propose_file_used(self) -> bool:

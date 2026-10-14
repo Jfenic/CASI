@@ -1,0 +1,15 @@
+--- a/math_ops.py
++++ b/math_ops.py
+@@ -2,8 +2,10 @@
+ 
+ 
+ def add(left: int, right: int) -> int:
+-	return left + right
++    return left + right
+ 
+ 
+ def divide(left: int, right: int) -> float:
+-	return left / right
++    if right == 0:
++        return 0
++    return left / right

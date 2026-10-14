@@ -29,7 +29,9 @@ tests/              # Unit and integration tests
 ```text
 User task (CLI / API / UI)
     ↓
-Intent + plan (orchestrator, specialized profiles)
+Task interpreter & evaluation (repository layout context, refined task, specialized profiles)
+    ↓
+Plan generation (sequential segments, step goals)
     ↓
 Agent loop → tool calls (read, search, run_tests, propose_file, …)
     ↓
@@ -50,7 +52,7 @@ application are separate controls.
 | `repository` | Path safety, sensitive file blocking, search |
 | `tools` | Argument validation, permissions, execution |
 | `llm` | Structured decisions; thinking models use JSON tool protocol |
-| `agent` | Bounded loop, nudges, pipelines, patch verification |
+| `agent` | Task interpreter, bounded loop, nudges, pipelines, patch verification |
 | `patching` | Git-applicable diffs, size and path checks |
 | `sandbox` | Copy-on-run tests; Docker without network by default |
 | `observability` | Step traces, token metrics, export JSON |
@@ -60,8 +62,10 @@ application are separate controls.
 
 ## Multi-agent (current vs proposed)
 
-**Implemented today:** `TaskPlanner` builds sequential plans; `AgentOrchestrator`
-runs segments with specialized profiles (read, fix, create, diagnose, …).
+**Implemented today:** `TaskPlanner` and `LLMTaskEvaluator` disambiguate the user
+request into a `refined_task` with real repository layout context (without consuming
+agent decision steps) and build sequential plans; `AgentOrchestrator` runs segments
+with specialized profiles (read, fix, create, diagnose, test_engineer, …).
 
 **Not implemented:** phased workers with a supervisor, dynamic step budget, or
 clean context handoff per phase. See [TASKS.md](TASKS.md) → Future.

@@ -1,0 +1,176 @@
+{
+  "schema_version": 2,
+  "run_id": "1a4c701b8e6147da820db70ff6d7380b",
+  "created_at": "2026-09-21T12:03:09.088266+00:00",
+  "execution": {
+    "model": "qwen3.5:4b",
+    "repository": "/tmp/casi-benchmark-jdu4saj8/healthy_lib",
+    "task": "Identify the public helper functions exported by the library and describe their inputs and outputs.",
+    "started_at": "2026-09-21T12:03:01.956365+00:00",
+    "finished_at": "2026-09-21T12:03:08.834310+00:00",
+    "files_read": [],
+    "tools_called": [
+      "list_files"
+    ],
+    "patches_proposed": 0,
+    "errors": [],
+    "prompt_tokens": 4263,
+    "completion_tokens": 66,
+    "total_duration_ms": 6877.945000000001,
+    "steps": [
+      {
+        "step": 1,
+        "decision_kind": "tool_call",
+        "tool": null,
+        "duration_ms": 3394.5,
+        "success": null
+      },
+      {
+        "step": 1,
+        "decision_kind": "tool_result",
+        "tool": "list_files",
+        "duration_ms": null,
+        "success": true
+      },
+      {
+        "step": 2,
+        "decision_kind": "final",
+        "tool": null,
+        "duration_ms": 3478.16,
+        "success": null
+      },
+      {
+        "step": 2,
+        "decision_kind": "final",
+        "tool": null,
+        "duration_ms": null,
+        "success": null
+      }
+    ],
+    "test_runs": []
+  },
+  "metrics": {
+    "total_steps": 4,
+    "decision_steps": 1,
+    "tool_calls": 1,
+    "files_read": 0,
+    "patches_proposed": 0,
+    "test_runs": 0,
+    "failed_tools": 0,
+    "prompt_tokens": 4263,
+    "completion_tokens": 66,
+    "total_duration_ms": 6877.945000000001,
+    "step_duration_ms": 3436.33
+  },
+  "events": [
+    {
+      "timestamp": "2026-09-21T12:03:01.956481+00:00",
+      "kind": "plan",
+      "message": "plan: 1. [general|read] Identify the public helper functions exported by the library and describe their inputs and outputs. — read_file, search_code, list_files",
+      "data": {
+        "steps": 1
+      }
+    },
+    {
+      "timestamp": "2026-09-21T12:03:01.956550+00:00",
+      "kind": "orchestrator_step",
+      "message": "orchestrator step 1/1: general (General Repository Agent)",
+      "data": {
+        "step_number": 1,
+        "total_steps": 1,
+        "agent_name": "general",
+        "agent_role": "General Repository Agent",
+        "objective": "unknown"
+      }
+    },
+    {
+      "timestamp": "2026-09-21T12:03:01.957243+00:00",
+      "kind": "phase",
+      "message": "agent phase=inspect",
+      "data": {
+        "phase": "inspect"
+      }
+    },
+    {
+      "timestamp": "2026-09-21T12:03:05.351839+00:00",
+      "kind": "step_timing",
+      "message": "timing 1/8: tool_call 3394.5ms",
+      "data": {
+        "step": 1,
+        "step_limit": 8,
+        "decision_kind": "tool_call",
+        "duration_ms": 3394.5
+      }
+    },
+    {
+      "timestamp": "2026-09-21T12:03:05.351896+00:00",
+      "kind": "usage",
+      "message": "usage prompt=2125 completion=13",
+      "data": {
+        "prompt_tokens": 2125,
+        "completion_tokens": 13
+      }
+    },
+    {
+      "timestamp": "2026-09-21T12:03:05.351921+00:00",
+      "kind": "tool_call",
+      "message": "decision 1/8: tool list_files",
+      "data": {
+        "step": 1,
+        "step_limit": 8,
+        "tool": "list_files"
+      }
+    },
+    {
+      "timestamp": "2026-09-21T12:03:05.354861+00:00",
+      "kind": "tool_result",
+      "message": "  -> list_files ok: lib.py test_lib.py",
+      "data": {
+        "tool": "list_files",
+        "success": true,
+        "count": 2,
+        "files": [
+          "lib.py",
+          "test_lib.py"
+        ]
+      }
+    },
+    {
+      "timestamp": "2026-09-21T12:03:05.355269+00:00",
+      "kind": "phase",
+      "message": "agent phase=inspect",
+      "data": {
+        "phase": "inspect"
+      }
+    },
+    {
+      "timestamp": "2026-09-21T12:03:08.833662+00:00",
+      "kind": "step_timing",
+      "message": "timing 2/8: final 3478.2ms",
+      "data": {
+        "step": 2,
+        "step_limit": 8,
+        "decision_kind": "final",
+        "duration_ms": 3478.16
+      }
+    },
+    {
+      "timestamp": "2026-09-21T12:03:08.833677+00:00",
+      "kind": "usage",
+      "message": "usage prompt=2138 completion=53",
+      "data": {
+        "prompt_tokens": 2138,
+        "completion_tokens": 53
+      }
+    },
+    {
+      "timestamp": "2026-09-21T12:03:08.833686+00:00",
+      "kind": "final",
+      "message": "decision 2/8: final I'll analyze the repository structure to identify public helper functions. Let me start by reading the main library f...",
+      "data": {
+        "step": 2,
+        "step_limit": 8
+      }
+    }
+  ]
+}

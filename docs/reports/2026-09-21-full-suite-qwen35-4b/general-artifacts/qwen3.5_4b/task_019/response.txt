@@ -1,0 +1,7 @@
+Based on the test file, here are the functions in math_ops.py:
+
+1. **add(x, y)** - Takes two numbers and returns their sum. Example: add(2, 3) returns 5.
+
+2. **divide(x, y)** - Takes two numbers and returns their quotient. According to the test, divide(1, 0) should return 0 (likely implementing a convention that division by zero returns 0 rather than raising an exception).
+
+The test file validates both functions with simple assertions checking that the expected values are returned.

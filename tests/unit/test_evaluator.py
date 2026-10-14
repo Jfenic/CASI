@@ -106,3 +106,95 @@ def test_evaluator_skips_llm_when_client_does_not_opt_in() -> None:
     result = evaluator.evaluate("Inspect the repository")
     assert isinstance(result, TaskEvaluation)
     assert client.calls == 0
+
+
+def test_evaluator_handles_list_plan_instructions() -> None:
+    json_response = """
+    {
+      "objective": "test_engineer",
+      "agent_role": "QA Specialist",
+      "tools_needed": ["read_file", "run_tests", "propose_file"],
+      "plan_instructions": [
+        "1. Inspect test directory",
+        "2. Propose new unit tests"
+      ],
+      "reasoning": "User asked to create tests"
+    }
+    """
+    client = FakeEvaluatorClient(json_response)
+    evaluator = LLMTaskEvaluator(client)
+
+    result = evaluator.evaluate("crea el archivo main.py y su test.py")
+
+    assert result.objective is TaskIntent.TEST_ENGINEER
+    assert isinstance(result.plan_instructions, str)
+    expected = "1. Inspect test directory\n2. Propose new unit tests"
+    assert expected in result.plan_instructions
+
+
+def test_evaluator_selects_create_and_refined_task() -> None:
+    json_response = """
+    {
+      "objective": "create",
+      "agent_role": "New File & Feature Specialist",
+      "tools_needed": ["read_file", "search_code", "run_tests", "propose_file"],
+      "refined_task": "Crea el archivo 'main.py' en la raíz con la función principal",
+      "plan_instructions": "1. Check layout\\n2. Propose main.py",
+      "reasoning": "User wants to create a new file from scratch"
+    }
+    """
+    client = FakeEvaluatorClient(json_response)
+    evaluator = LLMTaskEvaluator(client)
+
+    result = evaluator.evaluate(
+        "crea un archivo main que pida numeros",
+        repository_files=["README.md"],
+    )
+
+    assert result.objective is TaskIntent.CREATE
+    assert result.agent_name == "create"
+    assert "Crea el archivo 'main.py'" in result.refined_task
+    assert "1. Check layout" in result.plan_instructions
+
+
+def test_evaluator_passes_repository_files_in_prompt() -> None:
+    class InspectingClient(FakeEvaluatorClient):
+        def __init__(self) -> None:
+            super().__init__(
+                '{"objective": "fix", "agent_role": "Fix", "tools_needed": [], '
+                '"refined_task": "task", "plan_instructions": "", "reasoning": ""}'
+            )
+            self.last_user_prompt = ""
+
+        def complete(self, messages, tools):
+            for msg in messages:
+                if msg.role == "user":
+                    self.last_user_prompt = msg.content
+            return super().complete(messages, tools)
+
+    client = InspectingClient()
+    evaluator = LLMTaskEvaluator(client)
+
+    evaluator.evaluate(
+        "añade un help",
+        repository_files=["sorter.py", "README.md"],
+    )
+
+    assert "Existing repository files:" in client.last_user_prompt
+    assert "sorter.py" in client.last_user_prompt
+    assert "README.md" in client.last_user_prompt
+
+
+def test_evaluator_recognizes_supports_evaluation_attribute() -> None:
+    class GenericProviderClient:
+        supports_evaluation = True
+
+        def complete(self, messages, tools):
+            return LLMResponse.final(
+                '{"objective": "explain", "agent_role": "Code Explanation Specialist", '
+                '"tools_needed": [], "plan_instructions": "", "reasoning": "testing"}'
+            )
+
+    evaluator = LLMTaskEvaluator(GenericProviderClient())
+    result = evaluator.evaluate("What is this file?")
+    assert result.objective is TaskIntent.EXPLAIN

@@ -1,0 +1,22 @@
+--- a/access.py
++++ b/access.py
+@@ -1,2 +1,18 @@
++import copy
++
+ def get_document(documents, tenant_id, user_id, document_id):
+-    return documents[document_id]
++    # Check if document exists (raise KeyError for missing ID)
++    if document_id not in documents:
++        raise KeyError(document_id)
++
++    doc = documents[document_id]
++
++    # Tenant IDs MUST match - public never grants cross-tenant access
++    if doc.get("tenant_id") != tenant_id:
++        raise PermissionError("Access denied: Document belongs to different tenant")
++
++    # Access allowed if owner matches OR document is public
++    if doc.get("owner_id") == user_id or doc.get("public", False):
++        return copy.deepcopy(doc)
++    else:
++        raise PermissionError("Access denied: No valid authorization")

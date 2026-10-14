@@ -2,26 +2,20 @@
 
 from __future__ import annotations
 
-import re
-
-_READ_FILE_CALL = re.compile(
-    r"Called tool=read_file with arguments=\{'path': '([^']+)'\}"
-)
+from casi.llm.base import ChatMessage
 
 
-def read_file_usage(messages: list[object]) -> dict[str, int]:
+def read_file_usage(messages: list[ChatMessage]) -> dict[str, int]:
     """Count how many times each path was read via read_file."""
 
     counts: dict[str, int] = {}
     for message in messages:
-        role = getattr(message, "role", None)
-        content = getattr(message, "content", "")
-        if role != "assistant" or not isinstance(content, str):
+        call = message.tool_call
+        if call is None or call.name != "read_file":
             continue
-        match = _READ_FILE_CALL.search(content)
-        if match is None:
+        path = str(call.arguments.get("path", ""))
+        if not path:
             continue
-        path = match.group(1)
         counts[path] = counts.get(path, 0) + 1
     return counts
 

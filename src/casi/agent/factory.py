@@ -47,6 +47,8 @@ class SpecializedAgent:
 def _client_for_profile(client: LLMClient, profile: AgentProfile) -> LLMClient:
     if not profile.prompt_instructions.strip():
         return client
+    if hasattr(client, "with_role_instructions"):
+        return client.with_role_instructions(profile.prompt_instructions)
     if isinstance(client, OllamaClient):
         return OllamaClient(
             base_url=client.base_url,
@@ -79,6 +81,7 @@ class AgentFactory:
         registry: ToolRegistry | None = None,
         plan_instructions: str = "",
         custom_role: str | None = None,
+        include_session_context: bool = True,
     ) -> SpecializedAgent:
         """Instantiate an agent for a known objective."""
 
@@ -103,6 +106,7 @@ class AgentFactory:
             trace=trace,
             routing_mode=routing_mode,
             response_policy=response_policy,
+            include_session_context=include_session_context,
         )
         return SpecializedAgent(profile=profile, loop=loop)
 

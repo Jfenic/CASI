@@ -1,0 +1,10 @@
+--- a/batches.py
++++ b/batches.py
+@@ -4,6 +4,5 @@
+     batches = []
+     for start in range(0, len(items), batch_size):
+         end = start + batch_size
+-        if end <= len(items):
+-            batches.append(items[start:end])
++        batches.append(items[start:end])
+     return batches

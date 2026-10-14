@@ -36,27 +36,31 @@ the most appropriate specialized agent from this CLOSED CATALOG:
 3. 'fix' (Bug Fix & Patch Specialist):
    - For repairing code bugs, satisfying failing tests, and generating unified diffs.
 
-4. 'test_engineer' (Test Engineering & QA Specialist):
+4. 'create' (New File & Feature Specialist):
+   - For creating brand new files, modules, or features from scratch.
+
+5. 'test_engineer' (Test Engineering & QA Specialist):
    - For writing new unit/integration tests without modifying production code.
 
-5. 'refactor' (Refactoring & Code Quality Specialist):
+6. 'refactor' (Refactoring & Code Quality Specialist):
    - For refactoring code modularity/typing while keeping all existing tests passing.
 
-6. 'security' (Security & Defensive Audit Specialist):
+7. 'security' (Security & Defensive Audit Specialist):
    - For auditing security risks, secret leaks, and traversal vulnerabilities.
 
-7. 'overview' (Repository Overview Specialist):
+8. 'overview' (Repository Overview Specialist):
    - For general repository onboarding, README explanation, and project entry points.
 
-8. 'conversation' (Conversation Assistant):
+9. 'conversation' (Conversation Assistant):
    - For greetings and casual messages that do not require inspecting the repository.
 
 Return ONLY a valid JSON object with these exact keys:
 {
-  "objective": "explain" | "diagnose" | "fix" | "test_engineer" |
+  "objective": "explain" | "diagnose" | "fix" | "create" | "test_engineer" |
                "refactor" | "security" | "overview" | "conversation",
   "agent_role": "concise role description",
   "tools_needed": ["read_file", "search_code"],
+  "refined_task": "Clear technical specification referencing existing repo paths.",
   "plan_instructions": "Step-by-step instructions for the agent to resolve the task.",
   "reasoning": "Brief explanation of why this agent was selected."
 }
@@ -71,6 +75,7 @@ class TaskEvaluation:
     agent_name: str
     agent_role: str
     tools_needed: list[str] = field(default_factory=list)
+    refined_task: str = ""
     plan_instructions: str = ""
     reasoning: str = ""
 
@@ -142,6 +147,7 @@ class LLMTaskEvaluator:
         session_messages: list[ChatMessage] | None = None,
         *,
         category: str | None = None,
+        repository_files: list[str] | None = None,
     ) -> TaskEvaluation:
         """Evaluate a task using the LLM, with deterministic fallback if needed."""
 
@@ -154,7 +160,11 @@ class LLMTaskEvaluator:
         # 2. Try LLM evaluation if client supports it
         if self._can_evaluate_with_llm():
             try:
-                return self._evaluate_with_llm(task, session_messages)
+                return self._evaluate_with_llm(
+                    task,
+                    session_messages,
+                    repository_files=repository_files,
+                )
             except Exception as exc:
                 logger.debug(
                     "LLM evaluation failed, falling back to base classification: %s",
@@ -171,7 +181,14 @@ class LLMTaskEvaluator:
         self,
         task: str,
         session_messages: list[ChatMessage] | None,
+        *,
+        repository_files: list[str] | None = None,
     ) -> TaskEvaluation:
+        repo_context = ""
+        if repository_files:
+            file_list = ", ".join(repository_files[:60])
+            repo_context = f"\nExisting repository files:\n{file_list}\n"
+
         messages = [
             ChatMessage(role="system", content=EVALUATOR_SYSTEM_PROMPT),
         ]
@@ -181,7 +198,10 @@ class LLMTaskEvaluator:
         messages.append(
             ChatMessage(
                 role="user",
-                content=f"Evaluate this user request:\n\n{task.strip()}",
+                content=(
+                    f"Evaluate this user request:{repo_context}\n"
+                    f"User request: {task.strip()}"
+                ),
             )
         )
         response = self.client.complete(messages, tools=[])
@@ -203,15 +223,34 @@ class LLMTaskEvaluator:
 
         profile = resolve_profile(intent)
         role = payload.get("agent_role") or profile.role
-        instructions = payload.get("plan_instructions") or ""
-        tools = payload.get("tools_needed") or default_tools_for_intent(intent)
-        reasoning = payload.get("reasoning") or ""
+        if not isinstance(role, str):
+            role = str(role) if role is not None else profile.role
+
+        raw_refined = payload.get("refined_task")
+        if isinstance(raw_refined, str) and raw_refined.strip():
+            refined_task = raw_refined.strip()
+        else:
+            refined_task = task.strip()
+
+        raw_instructions = payload.get("plan_instructions") or ""
+        if isinstance(raw_instructions, (list, tuple)):
+            instructions = "\n".join(str(item) for item in raw_instructions)
+        else:
+            instructions = str(raw_instructions)
+
+        raw_tools = payload.get("tools_needed")
+        if isinstance(raw_tools, (list, tuple)):
+            tools = [str(t) for t in raw_tools]
+        else:
+            tools = default_tools_for_intent(intent)
+        reasoning = str(payload.get("reasoning") or "")
 
         return TaskEvaluation(
             objective=intent,
             agent_name=profile.name,
             agent_role=role,
             tools_needed=tools,
+            refined_task=refined_task,
             plan_instructions=instructions,
             reasoning=reasoning,
         )
@@ -242,6 +281,12 @@ class LLMTaskEvaluator:
                 "2. Trace the failure traceback to the implementation statements.\n"
                 "3. Report root cause with file, line, cause, and evidence in JSON."
             )
+        elif intent is TaskIntent.CREATE:
+            instructions = (
+                "1. Check repository layout and target path.\n"
+                "2. Implement the complete contract in the new file.\n"
+                "3. Propose the new file using propose_file."
+            )
         elif intent is TaskIntent.TEST_ENGINEER:
             instructions = (
                 "1. Inspect existing tests and target implementation.\n"
@@ -267,6 +312,7 @@ class LLMTaskEvaluator:
             agent_name=profile.name,
             agent_role=profile.role,
             tools_needed=default_tools_for_intent(intent),
+            refined_task=task.strip(),
             plan_instructions=instructions,
             reasoning=f"Assigned to {profile.name} based on intent {intent.value}.",
         )

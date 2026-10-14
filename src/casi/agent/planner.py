@@ -38,6 +38,7 @@ class AgentPlanStep:
     tools_goal: str
     plan_instructions: str = ""
     tools_needed: tuple[str, ...] = ()
+    refined_task: str = ""
 
     @classmethod
     def from_evaluation(
@@ -45,6 +46,14 @@ class AgentPlanStep:
         task: str,
         evaluation: Any,
     ) -> AgentPlanStep:
+        raw_instructions = getattr(evaluation, "plan_instructions", "")
+        if isinstance(raw_instructions, (list, tuple)):
+            plan_instructions = "\n".join(str(item) for item in raw_instructions)
+        else:
+            plan_instructions = str(raw_instructions) if raw_instructions else ""
+
+        refined_task = getattr(evaluation, "refined_task", "") or task.strip()
+
         return cls(
             objective=evaluation.objective,
             task=task.strip(),
@@ -55,8 +64,9 @@ class AgentPlanStep:
                 evaluation.objective,
                 ", ".join(evaluation.tools_needed) or "repository tools as needed",
             ),
-            plan_instructions=evaluation.plan_instructions,
+            plan_instructions=plan_instructions,
             tools_needed=tuple(evaluation.tools_needed),
+            refined_task=refined_task,
         )
 
     @classmethod
@@ -73,6 +83,7 @@ class AgentPlanStep:
             agent_name=profile.name,
             agent_role=profile.role,
             tools_goal=_FAST_PATH_TOOLS_GOAL.get(intent, "repository tools as needed"),
+            refined_task=task.strip(),
         )
 
 
@@ -144,6 +155,7 @@ class TaskPlanner:
         *,
         category: str | None = None,
         evaluator: Any | None = None,
+        repository_files: list[str] | None = None,
     ) -> AgentPlan:
         session = session_messages if session_messages is not None else []
         stripped = task.strip()
@@ -151,7 +163,12 @@ class TaskPlanner:
             return AgentPlan(original_task="", segments=())
 
         if evaluator is not None:
-            evaluation = evaluator.evaluate(stripped, session, category=category)
+            evaluation = evaluator.evaluate(
+                stripped,
+                session,
+                category=category,
+                repository_files=repository_files,
+            )
             steps = [AgentPlanStep.from_evaluation(stripped, evaluation)]
         else:
             context = build_task_context(stripped, session)

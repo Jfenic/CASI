@@ -44,6 +44,24 @@ class OllamaClient:
         self.think_mode = think_mode
         self.max_empty_retries = max_empty_retries
 
+    supports_evaluation: bool = True
+    provider_name: str = "ollama"
+
+    @property
+    def model_name(self) -> str:
+        return self.model
+
+    def with_role_instructions(self, role_instructions: str) -> OllamaClient:
+        """Return a new OllamaClient configured with specific role instructions."""
+        return OllamaClient(
+            base_url=self.base_url,
+            model=self.model,
+            timeout_seconds=self.timeout_seconds,
+            role_instructions=role_instructions,
+            think_mode=self.think_mode,
+            max_empty_retries=self.max_empty_retries,
+        )
+
     def complete(
         self,
         messages: Sequence[ChatMessage],

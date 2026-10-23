@@ -17,6 +17,8 @@ DEFAULT_SLASH_COMMANDS = [
     "/history",
     "/stats",
     "/metrics",
+    "/status",
+    "/doctor",
     "/context",
     "/compact",
     "/clear",

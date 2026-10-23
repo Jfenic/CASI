@@ -15,6 +15,7 @@ from casi.config import settings
 from casi.exceptions import CasiError
 from casi.interactive import InteractiveSession
 from casi.llm.ollama_client import OllamaClient
+from casi.llm.providers import create_llm_client
 from casi.observability.logging import emit_execution_log
 from casi.repository.explorer import list_files
 from casi.repository.reader import read_file
@@ -49,6 +50,17 @@ def _add_agent_task_parser(
         choices=("assist", "strict", "off"),
         default=settings.agent_routing_mode,
         help="Repository routing mode: assist, strict, or off.",
+    )
+    parser.add_argument(
+        "--provider",
+        choices=("ollama", "openai"),
+        default=None,
+        help="LLM provider: 'ollama' or 'openai'.",
+    )
+    parser.add_argument(
+        "--model",
+        default=None,
+        help="Model name (e.g. 'qwen2.5-coder:7b', 'gpt-4o').",
     )
     parser.add_argument(
         "-v",
@@ -151,6 +163,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Repository routing mode: assist, strict, or off.",
     )
     interactive_parser.add_argument(
+        "--provider",
+        choices=("ollama", "openai"),
+        default=None,
+        help="LLM provider: 'ollama' or 'openai'.",
+    )
+    interactive_parser.add_argument(
+        "--model",
+        default=None,
+        help="Model name (e.g. 'qwen2.5-coder:7b', 'gpt-4o').",
+    )
+    interactive_parser.add_argument(
         "--plain",
         action="store_true",
         help="Disable colors and glyphs, using plain ASCII terminal output.",
@@ -250,9 +273,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Directory containing benchmark repository fixtures.",
     )
     benchmark_parser.add_argument(
+        "--provider",
+        choices=("ollama", "openai"),
+        default=None,
+        help="LLM provider: 'ollama' or 'openai'.",
+    )
+    benchmark_parser.add_argument(
         "--model",
         default=settings.ollama_model,
-        help="Ollama model to use for a single-model run.",
+        help="Model to use for a single-model run.",
     )
     benchmark_parser.add_argument(
         "--models",
@@ -290,6 +319,27 @@ def build_parser() -> argparse.ArgumentParser:
         "--quiet",
         action="store_true",
         help="Suppress per-task progress output.",
+    )
+
+    doctor_parser = subparsers.add_parser(
+        "doctor",
+        help="Check system requirements, Ollama server, and Docker sandbox.",
+    )
+    doctor_parser.add_argument(
+        "--repo",
+        default=".",
+        help="Repository path to check (default: current directory).",
+    )
+    doctor_parser.add_argument(
+        "--provider",
+        choices=("ollama", "openai"),
+        default=None,
+        help="LLM provider: 'ollama' or 'openai'.",
+    )
+    doctor_parser.add_argument(
+        "--model",
+        default=None,
+        help="Model name to check.",
     )
 
     return parser
@@ -358,12 +408,18 @@ def _run_agent(
     save_patch: str | None = None,
     yes: bool = False,
     verbose: bool = False,
+    provider: str | None = None,
+    model: str | None = None,
 ) -> int:
-    """Run the bounded agent loop using the configured Ollama client."""
+    """Run the bounded agent loop using the configured LLM client."""
 
     trace = AgentTraceRecorder()
+    if provider is None and model is None and settings.llm_provider == "ollama":
+        client = OllamaClient()
+    else:
+        client = create_llm_client(provider=provider, model=model)
     orchestrator = AgentOrchestrator(
-        OllamaClient(),
+        client,
         repository,
         max_steps=max_steps,
         routing_mode=routing,
@@ -404,11 +460,17 @@ def _run_interactive(
     routing: str,
     *,
     plain: bool = False,
+    provider: str | None = None,
+    model: str | None = None,
 ) -> int:
     presenter = None if plain else TerminalPresenter()
+    if provider is None and model is None and settings.llm_provider == "ollama":
+        client = OllamaClient()
+    else:
+        client = create_llm_client(provider=provider, model=model)
     session = InteractiveSession(
         repository,
-        OllamaClient(),
+        client,
         max_steps=max_steps,
         routing_mode=routing,
         presenter=presenter,
@@ -531,6 +593,7 @@ def _run_benchmark(
     list_only: bool,
     verbose: bool,
     quiet: bool,
+    provider: str | None = None,
 ) -> int:
     from casi.evaluation.benchmark import load_tasks
     from casi.evaluation.report import (
@@ -564,7 +627,12 @@ def _run_benchmark(
         model_list = [item.strip() for item in models.split(",") if item.strip()]
         if not model_list:
             raise ValueError("Provide at least one model in --models")
-        runs = compare_models(tasks, model_list, options=options)
+        runs = compare_models(
+            tasks,
+            model_list,
+            options=options,
+            client_factory=lambda m: create_llm_client(provider=provider, model=m),
+        )
         if report_format == "text":
             print(render_comparison_report(runs))
         payload = build_comparison_payload(runs)
@@ -583,7 +651,7 @@ def _run_benchmark(
             print(markdown)
         return 0
 
-    client = OllamaClient(model=model)
+    client = create_llm_client(provider=provider, model=model)
     run = run_model_benchmark(tasks, client=client, options=options)
     if report_format == "text":
         print(render_report(run.results, model=run.model))
@@ -641,6 +709,8 @@ def main(argv: list[str] | None = None) -> int:
                 save_patch=getattr(args, "save_patch", None),
                 yes=getattr(args, "yes", False),
                 verbose=getattr(args, "verbose", False),
+                provider=getattr(args, "provider", None),
+                model=getattr(args, "model", None),
             )
 
         if args.command == "interactive":
@@ -649,6 +719,8 @@ def main(argv: list[str] | None = None) -> int:
                 args.max_steps,
                 args.routing,
                 plain=getattr(args, "plain", False),
+                provider=getattr(args, "provider", None),
+                model=getattr(args, "model", None),
             )
 
         if args.command == "test":
@@ -679,7 +751,18 @@ def main(argv: list[str] | None = None) -> int:
                 list_only=args.list,
                 verbose=args.verbose,
                 quiet=args.quiet,
+                provider=getattr(args, "provider", None),
             )
+
+        if args.command == "doctor":
+            from casi.doctor import run_doctor
+
+            ok = run_doctor(
+                args.repo,
+                provider=args.provider,
+                model=args.model,
+            )
+            return 0 if ok else 1
 
         parser.error(f"Unknown command: {args.command}")
     except CasiError as exc:
@@ -687,4 +770,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     except (FileNotFoundError, IsADirectoryError, RuntimeError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
+        return 1
+    except Exception as exc:
+        print(f"Internal error: {exc}", file=sys.stderr)
         return 1

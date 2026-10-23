@@ -73,7 +73,7 @@ def test_trace_redacts_sensitive_arguments_and_saves_json(tmp_path: Path) -> Non
     assert "'runner': 'docker'" in trace.events[1]
 
 
-def test_trace_records_rejected_fix_tool_calls(tmp_path: Path) -> None:
+def test_trace_records_unavailable_fix_tool_calls(tmp_path: Path) -> None:
     (tmp_path / "app.py").write_text("x = 1\n", encoding="utf-8")
     (tmp_path / "test_app.py").write_text(
         "from app import x\n\ndef test_x():\n    assert x == 2\n",
@@ -83,7 +83,7 @@ def test_trace_records_rejected_fix_tool_calls(tmp_path: Path) -> None:
     client = ToolThenStallClient()
     client.responses = [
         LLMResponse.tool_call("run_tests", {}),
-        LLMResponse.tool_call("search_code", {"query": "x"}),
+        LLMResponse.tool_call("validate_patch", {"patch": "invalid"}),
         LLMResponse.final("No patch"),
     ]
     agent = AgentFactory.create(
@@ -99,9 +99,5 @@ def test_trace_records_rejected_fix_tool_calls(tmp_path: Path) -> None:
 
     agent.run("fix app.py")
 
-    assert any("tool search_code" in event for event in trace.events)
-    assert any(
-        "Tool unavailable in this phase" in event
-        or "search_code results are already available" in event
-        for event in trace.events
-    )
+    assert any("tool validate_patch" in event for event in trace.events)
+    assert any("Tool unavailable in this phase" in event for event in trace.events)

@@ -1,0 +1,11 @@
+The repository tests verify the following behaviors:
+
+**test_lib.py**
+
+1. **slugify()**: Converts "Hello World" to "hello-world" - this verifies that slugification lowercases the string and replaces spaces with hyphens.
+
+2. **excerpt()**: 
+   - Returns the string unchanged when it's short (e.g., "short")
+   - Appends "..." suffix when the string is long (tested with a 50-character string)
+
+To verify these behaviors are fully implemented, I should also read the implementation in lib.py to confirm how these functions work internally.

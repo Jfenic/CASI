@@ -107,14 +107,17 @@ def verify_patch_response(
     output = test_result.stdout
     if test_result.stderr:
         output = f"{output}\n{test_result.stderr}".strip()
-    has_test_suite = repository_has_test_files(conversation.registry.repository_path)
+    has_actual_test_files = repository_has_test_files(
+        conversation.registry.repository_path,
+        require_actual_files=True,
+    )
     no_tests_collected = test_result.exit_code == 5 and (
         "no tests ran" in output.lower() or "collected 0 items" in output.lower()
     )
     is_create = getattr(intent, "value", intent) == "create"
     if (
         is_create
-        and not has_test_suite
+        and not has_actual_test_files
         and no_tests_collected
         and not test_result.timed_out
     ):

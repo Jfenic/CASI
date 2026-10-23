@@ -1,0 +1,11 @@
+--- a/signal_features.py
++++ b/signal_features.py
+@@ -3,7 +3,7 @@
+         raise ValueError("empty signal")
+     count = len(values)
+     mean = sum(values) / count
+-    rms = abs(mean)
++    rms = (sum(x ** 2 for x in values) / count) ** 0.5
+     variance = sum((value - mean) ** 2 for value in values) / count
+     crossings = sum(
+         left * right < 0 for left, right in zip(values, values[1:], strict=False)

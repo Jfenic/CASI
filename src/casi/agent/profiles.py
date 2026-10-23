@@ -23,13 +23,22 @@ class AgentProfile:
 
         return f"{self.name} ({self.role})"
 
-    def with_instructions(self, extra_instructions: str) -> AgentProfile:
+    def with_instructions(
+        self, extra_instructions: str | list[str] | tuple[str, ...]
+    ) -> AgentProfile:
         """Derive a profile with additional instructions from the orchestrator."""
-        if not extra_instructions.strip():
+        if isinstance(extra_instructions, (list, tuple)):
+            text = "\n".join(str(item) for item in extra_instructions)
+        elif not isinstance(extra_instructions, str):
+            text = str(extra_instructions) if extra_instructions else ""
+        else:
+            text = extra_instructions
+
+        if not text.strip():
             return self
         combined = (
             f"{self.prompt_instructions}\n\n"
-            f"Orchestrator plan instructions:\n{extra_instructions.strip()}"
+            f"Orchestrator plan instructions:\n{text.strip()}"
         )
         return AgentProfile(
             objective=self.objective,
@@ -247,12 +256,10 @@ PROFILES: dict[TaskIntent, AgentProfile] = {
             "You are the machine learning fix specialist.",
             "Call run_tests first and read failing source and test files.",
             (
-                "Check metric formulas (precision/recall denominators, empty "
-                "classes), data leakage in splits, seed reproducibility, "
-                "sample vs population std (ddof=1), zero-variance features, "
-                "batch remainder handling, and one-hot column counts."
+                "Derive numerical definitions, data handling, and reproducibility "
+                "requirements from the task contract and repository."
             ),
-            "Never mutate input lists or datasets; return new structures.",
+            "Respect the specified input mutability and output ownership contract.",
             (
                 "After inspection, you MUST call propose_file with the "
                 "repository-relative path and complete corrected file content."

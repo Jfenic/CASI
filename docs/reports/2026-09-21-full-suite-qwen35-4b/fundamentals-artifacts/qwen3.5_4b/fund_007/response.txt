@@ -1,0 +1,12 @@
+--- a/merge_sort.py
++++ b/merge_sort.py
+@@ -12,6 +12,9 @@
+         else:
+             result.append(right[j])
+             j += 1
++    # Append remaining elements to ensure all items are included
++    result.extend(left[i:])
++    result.extend(right[j:])
+     return result
+ 
+ 

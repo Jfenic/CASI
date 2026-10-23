@@ -1,0 +1,18 @@
+El helper `strip_lines` está implementado en `parser.py`. Su comportamiento actual es incorrecto:
+
+**Implementación actual:**
+```python
+def strip_lines(lines: list[str]) -> list[str]:
+    return [line for line in lines]
+```
+
+Este código simplemente devuelve las líneas como están, sin realizar ninguna operación de limpieza.
+
+**Lo que espera el test:**
+El test en `test_parser.py` espera:
+```python
+assert strip_lines(["  a  ", " b "]) == ["a", "b"]
+```
+Esto significa que la función debería eliminar los espacios alrededor de cada línea.
+
+**Problema:** La implementación actual no realiza el `strip()` que es necesario para cumplir con lo esperado por el test. Se requiere un cambio en la lógica para aplicar `.strip()` a cada línea.

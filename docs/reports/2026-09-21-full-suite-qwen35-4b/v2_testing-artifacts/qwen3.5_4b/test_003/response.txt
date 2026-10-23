@@ -1,0 +1,36 @@
+--- /dev/null
++++ b/test_discount.py
+@@ -0,0 +1,33 @@
++import pytest
++from pricing import discounted_total
++
++def test_discounted_total_zero():
++    assert discounted_total(0, False) == 0
++    assert discounted_total(0, True) == 0
++
++def test_discounted_total_below_hundred():
++    assert discounted_total(99, False) == 99
++    assert discounted_total(99, True) == 99
++    assert discounted_total(50, False) == 50
++    assert discounted_total(1, False) == 1
++
++def test_discounted_total_boundary_exact():
++    assert abs(discounted_total(100, False) - 100) < 1e-9
++    assert abs(discounted_total(100, True) - 90) < 1e-9
++
++def test_discounted_total_above_boundary():
++    assert discounted_total(101, True) == 90.9
++    assert discounted_total(200, True) == 180
++    assert abs(discounted_total(1000, True) - 900) < 1e-9
++
++def test_discounted_total_both_membership_states():
++    assert discounted_total(50, False) == 50
++    assert discounted_total(50, True) == 50
++    assert discounted_total(100, False) == 100
++    assert discounted_total(100, True) == 90
++
++def test_discounted_total_negative():
++    with pytest.raises(ValueError):
++        discounted_total(-10, False)
++    with pytest.raises(ValueError):
++        discounted_total(-100, True)

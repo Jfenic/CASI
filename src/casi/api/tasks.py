@@ -13,7 +13,7 @@ from pathlib import Path
 from casi.agent.orchestrator import AgentOrchestrator, OrchestratorResult
 from casi.agent.run_outcome import resolve_agent_run_outcome
 from casi.agent.trace import AgentTraceRecorder
-from casi.llm.ollama_client import OllamaClient
+from casi.llm.providers import create_llm_client
 from casi.observability.logging import build_execution_payload
 from casi.observability.metrics import summarize_trace
 from casi.observability.tracing import reconstruct_trace
@@ -75,7 +75,7 @@ def default_orchestrator_runner(
     trace: AgentTraceRecorder | None = None,
 ) -> OrchestratorResult:
     orchestrator = AgentOrchestrator(
-        OllamaClient(),
+        create_llm_client(),
         repository,
         max_steps=max_steps,
         routing_mode=routing,

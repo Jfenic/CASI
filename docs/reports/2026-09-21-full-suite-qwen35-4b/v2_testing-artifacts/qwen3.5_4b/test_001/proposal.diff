@@ -1,0 +1,54 @@
+--- a/retrying.py
++++ b/retrying.py
+@@ -1,9 +1,44 @@
+-def retry(operation, attempts=3):
+-    if attempts < 1:
++# -*- coding: utf-8 -*-
++"""Retry utilities for deterministic retry logic."""
++
++import functools
++from typing import Callable, Any, Optional
++
++
++def retry(
++    operation: Callable[..., Any],
++    attempts: int = 3,
++) -> Callable[[Any], Any]:
++    """Apply retry logic to a function.
++
++    Retry only RuntimeError; propagate the same final exception after exhaustion.
++    Zero or negative attempts raise ValueError.
++    Default is exactly three total attempts (including first call).
++    Return on success without extra calls. Other exceptions propagate immediately.
++
++    Args:
++        operation: The function to retry
++        attempts: Total number of attempts including first call (default: 3)
++
++    Returns:
++        A retry-wrapped callable that returns the first successful result or raises exception after exhaustion
++    """
++    if not isinstance(attempts, int) or attempts <= 0:
+         raise ValueError("attempts must be positive")
+-    for index in range(attempts):
+-        try:
+-            return operation()
+-        except RuntimeError:
+-            if index == attempts - 1:
++
++    @functools.wraps(operation)
++    def wrapped_func(*args: Any, **kwargs: Any):
++        call_count = 0
++        while True:
++            try:
++                result = operation(*args, **kwargs)
++                return result
++            except RuntimeError as e:
++                if call_count >= attempts - 1:
++                    raise
++                call_count += 1
++                continue
++            except Exception as e:
+                 raise
++
++    return wrapped_func

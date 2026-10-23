@@ -29,6 +29,7 @@ from casi.agent.nudges import (
     nudge_after_layout_loaded,
     nudge_for_layout_required,
     nudge_for_missing_local_modules,
+    nudge_for_patch_correction,
     nudge_for_premature_clarification,
     nudge_for_propose_file_failure,
     nudge_for_read_file_instead_of_search,
@@ -93,6 +94,7 @@ class _ActiveTask:
     continuing_after_clarification: bool = False
     next_step: int = 1
     proposal_rejected: bool = False
+    consecutive_model_errors: int = 0
 
 
 class AgentLoop:
@@ -115,6 +117,7 @@ class AgentLoop:
         trace: AgentTraceRecorder | None = None,
         routing_mode: str | RoutingMode | None = None,
         response_policy: ResponsePolicy | None = None,
+        include_session_context: bool = True,
     ) -> None:
         if max_steps < 1:
             raise ValueError("max_steps must be greater than or equal to 1")
@@ -144,6 +147,7 @@ class AgentLoop:
         self.on_activity = on_activity
         self.trace = trace
         self.response_policy = response_policy or ResponsePolicy()
+        self.include_session_context = include_session_context
         self._clarification_pending = False
         self._active_task: _ActiveTask | None = None
         self.conversation = self._build_conversation(self.messages)
@@ -252,31 +256,15 @@ class AgentLoop:
         *,
         mutation_workflow: bool,
     ) -> list[ToolDefinition]:
-        """Stop tool loops once a fix has enough repository context."""
+        """Keep inspection available within the task's existing tool permissions."""
 
         if intent is TaskIntent.DIAGNOSE:
-            if (
-                self.conversation.tool_was_used("run_tests")
-                and self.conversation.read_file_paths()
-            ):
-                return [tool for tool in tools if tool.name == "read_file"]
             return [
                 tool
                 for tool in tools
                 if tool.name not in {"validate_patch", "propose_file", "apply_patch"}
             ]
         if mutation_workflow or is_mutation_intent(intent):
-            if intent is TaskIntent.CREATE and not self.conversation.tool_was_used(
-                "propose_file"
-            ):
-                return [tool for tool in tools if tool.name != "validate_patch"]
-            if (
-                self.conversation.tool_was_used("run_tests")
-                and self.conversation.read_file_paths()
-            ):
-                return [
-                    tool for tool in tools if tool.name in {"read_file", "propose_file"}
-                ]
             return [tool for tool in tools if tool.name != "validate_patch"]
         return tools
 
@@ -310,7 +298,11 @@ class AgentLoop:
                 self.trace.mark_started()
         scope = TaskScope(session_messages=self._session_merge_target())
         tools = self._tools_for_task()
-        task_context = build_task_context(task, self.messages)
+        task_context = (
+            build_task_context(task, self.messages)
+            if self.include_session_context
+            else task.strip()
+        )
         intent = self._resolve_intent(task_context)
         active = _ActiveTask(
             scope=scope,
@@ -329,7 +321,7 @@ class AgentLoop:
 
         if active.intent is TaskIntent.DIAGNOSE:
             self._bootstrap_diagnose_workflow(task_context, active.retries)
-        elif task_requests_code_change(task_context):
+        elif is_mutation_intent(intent) or task_requests_code_change(task_context):
             self._bootstrap_code_change_workflow(task_context, active.retries)
         elif self._should_prefetch_repository(intent, task_context, False):
             self._notify_activity("Inspecting repository before first model call...")
@@ -365,7 +357,7 @@ class AgentLoop:
         )
         self.conversation.append("user", answer)
         tools = self._tools_for_task()
-        active.task_context = build_task_context(answer, self.messages)
+        active.task_context += f"\n\nAdditional user context: {answer.strip()}"
         active.intent = self._resolve_intent(active.task_context)
         active.continuing_after_clarification = True
 
@@ -427,12 +419,28 @@ class AgentLoop:
                     active=active,
                 )
             except LLMError as exc:
+                active.consecutive_model_errors += 1
                 duration_ms = (time.perf_counter() - started) * 1000
                 if self.trace is not None:
                     self.trace.record_step_timing(
                         step, step_limit, "error", duration_ms
                     )
-                    self.trace.record_nudge(f"empty model response: {exc}")
+                    self.trace.record_nudge(f"model error: {exc}")
+                if active.consecutive_model_errors >= 2:
+                    return self._finish(
+                        active,
+                        AgentResult(
+                            success=False,
+                            error=(
+                                "Model failed to return a usable decision twice in "
+                                f"a row: {exc}"
+                            ),
+                            steps=step,
+                            messages=active_messages,
+                            patch_verification=active.patch_verification,
+                            requested_code_change=mutation_workflow,
+                        ),
+                    )
                 last_msg = (
                     self.conversation.messages[-1].content
                     if self.conversation.messages
@@ -448,6 +456,7 @@ class AgentLoop:
                         "Retry with the required structured action for this phase.",
                     )
                 continue
+            active.consecutive_model_errors = 0
             duration_ms = (time.perf_counter() - started) * 1000
             if self.trace is not None:
                 self.trace.record_step_timing(
@@ -485,7 +494,9 @@ class AgentLoop:
                         )
                         continue
                     result = self.conversation.execute_tool(
-                        tool_name, response.arguments
+                        tool_name,
+                        response.arguments,
+                        call_id=response.call_id,
                     )
                     if self.trace is not None:
                         self.trace.record_tool_result(
@@ -514,25 +525,17 @@ class AgentLoop:
                 elif mutation_workflow and not any(
                     tool.name == tool_name for tool in step_tools
                 ):
-                    if tool_name == "search_code":
-                        message = nudge_for_read_file_instead_of_search(
-                            self.conversation.unread_search_code_paths(),
-                            sources_already_read=True,
-                        ).user_message
-                    else:
-                        message = (
-                            "Repository inspection is complete. Only read_file and "
-                            "propose_file are available now. Re-read a loaded file "
-                            "only if needed, then call propose_file with its "
-                            "repository-relative path and complete corrected "
-                            "content. Do not hand-write another diff."
-                        )
+                    allowed = ", ".join(tool.name for tool in step_tools) or "none"
+                    message = (
+                        f"Tool {tool_name!r} is unavailable for this task. "
+                        f"Available tools: {allowed}. Choose an available tool "
+                        "consistent with the user's task contract."
+                    )
                     self.conversation.append_nudge(
                         Conversation.format_tool_call(tool_name, response.arguments),
                         message,
                     )
                     if self.trace is not None:
-                        allowed = ", ".join(tool.name for tool in step_tools) or "none"
                         self.trace.record_tool_result(
                             tool_name,
                             success=False,
@@ -735,9 +738,15 @@ class AgentLoop:
         phase: AgentPhase,
         active: _ActiveTask,
     ) -> LLMResponse:
-        """Call the LLM using CREATE action schema or the normal tool protocol."""
+        """Constrain CREATE and failed mutation retries to a file proposal."""
 
-        if should_use_create_action_schema(
+        correction_required = (
+            self._in_mutation_workflow(active)
+            and active.patch_verification is not None
+            and not active.patch_verification.passed
+            and any(tool.name == "propose_file" for tool in step_tools)
+        )
+        if correction_required or should_use_create_action_schema(
             intent=active.intent,
             layout_known=self.conversation.layout_known(),
             propose_file_succeeded=self.conversation.propose_file_succeeded(),
@@ -752,8 +761,67 @@ class AgentLoop:
                     )
                 from casi.llm.actions import ProposeFileAction
 
-                return complete_action(active_messages, ProposeFileAction)
+                action_messages = (
+                    self._patch_correction_messages(active)
+                    if correction_required
+                    else active_messages
+                )
+                return complete_action(action_messages, ProposeFileAction)
         return self.client.complete(active_messages, step_tools)
+
+    def _patch_correction_messages(self, active: _ActiveTask) -> list[ChatMessage]:
+        """Focus a repair on original files and the most recent rejected patch."""
+
+        messages = [ChatMessage(role="user", content=active.task_context)]
+        history = active.scope.task_messages
+        for index, message in enumerate(history):
+            if message.role == "tool" and message.content.startswith(
+                ("tool=read_file\n", "tool=list_files\n")
+            ):
+                if index > 0 and history[index - 1].role == "assistant":
+                    messages.append(history[index - 1])
+                messages.append(message)
+        for message in reversed(history):
+            if message.role == "assistant" and extract_patch(message.content):
+                messages.append(
+                    ChatMessage(
+                        role="assistant",
+                        content="Latest rejected proposal:\n" + message.content,
+                    )
+                )
+                break
+        verification = active.patch_verification
+        if verification is not None:
+            nudge = nudge_for_patch_correction(
+                "The latest proposal failed verification.",
+                verification.output,
+                failure_kind=verification.failure_kind,
+            )
+            messages.append(
+                ChatMessage(
+                    role="user",
+                    content=(
+                        nudge.user_message
+                        + "\nThe read_file results show the original "
+                        "repository, which has not been modified. Start from that "
+                        "source and make the smallest fix. Preserve original input "
+                        "guards, signatures, and return structure unless they cause "
+                        "the failure. Revert unrelated changes in the rejected "
+                        "proposal. Do not repeat that proposal."
+                    ),
+                )
+            )
+        proposal = self.conversation.last_tool_result("propose_file")
+        if proposal is not None and not proposal.success:
+            messages.append(
+                ChatMessage(
+                    role="user",
+                    content=nudge_for_propose_file_failure(
+                        proposal.error or "propose_file failed"
+                    ).user_message,
+                )
+            )
+        return messages
 
     def _resolve_intent(self, task_context: str) -> TaskIntent:
         if self.profile is not None:
@@ -1033,13 +1101,15 @@ class AgentLoop:
         self._notify_activity(f"Running tool `{tool_name}`...")
         if self._should_redirect_search_to_read(
             tool_name,
+            response.arguments,
             mutation_workflow=mutation_workflow,
             intent=intent,
         ):
             paths = self.conversation.unread_search_code_paths()
             nudge = nudge_for_read_file_instead_of_search(
                 paths,
-                sources_already_read=bool(self.conversation.read_file_paths()),
+                sources_already_read=not paths,
+                allow_patch=mutation_workflow and intent is not TaskIntent.DIAGNOSE,
             )
             if self.trace is not None:
                 self.trace.record_nudge("redirect repeated search_code to read_file")
@@ -1068,7 +1138,11 @@ class AgentLoop:
                 )
                 return
 
-        result = self.conversation.execute_tool(tool_name, response.arguments)
+        result = self.conversation.execute_tool(
+            tool_name,
+            response.arguments,
+            call_id=response.call_id,
+        )
         if self.trace is not None:
             self.trace.record_tool_result(
                 tool_name,
@@ -1170,6 +1244,7 @@ class AgentLoop:
     def _should_redirect_search_to_read(
         self,
         tool_name: str,
+        arguments: dict[str, object],
         *,
         mutation_workflow: bool,
         intent: TaskIntent,
@@ -1184,13 +1259,13 @@ class AgentLoop:
             return False
         if not self.conversation.tool_was_used("run_tests"):
             return False
-        search_calls = sum(
-            1
+        return any(
+            message.tool_call is not None
+            and message.tool_call.name == "search_code"
+            and message.tool_call.success
+            and message.tool_call.arguments == arguments
             for message in self.conversation.messages
-            if message.role == "assistant"
-            and message.content.startswith("Called tool=search_code")
         )
-        return search_calls >= 2
 
     def _handle_clarification(
         self,

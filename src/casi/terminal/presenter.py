@@ -2,19 +2,41 @@
 
 from __future__ import annotations
 
+import subprocess
 import sys
 from collections.abc import Callable, Sequence
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Protocol
 
+from casi.config import settings
 from casi.terminal.diff_view import FileDiffStat, format_compact_diff
 from casi.terminal.fold import fold_output
+from casi.terminal.panel import render_panel
 from casi.terminal.review import review_patch
 from casi.terminal.session_metrics import SessionMetrics
 from casi.terminal.spinner import Spinner
 from casi.terminal.test_summary import format_test_summary
 from casi.terminal.theme import Theme
 from casi.terminal.tree import TreeNode, render_tree
+
+
+def _detect_git_branch(repository: str | Path) -> str | None:
+    try:
+        res = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=str(repository),
+            capture_output=True,
+            text=True,
+            timeout=1.0,
+        )
+        if res.returncode == 0:
+            branch = res.stdout.strip()
+            if branch and branch != "HEAD":
+                return branch
+    except Exception:
+        pass
+    return None
 
 
 class PresenterProtocol(Protocol):
@@ -29,6 +51,15 @@ class PresenterProtocol(Protocol):
     def diff(self, diff_text: str, *, max_lines: int | None = 60) -> None: ...
     def tree(self, nodes: Sequence[TreeNode]) -> None: ...
     def session_summary(self, metrics: SessionMetrics) -> None: ...
+    def panel(
+        self,
+        lines: Sequence[str],
+        *,
+        title: str | None = None,
+        subtitle: str | None = None,
+        width: int | None = None,
+    ) -> None: ...
+    def prompt(self, status: str | None = None) -> str: ...
 
 
 class TerminalPresenter:
@@ -200,3 +231,114 @@ class TerminalPresenter:
     def session_summary(self, metrics: SessionMetrics) -> None:
         """Render session summary metrics tree."""
         self._emit(metrics.format_summary(theme=self.theme))
+
+    def panel(
+        self,
+        lines: Sequence[str],
+        *,
+        title: str | None = None,
+        subtitle: str | None = None,
+        width: int | None = None,
+    ) -> None:
+        """Render a bordered terminal panel."""
+        self._emit(
+            render_panel(
+                lines,
+                title=title,
+                subtitle=subtitle,
+                width=width,
+                theme=self.theme,
+            )
+        )
+
+    def prompt(self, status: str | None = None) -> str:
+        """Render a clean, modern input prompt (e.g. 'casi ❯ ')."""
+        t = self.theme
+        if not t.color_enabled and t.glyphs.prompt == ">":
+            return f"casi [{status}]> " if status else "casi> "
+
+        if status:
+            return (
+                f"\001{t.BRIGHT_CYAN}{t.BOLD}\002casi\001{t.RESET}\002 "
+                f"\001{t.YELLOW}\002[{status}]\001{t.RESET}\002 "
+                f"\001{t.CYAN}\002❯\001{t.RESET}\002 "
+            )
+        return (
+            f"\001{t.BRIGHT_CYAN}{t.BOLD}\002casi\001{t.RESET}\002 "
+            f"\001{t.CYAN}\002❯\001{t.RESET}\002 "
+        )
+
+    def welcome_banner(
+        self,
+        *,
+        repository: str | Path,
+        model: str | None = None,
+        provider: str | None = None,
+        routing_mode: str = "assist",
+    ) -> None:
+        """Render welcoming header card for interactive mode."""
+        repo_name = Path(repository).resolve().name
+        branch = _detect_git_branch(repository)
+        branch_str = f" [git: {branch}]" if branch else ""
+        model_str = model or settings.ollama_model
+        provider_str = provider or settings.llm_provider
+        sandbox_str = (
+            f"Docker isolated ({settings.docker_image})"
+            if settings.use_docker_sandbox
+            else "Local fallback (unisolated)"
+        )
+
+        t = self.theme
+        cyan = t.BRIGHT_CYAN if t.color_enabled else ""
+        reset = t.RESET if t.color_enabled else ""
+        bold = t.BOLD if t.color_enabled else ""
+        dim = t.DIM if t.color_enabled else ""
+
+        lines = [
+            f"{cyan}{bold}  ____ ___    _____ ____ {reset}",
+            (
+                f"{cyan}{bold} / __//   |  / ___//  _/ {reset}  "
+                f"{bold}CASI • Local AI Software Engineer{reset}"
+            ),
+            (
+                f"{cyan}{bold}/ /  / /| |  \\__ \\ / /   {reset}  "
+                f"{dim}Model   :{reset} {bold}{model_str}{reset} "
+                f"{dim}({provider_str} • {routing_mode}){reset}"
+            ),
+            (
+                f"{cyan}{bold}/ /__/ ___ | ___/ // /   {reset}  "
+                f"{dim}Sandbox :{reset} {sandbox_str}"
+            ),
+            (
+                f"{cyan}{bold}\\___/_/  |_|/____//___/  {reset}  "
+                f"{dim}Repo    :{reset} {bold}{repo_name}{reset}"
+                f"{dim}{branch_str}{reset}"
+            ),
+            "",
+            (
+                f" {dim}Guard   :{reset} "
+                f"apply_patch requires human confirmation [y/N/v/save/?]"
+            ),
+            (
+                f" {dim}Commands:{reset} {bold}/help{reset} • {bold}/status{reset} • "
+                f"{bold}/explain{reset} • {bold}/diff{reset} • "
+                f"{bold}/undo{reset} • {bold}/exit{reset}"
+            ),
+            (
+                f" {dim}Hint    :{reset} "
+                f"Type {bold}@file{reset} to autocomplete paths with Tab"
+            ),
+        ]
+        self.panel(lines, title="CASI", subtitle="v0.1.0")
+
+    def status_card(
+        self,
+        items: dict[str, str],
+        *,
+        title: str = "System Status",
+    ) -> None:
+        """Render key-value system status information."""
+        lines = [
+            f"• {key.ljust(13)}: {self.theme.bold(val)}" for key, val in items.items()
+        ]
+        self.panel(lines, title=title)

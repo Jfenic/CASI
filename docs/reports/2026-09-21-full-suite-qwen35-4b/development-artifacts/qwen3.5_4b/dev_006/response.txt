@@ -1,0 +1,52 @@
+--- a/settings.py
++++ b/settings.py
+@@ -1,4 +1,47 @@
+ def merge_settings(defaults, overrides):
+-    result = defaults.copy()
+-    result.update(overrides)
++    """
++    Recursively merge dictionaries.
++    - Nested dicts are merged recursively
++    - Other values (including None, lists) completely replace defaults
++    - Returns a deep copy so mutating result doesn't affect inputs
++    """
++
++    def deep_copy(value):
++        if value is None:
++            return None
++        elif isinstance(value, dict):
++            return {k: deep_copy(v) for k, v in value.items()}
++        elif isinstance(value, list):
++            return [deep_copy(item) for item in value]
++        else:
++            return value
++
++    result = {}
++
++    # Copy all defaults values (deep copy for mutable types)
++    for key, value in defaults.items():
++        if isinstance(value, dict):
++            merged_key_value = deep_copy(value)
++            override_value = overrides.get(key, {})
++            if isinstance(override_value, dict):
++                # Recursively merge nested dicts
++                result[key] = merge_settings(merged_key_value, override_value)
++            else:
++                # Non-dict override replaces the entire value
++                result[key] = deep_copy(value)
++        else:
++            result[key] = deep_copy(value)
++
++    # Process override values - they always replace or recursively merge
++    for key, value in overrides.items():
++        if key not in result:
++            # First occurrence in overrides - use it as-is (deep copied)
++            result[key] = deep_copy(value)
++        elif isinstance(result[key], dict) and isinstance(value, dict):
++            # Both are dicts - recursively merge
++            result[key] = merge_settings(result[key], value)
++        else:
++            # Override completely replaces the existing value
++            result[key] = deep_copy(value)
++
+     return result

@@ -1,0 +1,28 @@
+.F.                                                                      [100%]
+=================================== FAILURES ===================================
+________________________ test_empty_refit_and_unfitted _________________________
+
+    def test_empty_refit_and_unfitted():
+        with pytest.raises(ValueError):
+            Encoder().transform([])
+        model = Encoder().fit(["a"])
+        model.fit(["b"])
+        assert model.transform(["a", "b"]) == [[0], [1]]
+        model.fit([])
+>       result = model.transform(["x", "y"])
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+_benchmark_checks/test_acceptance.py:26: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <encoding.Encoder object at 0x7ff789840450>, values = ['x', 'y']
+
+    def transform(self, values):
+        if not hasattr(self, "categories") or len(self.categories) == 0:
+>           raise ValueError("not fitted")
+E           ValueError: not fitted
+
+encoding.py:13: ValueError
+=========================== short test summary info ============================
+FAILED _benchmark_checks/test_acceptance.py::test_empty_refit_and_unfitted - ...
+1 failed, 2 passed in 0.02s

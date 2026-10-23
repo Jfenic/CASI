@@ -119,7 +119,9 @@ def test_fix_pipeline_requires_propose_file_after_loading_sources() -> None:
     assert "do not write the diff yourself" in nudge.user_message
 
 
-def test_missing_local_module_paths_detects_imported_file(tmp_path: Path) -> None:
+def test_missing_local_module_paths_does_not_guess_import_is_local(
+    tmp_path: Path,
+) -> None:
     (tmp_path / "test_stats.py").write_text(
         "from stats import mean\n\ndef test_mean():\n    assert mean([1, 2, 3]) == 2\n",
         encoding="utf-8",
@@ -129,6 +131,11 @@ def test_missing_local_module_paths_detects_imported_file(tmp_path: Path) -> Non
 
     missing = missing_local_module_paths(tmp_path, ["test_stats.py"])
 
+    assert missing == []
+
+    missing = missing_local_module_paths(
+        tmp_path, ["test_stats.py"], task_context="Create the missing stats.py module"
+    )
     assert missing == ["stats.py"]
 
 
@@ -205,3 +212,85 @@ def test_repair_context_paths_includes_source_from_failed_test(tmp_path: Path) -
 
     assert "test_sorter.py" in paths
     assert "sorter.py" in paths
+
+
+def test_overview_discovers_documentation_without_assuming_readme_md(
+    tmp_path: Path,
+) -> None:
+    from casi.agent.pipelines import run_overview_pipeline
+
+    calls: list[tuple[str, dict[str, object]]] = []
+
+    def execute(name: str, arguments: dict[str, object]) -> ToolResult:
+        calls.append((name, arguments))
+        return ToolResult(success=True, output="src/app.py\nreadme.rst\ndocs/README.md")
+
+    run_overview_pipeline(execute)
+    assert calls == [("list_files", {}), ("read_file", {"path": "readme.rst"})]
+
+    calls.clear()
+    run_overview_pipeline(
+        lambda name, args: (
+            calls.append((name, args)) or ToolResult(success=True, output="src/app.py")
+        )
+    )
+    assert calls == [("list_files", {})]
+
+
+def test_fix_context_resolves_configured_source_and_relative_imports(
+    tmp_path: Path,
+) -> None:
+    from casi.agent.pipelines import run_fix_pipeline
+
+    (tmp_path / "pyproject.toml").write_text(
+        '[tool.pytest.ini_options]\npythonpath = ["lib"]\n'
+        'python_files = ["check_*.py"]\n'
+    )
+    package = tmp_path / "lib" / "shop"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("")
+    (package / "totals.py").write_text("from . import rates\nTOTAL = rates.RATE\n")
+    (package / "rates.py").write_text("RATE = 1\n")
+    checks = tmp_path / "checks"
+    checks.mkdir()
+    (checks / "check_totals.py").write_text(
+        "from shop.totals import TOTAL\n\ndef test_total():\n    assert TOTAL == 2\n"
+    )
+    calls: list[tuple[str, dict[str, object]]] = []
+
+    def execute(name: str, args: dict[str, object]) -> ToolResult:
+        calls.append((name, args))
+        return ToolResult(success=True, output="")
+
+    assert run_fix_pipeline("Fix the totals", execute, repository_path=tmp_path) == []
+    reads = [args["path"] for name, args in calls if name == "read_file"]
+    assert reads == [
+        "checks/check_totals.py",
+        "lib/shop/totals.py",
+        "lib/shop/__init__.py",
+        "lib/shop/rates.py",
+    ]
+
+
+def test_src_layout_and_unknown_dependency_do_not_trigger_module_creation(
+    tmp_path: Path,
+) -> None:
+    from casi.agent.pipelines import missing_local_module_paths, repair_context_paths
+
+    package = tmp_path / "src" / "shop"
+    package.mkdir(parents=True)
+    (package / "cart.py").write_text("TOTAL = 1\n")
+    (tmp_path / "cart_test.py").write_text(
+        "from shop.cart import TOTAL\nimport external_service_sdk\n"
+    )
+    output = "FAILED cart_test.py::test_total - AssertionError"
+    assert repair_context_paths(output, tmp_path) == [
+        "cart_test.py",
+        "src/shop/cart.py",
+    ]
+    assert (
+        missing_local_module_paths(
+            tmp_path, ["cart_test.py"], task_context="Fix cart.py"
+        )
+        == []
+    )

@@ -105,12 +105,14 @@ def test_repair_context_excludes_external_traceback_paths(tmp_path):
     assert repair_context_paths(output, tmp_path) == ["test_app.py", "app.py"]
 
 
-def test_missing_modules_excludes_standard_library_and_installed_packages(tmp_path):
+def test_missing_modules_only_suggests_task_named_files(tmp_path):
     (tmp_path / "test_app.py").write_text(
         "import json\nimport pytest\nfrom collections import deque\n"
         "from missing_app import value\n"
     )
-    assert missing_local_module_paths(tmp_path, ["test_app.py"]) == ["missing_app.py"]
+    assert missing_local_module_paths(
+        tmp_path, ["test_app.py"], task_context="Create missing_app.py"
+    ) == ["missing_app.py"]
 
 
 def test_create_python_with_trailing_blank_lines_produces_applicable_patch(tmp_path):

@@ -1,0 +1,26 @@
+--- a/encoding.py
++++ b/encoding.py
+@@ -1,11 +1,18 @@
+ class Encoder:
+     def fit(self, values):
+-        self.categories = sorted(set(values))
++        self.categories = []
++        seen = set()
++        for value in values:
++            if value not in seen:
++                self.categories.append(value)
++                seen.add(value)
+         return self
+ 
+     def transform(self, values):
+-        if not hasattr(self, "categories"):
++        if not hasattr(self, "categories") or len(self.categories) == 0:
+             raise ValueError("not fitted")
+-        return [
+-            [int(value == category) for category in self.categories] for value in values
+-        ]
++        result = []
++        for value in values:
++            row = [1 if value == category else 0 for category in self.categories]
++            result.append(row)
++        return result

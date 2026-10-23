@@ -1,0 +1,51 @@
+--- a/safe_path.py
++++ b/safe_path.py
+@@ -1,7 +1,47 @@
+ """Safe path resolution — prevent directory traversal (path traversal / LFI classic)."""
+ 
++import os
+ from pathlib import Path
+ 
+ 
+ def safe_join(base_dir: str, user_path: str) -> str:
+-    return str(Path(base_dir) / user_path)
++    """Join base_dir and user_path safely.
++
++    Prevents path traversal attacks by ensuring resolved paths never escape base_dir.
++    Rejects absolute paths outside base_dir and any path containing '..' that would escape.
++
++    Args:
++        base_dir: The base directory path
++        user_path: The user-provided path component
++
++    Returns:
++        The joined canonical path string
++
++    Raises:
++        ValueError: If the resolved path escapes base_dir, or if paths contain invalid traversal sequences
++    """
++    # Validate inputs are strings
++    if not isinstance(base_dir, str) or not isinstance(user_path, str):
++        raise TypeError("base_dir and user_path must be strings")
++
++    # Base directory must exist for validation to work
++    base_dir_path = Path(base_dir).resolve()
++
++    # Check for absolute path traversal attempts in user_path
++    # Reject if user_path contains '..' sequences
++    if '..' in user_path:
++        raise ValueError("Path traversal not allowed")
++
++    # Join the paths first, then resolve to canonical form
++    joined_path = Path(base_dir) / user_path
++    resolved_joined = joined_path.resolve()
++
++    # Verify the resolved path stays within base_dir
++    try:
++        if not resolved_joined.is_relative_to(base_dir_path):
++            raise ValueError("Resolved path escapes base directory")
++    except ValueError:
++        # is_relative_to raises ValueError when path is not relative
++        raise ValueError("Resolved path escapes base directory")
++
++    return str(resolved_joined)

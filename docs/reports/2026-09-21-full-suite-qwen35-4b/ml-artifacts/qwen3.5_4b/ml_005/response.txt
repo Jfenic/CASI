@@ -1,0 +1,30 @@
+--- a/encode.py
++++ b/encode.py
+@@ -1,10 +1,25 @@
+-def one_hot_encode(labels):
++
++#!/usr/bin/env python3
++from typing import List
++
++
++def one_hot_encode(labels: List[int]) -> List[List[int]]:
+     if not labels:
+         return []
+-    num_classes = max(labels)
++
++    max_label = max(labels)
++    num_classes = max_label + 1
++
+     rows = []
+     for label in labels:
+         row = [0] * num_classes
+         row[label] = 1
+         rows.append(row)
++
+     return rows
++
++
++# Example usage:
++# one_hot_encode([0, 2, 1]) returns [[1, 0, 0], [0, 0, 1], [0, 1, 0]]
++# one_hot_encode([]) returns []
++# Labels are treated as class indices 0..max_label

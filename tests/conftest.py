@@ -10,7 +10,9 @@ from pathlib import Path
 import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-os.environ.setdefault("PYTEST_DEBUG_TEMPROOT", str(PROJECT_ROOT / ".pytest-tmp"))
+_default_tmp = str(PROJECT_ROOT / "build" / "pytest-tmp")
+_pytest_tmp = Path(os.environ.setdefault("PYTEST_DEBUG_TEMPROOT", _default_tmp))
+_pytest_tmp.mkdir(parents=True, exist_ok=True)
 SRC_DIR = PROJECT_ROOT / "src"
 
 if str(SRC_DIR) not in __import__("sys").path:

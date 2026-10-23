@@ -133,10 +133,23 @@ class InteractiveSession:
                 "response appears."
             )
 
+    def _show_welcome_banner(self) -> None:
+        if self.presenter is None:
+            return
+        model = getattr(self.client, "model", None) or settings.ollama_model
+        provider = getattr(self.client, "provider_name", None) or settings.llm_provider
+        self.presenter.welcome_banner(
+            repository=self.repository,
+            model=model,
+            provider=provider,
+            routing_mode=self.routing_mode,
+        )
+
     def run(self) -> int:
         """Start the session and return a process-style exit code."""
 
         if self.presenter is not None:
+            self._show_welcome_banner()
             self.presenter.agent("CASI interactive mode. Type /help for commands.")
         else:
             self._emit("CASI interactive mode. Type /help for commands.")
@@ -144,12 +157,8 @@ class InteractiveSession:
         while True:
             try:
                 if self.presenter is not None:
-                    prompt_label = (
-                        "Answer (/plan, /cancel)> "
-                        if self._awaiting_clarification
-                        else "CASI> "
-                    )
-                    prompt = self.presenter.theme.user(prompt_label)
+                    status_lbl = "clarify" if self._awaiting_clarification else None
+                    prompt = self.presenter.prompt(status=status_lbl)
                 else:
                     prompt = (
                         "Answer (/plan, /cancel)> "
@@ -367,6 +376,40 @@ class InteractiveSession:
             self.presenter.session_summary(self.metrics)
         else:
             self._emit(self.metrics.format_summary())
+
+    def _show_status(self) -> None:
+        repo_path = Path(self.repository).resolve()
+        model = getattr(self.client, "model", None) or settings.ollama_model
+        provider = getattr(self.client, "provider_name", None) or settings.llm_provider
+        pids = settings.docker_pids_limit
+        sandbox = (
+            f"Docker ({settings.docker_image}, pids={pids})"
+            if settings.use_docker_sandbox
+            else "Local fallback (unisolated)"
+        )
+        undo_count = len(self._undo_stack)
+        msgs_count = len(self.messages)
+
+        from casi.terminal.presenter import _detect_git_branch
+
+        branch = _detect_git_branch(repo_path)
+        status_items = {
+            "Repository": str(repo_path),
+            "Git Branch": branch or "not a git repo",
+            "Provider": provider,
+            "Model": model,
+            "Routing": self.routing_mode,
+            "Sandbox": sandbox,
+            "Undo Stack": f"{undo_count} patch(es) recorded",
+            "Context": f"{msgs_count} messages in conversation",
+        }
+
+        if self.presenter is not None:
+            self.presenter.status_card(status_items, title="System Status")
+        else:
+            self._emit("[status] Active Environment:")
+            for k, v in status_items.items():
+                self._emit(f"[status] {k}: {v}")
 
     def _show_session_summary_if_active(self) -> None:
         if self.metrics.turns_completed > 0:
@@ -718,6 +761,8 @@ class InteractiveSession:
                 "/undo  Revert the last applied patch in this session\n"
                 "/history  Show tasks from this session\n"
                 "/stats  Show session summary metrics\n"
+                "/status  Show active environment and sandbox status\n"
+                "/doctor  Run environment and sandbox diagnostic check\n"
                 "/context  Show the conversation thread sent to the model\n"
                 "/compact [instrucciones]  Summarize older context "
                 f"(warn from {warn_at} msgs)\n"
@@ -751,6 +796,20 @@ class InteractiveSession:
             return False
         if name in {"/stats", "/metrics"}:
             self._show_metrics()
+            return False
+        if name == "/status":
+            self._show_status()
+            return False
+        if name == "/doctor":
+            from casi.doctor import run_doctor
+
+            run_doctor(
+                self.repository,
+                provider=getattr(self.client, "provider_name", None),
+                model=getattr(self.client, "model", None),
+                presenter=self.presenter,
+                output_fn=self._emit,
+            )
             return False
         if name == "/trace":
             argument = remainder.strip().lower()

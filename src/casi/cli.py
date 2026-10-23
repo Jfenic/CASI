@@ -321,6 +321,27 @@ def build_parser() -> argparse.ArgumentParser:
         help="Suppress per-task progress output.",
     )
 
+    doctor_parser = subparsers.add_parser(
+        "doctor",
+        help="Check system requirements, Ollama server, and Docker sandbox.",
+    )
+    doctor_parser.add_argument(
+        "--repo",
+        default=".",
+        help="Repository path to check (default: current directory).",
+    )
+    doctor_parser.add_argument(
+        "--provider",
+        choices=("ollama", "openai"),
+        default=None,
+        help="LLM provider: 'ollama' or 'openai'.",
+    )
+    doctor_parser.add_argument(
+        "--model",
+        default=None,
+        help="Model name to check.",
+    )
+
     return parser
 
 
@@ -732,6 +753,16 @@ def main(argv: list[str] | None = None) -> int:
                 quiet=args.quiet,
                 provider=getattr(args, "provider", None),
             )
+
+        if args.command == "doctor":
+            from casi.doctor import run_doctor
+
+            ok = run_doctor(
+                args.repo,
+                provider=args.provider,
+                model=args.model,
+            )
+            return 0 if ok else 1
 
         parser.error(f"Unknown command: {args.command}")
     except CasiError as exc:

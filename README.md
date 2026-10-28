@@ -5,7 +5,8 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Local LLM](https://img.shields.io/badge/LLM-Ollama%20%7C%20OpenAI-orange.svg)](https://ollama.ai)
 [![Sandbox](https://img.shields.io/badge/sandbox-Docker%20isolated-2496ED.svg)](https://www.docker.com/)
-[![Benchmark](https://img.shields.io/badge/dev%20benchmark-91.7%25%20pass-success.svg)](docs/reports/2026-09-18-development-orchestration.md)
+[![Benchmark](https://img.shields.io/badge/benchmark-82.9%25%20(63%2F76)-success.svg)](docs/reports/2026-09-21-full-benchmark-report.md)
+[![Fix Suite](https://img.shields.io/badge/fix%20suite-100%25%20(7%2F7)-brightgreen.svg)](docs/reports/2026-09-21-full-benchmark-report.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 CASI is an open-source, local agent designed for supervised repository work. It inspects your codebase, diagnoses issues, proposes multi-file patches, verifies changes in a sandboxed Docker container, and **never touches your real files without explicit human approval**.
@@ -203,8 +204,8 @@ Requires **Python 3.11+**.
 
 ```bash
 # Clone the repository
-git clone https://github.com/fenic/casi-code-agent.git
-cd casi-code-agent
+git clone https://github.com/Jfenic/CASI.git
+cd CASI
 
 # Install with API and UI extras
 pip install -e ".[api,ui]"
@@ -268,7 +269,7 @@ max_steps = 15
 
 ## 🧪 Development & Benchmark Suite
 
-CASI includes an independent acceptance benchmark suite with 12 complex real-world tasks (ML algorithms, CSV parsing, dependency graphs, slug sanitization, API contracts).
+CASI includes an extensive acceptance benchmark suite with 76 tasks across 9 evaluation tracks (Security, General, Fundamentals, ML, Development, Diagnosis, and Capabilities v2). The complete suite achieves an **82.89% task pass rate** (63/76) and **90.79% agent success rate** on local models, with a **100% pass rate** on bug-fixing tasks ([full benchmark report](docs/reports/2026-09-21-full-benchmark-report.md)).
 
 ```bash
 # Sync dependencies

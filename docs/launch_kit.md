@@ -15,7 +15,7 @@ Show HN: CASI – A local code agent that tests in Docker before asking approval
 
 **Post Body**:
 ```text
-Hi HN! We built CASI (Code Agent for Software Inspection), a local Python coding agent designed for supervised repository work: https://github.com/fenic/casi-code-agent
+Hi HN! We built CASI (Code Agent for Software Inspection), a local Python coding agent designed for supervised repository work: https://github.com/Jfenic/CASI
 
 Like many here, we love the productivity of AI coding assistants, but we grew uncomfortable with two recurring problems in existing agents:
 1. Cloud telemetry and code exfiltration (sending private proprietary codebases to remote servers).
@@ -31,14 +31,14 @@ CASI takes the opposite, "zero-trust" approach:
 
 We also added a built-in health check (`casi doctor` / `/doctor`) to verify your local Ollama instance, Docker sandbox image, and git workspace in under a second.
 
-On our independent development acceptance suite (12 real-world tasks covering ML algorithms, dependency graphs, CSV parsing, and API contracts), CASI achieves a 91.7% pass rate on qwen3.5:4b without weakening grader rubrics.
+On our independent acceptance benchmark suite (76 tasks covering Security, ML, API contracts, dependency graphs, and code repair), CASI achieves an 82.9% pass rate overall (and 100% on bug fixes) on local qwen3.5:4b without weakening grader rubrics.
 
 CLI, interactive REPL mode, and a visual Streamlit web UI (over a FastAPI backend) are all included.
 
 We’d love to hear your feedback, thoughts on the safety model, and feature requests!
 
-Repo: https://github.com/fenic/casi-code-agent
-Architecture doc: https://github.com/fenic/casi-code-agent/blob/main/ARCHITECTURE.md
+Repo: https://github.com/Jfenic/CASI
+Architecture doc: https://github.com/Jfenic/CASI/blob/main/ARCHITECTURE.md
 ```
 
 ---
@@ -57,7 +57,7 @@ CASI: Open-source local code agent (Ollama) with Docker sandbox verification and
 Hey everyone,
 
 I've been working on **CASI**, an open-source, local-first code agent that runs on consumer hardware via Ollama:
-👉 GitHub: https://github.com/fenic/casi-code-agent
+👉 GitHub: https://github.com/Jfenic/CASI
 
 ### The Motivation
 Most agentic tools either require cloud API keys or run commands directly on your bare-metal machine without safety boundaries. If the LLM hallucinates a command or tries to pull an untrusted package, your machine is at risk.
@@ -81,7 +81,7 @@ casi doctor
 casi interactive --repo .
 ```
 
-It also includes an independent benchmark suite where it scores 11/12 (91.7%) with `qwen3.5:4b`.
+It also includes an independent benchmark suite of 76 tasks where it scores 82.9% overall and 100% on bug fixing with `qwen3.5:4b`.
 
 Feedback, contributions, and PRs are very welcome!
 ```
@@ -126,8 +126,8 @@ The new interactive CLI feels like Claude Code / Antigravity:
 
 **Tweet 4 (CTA)**:
 ```text
-CASI is free, open-source (MIT), and scores 91.7% on independent software development benchmarks.
+CASI is free, open-source (MIT), and scores 82.9% across 76 tasks on independent software development benchmarks (100% on bug fixing).
 
-⭐ Star on GitHub: https://github.com/fenic/casi-code-agent
-📖 Documentation: https://fenic.github.io/casi/
+⭐ Star on GitHub: https://github.com/Jfenic/CASI
+📖 Documentation: https://jfenic.github.io/CASI/
 ```
